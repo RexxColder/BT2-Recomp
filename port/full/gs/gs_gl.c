@@ -500,6 +500,11 @@ static void target_ensure(int i) {
     glGenTextures(1, &sTgAux[i]);
     glBindTexture(GL_TEXTURE_2D, sTgAux[i]);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, GS_W * SCALE, GS_H * SCALE, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    /* One level only: a texture left with the default (mipmapped) minifying filter and no other levels is
+       incomplete, and glCopyImageSubData refuses it (GL_INVALID_OPERATION). Every DATE snapshot failed that way
+       and the HUD's masks never cut a bar (health, ki, power, radar always drawn full). Drawing never showed it
+       because draws sample through sampler objects. */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
     glGenTextures(1, &sTgDep[i]);
     glBindTexture(GL_TEXTURE_2D, sTgDep[i]);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, GS_W * SCALE, GS_H * SCALE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -582,12 +587,15 @@ static void copies_create(void) {
     glGenTextures(1, &sDateCopy);
     glBindTexture(GL_TEXTURE_2D, sDateCopy);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, GS_W * SCALE, GS_H * SCALE, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0); /* complete, for glCopyImageSubData */
     glGenTextures(1, &sAuxCopy);
     glBindTexture(GL_TEXTURE_2D, sAuxCopy);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, GS_W * SCALE, GS_H * SCALE, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0); /* complete, for glCopyImageSubData */
     glGenTextures(1, &sSelfCopy);
     glBindTexture(GL_TEXTURE_2D, sSelfCopy);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, GS_W * SCALE, GS_H * SCALE, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0); /* complete, for glCopyImageSubData */
 }
 
 static void scale_changed(void) {
