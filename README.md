@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/logo.png" width="420" alt="Dragon Ball Z: Budokai Tenkaichi 2"></p>
+<p align="center"><img src="logo.png" width="100%" alt="Dragon Ball Z: Budokai Tenkaichi 2"></p>
 
 # BT2-Recomp
 
@@ -103,8 +103,7 @@ scripts/capped.sh 8G python3 port/tools/link_full.py
 
 La vía planificada es **mingw-w64 cruzado desde Linux**, igual que Tenkaichi3Decomp. **MSVC no** es viable: el
 enlace usa ~6.200 símbolos absolutos y la RAM de la PS2 mapeada en la dirección 0 del proceso. Los bloqueantes
-conocidos están en `port/full/mem.c` (`mmap` en 0, `ucontext`, `sigaction`). Plan y fases:
-[`staging/F10_build_windows.md`](staging/F10_build_windows.md).
+conocidos están en `port/full/mem.c` (`mmap` en 0, `ucontext`, `sigaction`). El plan de fases vive en el árbol de trabajo (no versionado).
 
 ### Otras plataformas
 
@@ -189,7 +188,7 @@ propios; los bindings se cambian desde la pestaña Controls de F1.
 | Plataforma / función | Estado |
 |---|---|
 | Linux x86-64 | ✅ soportado |
-| Windows | ❌ en progreso (plan en `staging/F10_build_windows.md`) |
+| Windows | ❌ en progreso (plan en el árbol de trabajo) |
 | Multijugador / split-screen | ⚠️ implementado, sin verificar a fondo |
 | Multiidioma | ✅ con ISO PAL |
 | Instalador / setup app | ✅ nativo, GUI + consola (`setup/`) |
@@ -198,7 +197,7 @@ propios; los bindings se cambian desde la pestaña Controls de F1.
 
 ## Estado / limitaciones conocidas
 
-El detalle vivo está en [`docs/ESTADO.md`](docs/ESTADO.md). Resumen:
+El detalle de bugs/features vive en el árbol de trabajo (no versionado). Resumen:
 
 - **Abiertos conocidos:** B30 (la niebla por profundidad del pase `dclut` en GL usa mal la escala de z), la
   niebla/fade del borde del mundo (F1 de features) y el build de Windows.
