@@ -1,0 +1,31 @@
+--- a/port/tools/link_full.py
++++ b/port/tools/link_full.py
+@@ -25,11 +25,18 @@
+ HEX = re.compile(r"^(func|D|jtbl)_([0-9A-Fa-f]{6,8})$")
+ 
+ 
++# 0x300000..GAME_END es codigo del juego (Hud_Term 303B48, BtlGame_Term 303C48, BtlPause_Term 303C78,
++# BtlEvent_SetWaitOff 306E08, BtlFacade_BeginWait 306EF8...) y middleware CRI (ADXF_*, LSC_ExecServer): no SDK.
++# El primer simbolo del SDK/libm por encima es atanf (0x30CF58, config/symbols/sdk.txt).
++GAME_END = 0x30C7B8
++
++
+ def region(a):
+     if a >= OVL_LO: return "overlay"
+     if a < 0x2D0000: return "juego<2D0000"
+     if a < 0x300000: return "2D0000-300000"
+-    if a < 0x33B5F8: return "SDK 300000-33B5F8"
++    if a < GAME_END: return "juego+CRI 300000-30C7B8"
++    if a < 0x33B5F8: return "SDK 30C7B8-33B5F8"
+     return "otra"
+ 
+ 
+@@ -365,7 +372,7 @@
+         stubsym[a] = f"func_{a:08X}" if f"func_{a:08X}" not in defined and f"func_{a:08X}" not in stubs else f"stubx_{a:08X}"
+         extra.append(a)
+     for a, s in stubsym.items(): tbl[a] = s
+-    GAME_END = 0x30C7B8   # por encima empieza el SDK / libc / libm (lo de abajo es C del juego + CRI que aun no existe)
++    # GAME_END (modulo): por encima empieza el SDK / libc / libm (lo de abajo es C del juego + CRI que aun no existe)
+     thunks = 0
+     fb, fb_objs, nfwd, nfail = {}, [], 0, 0   # addr -> (simbolo, archivo .cpp): funciones sin C que corre el relleno (PS2Recomp)
+     if FALLBACK:

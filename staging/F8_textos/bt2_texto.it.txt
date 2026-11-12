@@ -1,0 +1,64 @@
+# F8: testi del dialogo memory card in italiano (proposta, NON installato).
+# Stesso formato di BT2-test/bt2_texto.txt:  MSG=testo  con \n per l'a capo.
+# Verificato contro gli slot della tabella 0x550/0xFCC80 (49 voci) e font0:
+#   - ogni MSG entra nel suo slot UTF-16;
+#   - nessuna riga supera 429 px; massimo 5 righe.
+# font0 (AFS 0x542) ha à è é ì ò ù e i caratteri accentati latini.
+# Per provare: copiare in BT2-test/ come bt2_texto.txt (prima salvare l'attuale).
+#
+# --- titoli del pannello (non disegnati, ma tradotti) ---
+0=File di salvataggio
+1=File di salvataggio
+2=Slot 1 e 2 di\nsalvataggio
+
+# --- domande ---
+3=Le impostazioni attuali\nandranno perse. OK?
+4=Le impostazioni attuali\nandranno perse. Caricare?
+5=Nessun salvataggio.
+6=Spazio insufficiente.\nContinuare lo stesso?
+7=Salvataggio non trovato.
+9=Caricamento fallito.
+11=Creare un salvataggio?
+13=Salvataggio non trovato.\nCrearlo?
+16=Spazio insufficiente.\nServono 75 KB.
+17=Spazio insufficiente.\nContinuare lo stesso?
+21=Salvataggio esistente.\nSovrascriverlo?
+22=Sovrascrivere il file?
+23=Salvataggio fallito.\nSovrascrivere lo stesso?
+24=Salvataggio modificato.\nSovrascriverlo?
+25=Caricamento fallito.\nIl file può essere corrotto.
+26=Nessun salvataggio.
+27=Salvare?
+28=Salvare i dati?
+31=Salvataggio fallito.
+32=Salvare ora?
+36=Iniziare senza salvare?
+37=Salvare le impostazioni?
+38=Eliminare il salvataggio?
+40=Eliminazione fallita.
+42=Lettura salvataggio...
+43=Lettura salvataggio...
+44=Salvataggio non trovato.
+45=Il salvataggio è corrotto.
+47=Uscire senza salvare?
+48=Uscire?
+
+# --- stati (durante il lavoro) ---
+8=Caricamento salvataggio
+12=Creazione salvataggio
+18=Creazione salvataggio
+29=Salvataggio in corso
+33=Verifica salvataggio
+34=Verifica salvataggio
+41=Eliminazione salvataggio
+46=Verifica salvataggio
+
+# --- risultati (brevi) ---
+10=Caricamento riuscito
+14=Salvataggio creato
+15=Creazione fallita
+19=Salvataggio creato
+20=Creazione fallita
+30=Salvataggio riuscito
+35=Salvataggio fallito.
+39=Salvataggio eliminato

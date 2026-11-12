@@ -1,0 +1,10 @@
+EftTech_UpdateShots = 0x001729B0; // type:func
+GsPkt_EmitColorVert = 0x0019FC08; // type:func
+Obj_UpdateOrient = 0x001AEF80; // type:func
+EftShotFx_AddLine = 0x001B5A70; // type:func
+EftParticle_Spawn = 0x001D6348; // type:func
+Obj_UpdateScaleVecs = 0x001E0EA0; // type:func
+BtlChar_UpdateLockFx = 0x00213310; // type:func
+BtlCam_TraceStage = 0x0025C458; // type:func
+GsPkt_EmitStrips = 0x002784E0; // type:func
+BtlRand_PickEntry = 0x002B4838; // type:func

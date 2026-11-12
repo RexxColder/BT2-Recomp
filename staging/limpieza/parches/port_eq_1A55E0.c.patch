@@ -1,0 +1,10 @@
+--- a/port/eq/1A55E0.c
++++ b/port/eq/1A55E0.c
+@@ -81,7 +81,5 @@
+     func_00129C28(s0 + 0x30, arg1, W(arg1, 0x2C));
+     func_00129C28(s0 + 0x40, arg1 + 0x10);
+     func_001A5A48(s0);
+-    { static int n; if (n++ < 30) bt2_fightlog_note("CHISPA-INIT tipo %d modo %d alto %g esc74 %g esc50 %g tex14 %x tex10 %x col %02x%02x%02x", /* TEMP */
+-        W(arg1, 0x28), a2, f2, FL(s0, 0x74), FL(s0, 0x50), W(s0, 0x14), W(s0, 0x10), B8(s0, 0x6F), B8(s0, 0x70), B8(s0, 0x71)); }
+     SpuBlock_Clear(s0);
+ }

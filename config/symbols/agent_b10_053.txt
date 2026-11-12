@@ -1,0 +1,1 @@
+EftTrail_StartOwned = 0x001A64B0; // type:func

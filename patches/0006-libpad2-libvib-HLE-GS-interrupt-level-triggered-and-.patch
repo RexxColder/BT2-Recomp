@@ -1,0 +1,518 @@
+From fa5d6d3bcbd5ae547b6f3151021f5d241388a000 Mon Sep 17 00:00:00 2001
+From: RexxColder <palettafacundo@gmail.com>
+Date: Thu, 8 Oct 2026 10:23:05 -0300
+Subject: [PATCH 6/9] libpad2/libvib HLE; GS interrupt level-triggered and
+ synchronous; empty DMA chains complete; IRQ/pad traces
+
+---
+ ps2xRuntime/include/ps2_call_list.h          |   9 ++
+ ps2xRuntime/include/runtime/ee_scheduler.h   |   8 +
+ ps2xRuntime/include/runtime/gs/gs_frontend.h |   2 +
+ ps2xRuntime/include/runtime/ps2_memory.h     |   4 +
+ ps2xRuntime/src/lib/Kernel/EeScheduler.cpp   |  48 +++++-
+ ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp     |  14 ++
+ ps2xRuntime/src/lib/Kernel/Stubs/Pad.h       |   2 +
+ ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp    | 158 +++++++++++++++++++
+ ps2xRuntime/src/lib/Kernel/Stubs/Pad2.h      |  18 +++
+ ps2xRuntime/src/lib/gs/gs_frontend.cpp       |  20 +++
+ ps2xRuntime/src/lib/ps2_memory.cpp           |  16 +-
+ ps2xRuntime/src/lib/ps2_runtime.cpp          |   5 +-
+ 12 files changed, 298 insertions(+), 6 deletions(-)
+ create mode 100644 ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
+ create mode 100644 ps2xRuntime/src/lib/Kernel/Stubs/Pad2.h
+
+diff --git a/ps2xRuntime/include/ps2_call_list.h b/ps2xRuntime/include/ps2_call_list.h
+index 94a6fa1..5c418a2 100644
+--- a/ps2xRuntime/include/ps2_call_list.h
++++ b/ps2xRuntime/include/ps2_call_list.h
+@@ -484,6 +484,15 @@
+     X(scePadPortClose)                        \
+     X(scePadPortOpen)                         \
+     X(scePadRead)                             \
++    X(scePad2Init)                            \
++    X(scePad2End)                             \
++    X(scePad2CreateSocket)                    \
++    X(scePad2DeleteSocket)                    \
++    X(scePad2GetState)                        \
++    X(scePad2GetButtonProfile)                \
++    X(scePad2Read)                            \
++    X(sceVibGetProfile)                       \
++    X(sceVibSetActParam)                      \
+     X(scePadReqIntToStr)                      \
+     X(scePadSetActAlign)                      \
+     X(scePadSetActDirect)                     \
+diff --git a/ps2xRuntime/include/runtime/ee_scheduler.h b/ps2xRuntime/include/runtime/ee_scheduler.h
+index 5ef0b13..d551ec9 100644
+--- a/ps2xRuntime/include/runtime/ee_scheduler.h
++++ b/ps2xRuntime/include/runtime/ee_scheduler.h
+@@ -267,6 +267,10 @@ public:
+     static constexpr uint64_t kEeClockHz = 294912000ull;
+     static constexpr uint32_t kGeneratedCheckpointCycles = 32u;
+     static constexpr uint32_t kGuestDispatchCycles = 8u;
++    // IOP advance granularity in EE cycles. Must stay 1 for now: with 256, Downhill Jam deterministically reads a
++    // corrupt .qb (z_mainmenu_cas_scripts) after loading the menu zone, so some IOP->EE completion is
++    // order-sensitive (see PORT_METHOD.md, step 22). The IOP still runs in >=256-cycle slices (runEeCycles).
++    static constexpr uint64_t kTimerBatchCycles = 1u;
+     static constexpr uint64_t kDefaultTimeSliceCycles = 65536ull;
+ 
+     explicit EeScheduler(PS2Runtime &runtime);
+@@ -279,6 +283,9 @@ public:
+     void run();
+     void requestStop();
+     void postEvent(EeEvent event);
++    // Raises INTC cause 0 (GS) now when called on the guest thread, so its handler is queued ahead of the DMAC
++    // completion of the transfer that carried the SIGNAL (the hardware order); from another thread, posts it.
++    void raiseGsInterrupt();
+     [[nodiscard]] bool checkpointDue(uint32_t cycles = kGeneratedCheckpointCycles) noexcept;
+     void accountCycles(uint32_t cycles) noexcept;
+     [[nodiscard]] bool isExecutingGuest() const noexcept;
+@@ -426,6 +433,7 @@ private:
+     bool m_timeSliceExpired = false;
+     bool m_insideInterrupt = false;
+     uint32_t m_pendingEeTimerInterrupts = 0;
++    uint64_t m_unbatchedCycles = 0;
+     uint64_t m_eeCycle = 0;
+     uint64_t m_sliceEndCycle = kDefaultTimeSliceCycles;
+     std::thread::id m_executorThread{};
+diff --git a/ps2xRuntime/include/runtime/gs/gs_frontend.h b/ps2xRuntime/include/runtime/gs/gs_frontend.h
+index 3de9bf2..62520c1 100644
+--- a/ps2xRuntime/include/runtime/gs/gs_frontend.h
++++ b/ps2xRuntime/include/runtime/gs/gs_frontend.h
+@@ -107,6 +107,8 @@ public:
+     void init(uint8_t *vram, uint32_t vramSize, struct GSRegisters *privRegs = nullptr);
+     // Called when SIGNAL or FINISH set their CSR bit and GS IMR does not mask them (the GS raises INTC 0).
+     void setInterruptCallback(std::function<void()> callback) { m_interruptCallback = std::move(callback); }
++    // Raise INTC 0 if CSR holds a SIGNAL/FINISH that IMR does not mask (after an IMR/CSR write).
++    void recheckInterrupt();
+     void reset();
+     void setRasterBackend(std::unique_ptr<GSRasterBackend> backend);
+ 
+diff --git a/ps2xRuntime/include/runtime/ps2_memory.h b/ps2xRuntime/include/runtime/ps2_memory.h
+index ea86a9c..8d8c852 100644
+--- a/ps2xRuntime/include/runtime/ps2_memory.h
++++ b/ps2xRuntime/include/runtime/ps2_memory.h
+@@ -316,6 +316,9 @@ public:
+     using GifPacketCallback = std::function<void(const uint8_t *, uint32_t)>;
+     void setGifPacketCallback(GifPacketCallback cb) { m_gifPacketCallback = std::move(cb); }
+     void setGifArbiter(GifArbiter *arbiter) { m_gifArbiter = arbiter; }
++    // Called after the EE writes a GS privileged register (CSR/IMR...): a pending SIGNAL/FINISH that gets unmasked
++    // must raise its interrupt then, as the GS interrupt line is level-triggered.
++    void setGsPrivWriteCallback(std::function<void()> cb) { m_gsPrivWriteCallback = std::move(cb); }
+ 
+     using Vu1MscalCallback = std::function<void(uint32_t startPC, uint32_t top, uint32_t itop)>;
+     void setVu1MscalCallback(Vu1MscalCallback cb) { m_vu1MscalCallback = std::move(cb); }
+@@ -399,6 +402,7 @@ public:
+ 
+     GifPacketCallback m_gifPacketCallback;
+     GifArbiter *m_gifArbiter = nullptr;
++    std::function<void()> m_gsPrivWriteCallback;
+     Vu1MscalCallback m_vu1MscalCallback;
+     Vu1MscntCallback m_vu1MscntCallback;
+ 
+diff --git a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+index b1b8eae..3444d3f 100644
+--- a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
++++ b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+@@ -1,3 +1,5 @@
++#include <cstdlib>
++#include <cstdio>
+ #include "runtime/ee_scheduler.h"
+ 
+ #include "ps2_log.h"
+@@ -349,6 +351,19 @@ void EeScheduler::requestStop()
+     m_eventCv.notify_all();
+ }
+ 
++void EeScheduler::raiseGsInterrupt()
++{
++    if (m_executorThread == std::this_thread::get_id())
++    {
++        dispatchIrq(false, 0u);
++        m_checkpointPending.store(true, std::memory_order_release);
++        return;
++    }
++    EeEvent event{};
++    event.type = EeEventType::GsInterrupt;
++    postEvent(event);
++}
++
+ void EeScheduler::postEvent(EeEvent event)
+ {
+     if (event.type == EeEventType::Stop)
+@@ -403,8 +418,15 @@ void EeScheduler::accountCycles(uint32_t cycles) noexcept
+ {
+     const uint64_t elapsed = std::max<uint64_t>(1u, cycles);
+     m_eeCycle += elapsed;
++    // Every guest call charges a few cycles. The EE timers advance on each one (games poll them), the IOP in
++    // batches of kTimerBatchCycles: calling into it per guest call was a large share of host time.
+     m_pendingEeTimerInterrupts |= m_runtime.memory().advanceEeTimers(elapsed);
+-    m_runtime.advanceIopEeCycles(elapsed);
++    m_unbatchedCycles += elapsed;
++    if (m_unbatchedCycles >= kTimerBatchCycles)
++    {
++        m_runtime.advanceIopEeCycles(m_unbatchedCycles);
++        m_unbatchedCycles = 0u;
++    }
+     if (m_pendingEeTimerInterrupts != 0u)
+     {
+         m_checkpointPending.store(true, std::memory_order_release);
+@@ -1266,6 +1288,30 @@ int EeScheduler::setIrqCauseEnabled(bool dmac, uint32_t cause, bool enabled)
+ void EeScheduler::dispatchIrq(bool dmac, uint32_t cause)
+ {
+     assertExecutor();
++    // PS2X_EE_IRQ_TRACE=1: per 100M EE cycles, how many INTC/DMAC causes were raised.
++    static const bool irqTrace = std::getenv("PS2X_EE_IRQ_TRACE") != nullptr;
++    static const bool irqEach = irqTrace && std::getenv("PS2X_EE_IRQ_TRACE")[0] == '2';
++    if (irqEach && (dmac || cause == 0u))
++        std::fprintf(stderr, "[ee irq] %s %u at %llu\n", dmac ? "dmac" : "intc", cause,
++                     static_cast<unsigned long long>(m_eeCycle));
++    if (irqTrace)
++    {
++        static uint64_t counts[2][32] = {};
++        static uint64_t windowStart = 0;
++        if (cause < 32u)
++            ++counts[dmac ? 1 : 0][cause];
++        if (m_eeCycle - windowStart >= 100000000ull)
++        {
++            std::fprintf(stderr, "[ee irq @%llu]", static_cast<unsigned long long>(m_eeCycle));
++            for (int d = 0; d < 2; ++d)
++                for (int i = 0; i < 32; ++i)
++                    if (counts[d][i])
++                        std::fprintf(stderr, " %s%d:%llu", d ? "dmac" : "intc", i, static_cast<unsigned long long>(counts[d][i]));
++            std::fprintf(stderr, "\n");
++            std::memset(counts, 0, sizeof(counts));
++            windowStart = m_eeCycle;
++        }
++    }
+     const uint32_t mask = dmac ? m_enabledDmacMask : m_enabledIntcMask;
+     if (cause < 32u && (mask & (1u << cause)) == 0u)
+     {
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp
+index b50a4cf..c764f57 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp
+@@ -854,6 +854,20 @@ namespace ps2_stubs
+         g_padOverrideState.ry = ry;
+     }
+ 
++    bool getPadOverrideBytes(uint8_t out[6])
++    {
++        std::lock_guard<std::mutex> lock(g_padOverrideMutex);
++        if (!g_padOverrideEnabled)
++            return false;
++        out[0] = static_cast<uint8_t>(g_padOverrideState.buttons & 0xFFu);
++        out[1] = static_cast<uint8_t>(g_padOverrideState.buttons >> 8);
++        out[2] = g_padOverrideState.rx;
++        out[3] = g_padOverrideState.ry;
++        out[4] = g_padOverrideState.lx;
++        out[5] = g_padOverrideState.ly;
++        return true;
++    }
++
+     void clearPadOverrideState()
+     {
+         std::lock_guard<std::mutex> lock(g_padOverrideMutex);
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Pad.h b/ps2xRuntime/src/lib/Kernel/Stubs/Pad.h
+index c4de234..031f08d 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/Pad.h
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Pad.h
+@@ -78,4 +78,6 @@ namespace ps2_stubs
+     PadDebugSnapshot getPadDebugSnapshot();
+     void setPadOverrideState(uint16_t buttons, uint8_t lx, uint8_t ly, uint8_t rx, uint8_t ry);
+     void clearPadOverrideState();
++    // The override set above, as libpad bytes 2..7 (buttons lo/hi active-low, rx, ry, lx, ly). False if none.
++    bool getPadOverrideBytes(uint8_t out[6]);
+ }
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
+new file mode 100644
+index 0000000..7d3bb6d
+--- /dev/null
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
+@@ -0,0 +1,158 @@
++#include "Common.h"
++#include "Pad2.h"
++#include "Pad.h"
++
++#include <array>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <mutex>
++
++// libpad2 (SDK 2.x/3.x, scePad2*) and the libvib profile calls, over the host pad backend.
++// On the console these drive DBCMAN/SIO2D on the IOP; the runtime has no SIO2, so the EE side is emulated here.
++// Each socket is a (port, slot) pair; scePad2Read returns the libpad payload from its byte 2: active-low buttons,
++// right stick, left stick, 12 pressure bytes (18 bytes).
++namespace ps2_stubs
++{
++    namespace
++    {
++        constexpr int kMaxSockets = 8;
++        constexpr int32_t kPad2StateStable = 1;
++        constexpr int32_t kPad2StateNoDevice = 0;
++        constexpr uint32_t kPad2ReadBytes = 18u;
++
++        struct Pad2Socket
++        {
++            bool open = false;
++            uint8_t port = 0;
++            uint8_t slot = 0;
++        };
++
++        std::mutex g_pad2Mutex;
++        std::array<Pad2Socket, kMaxSockets> g_pad2Sockets{};
++
++        bool socketFor(int32_t id, Pad2Socket &out)
++        {
++            std::lock_guard<std::mutex> lock(g_pad2Mutex);
++            if (id < 0 || id >= kMaxSockets || !g_pad2Sockets[id].open)
++                return false;
++            out = g_pad2Sockets[id];
++            return true;
++        }
++    }
++
++    void scePad2Init(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        (void)rdram;
++        (void)runtime;
++        std::lock_guard<std::mutex> lock(g_pad2Mutex);
++        g_pad2Sockets.fill(Pad2Socket{});
++        setReturnS32(ctx, 1);
++    }
++
++    void scePad2End(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        scePad2Init(rdram, ctx, runtime);
++    }
++
++    // a0 = scePad2SocketParam { u8 option; u8 port; u8 slot; u8 number; }, a1 = DMA buffer (unused here).
++    void scePad2CreateSocket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        (void)runtime;
++        const uint8_t *param = getConstMemPtr(rdram, getRegU32(ctx, 4));
++        const uint8_t port = param ? param[1] : 0u;
++        const uint8_t slot = param ? param[2] : 0u;
++        std::lock_guard<std::mutex> lock(g_pad2Mutex);
++        for (int id = 0; id < kMaxSockets; ++id)
++        {
++            if (!g_pad2Sockets[id].open)
++            {
++                g_pad2Sockets[id] = Pad2Socket{true, port, slot};
++                setReturnS32(ctx, id);
++                return;
++            }
++        }
++        setReturnS32(ctx, -1);
++    }
++
++    void scePad2DeleteSocket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        (void)rdram;
++        (void)runtime;
++        const int32_t id = static_cast<int32_t>(getRegU32(ctx, 4));
++        std::lock_guard<std::mutex> lock(g_pad2Mutex);
++        if (id >= 0 && id < kMaxSockets)
++            g_pad2Sockets[id] = Pad2Socket{};
++        setReturnS32(ctx, 1);
++    }
++
++    void scePad2GetState(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        (void)rdram;
++        (void)runtime;
++        Pad2Socket socket;
++        // Only the first controller is connected (the host pad / keyboard).
++        const bool present = socketFor(static_cast<int32_t>(getRegU32(ctx, 4)), socket) && socket.port == 0u &&
++                             socket.slot == 0u;
++        setReturnS32(ctx, present ? kPad2StateStable : kPad2StateNoDevice);
++    }
++
++    // a1 = u8 profile[4]: which buttons/analog/pressure inputs exist. All set = DualShock 2.
++    void scePad2GetButtonProfile(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        (void)runtime;
++        Pad2Socket socket;
++        uint8_t *profile = getMemPtr(rdram, getRegU32(ctx, 5));
++        if (!socketFor(static_cast<int32_t>(getRegU32(ctx, 4)), socket) || !profile)
++        {
++            setReturnS32(ctx, 0);
++            return;
++        }
++        profile[0] = profile[1] = profile[2] = profile[3] = 0xFFu;
++        setReturnS32(ctx, 4);
++    }
++
++    void scePad2Read(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        Pad2Socket socket;
++        uint8_t *out = getMemPtr(rdram, getRegU32(ctx, 5));
++        if (!socketFor(static_cast<int32_t>(getRegU32(ctx, 4)), socket) || !out || !runtime)
++        {
++            setReturnS32(ctx, 0);
++            return;
++        }
++        uint8_t data[32]{};
++        if (!runtime->padBackend().readState(socket.port, socket.slot, data, sizeof(data)))
++        {
++            setReturnS32(ctx, 0);
++            return;
++        }
++        uint8_t forced[6];
++        if (getPadOverrideBytes(forced)) // scripted input (debug panel / test harness) wins over the host pad
++            std::memcpy(data + 2, forced, sizeof(forced));
++        std::memcpy(out, data + 2, kPad2ReadBytes);
++        // PS2X_PAD_TRACE=1: log reads with a button held, and every 600th read.
++        static const bool trace = std::getenv("PS2X_PAD_TRACE") != nullptr;
++        static uint64_t reads = 0;
++        if (trace && ((data[2] & data[3]) != 0xFFu || (++reads % 600u) == 0u))
++            std::fprintf(stderr, "[pad2] read #%llu socket port %u buttons %02x%02x\n",
++                         static_cast<unsigned long long>(reads), socket.port, data[3], data[2]);
++        setReturnS32(ctx, static_cast<int32_t>(kPad2ReadBytes));
++    }
++
++    // libvib: no actuators reported, so the game skips vibration setup.
++    void sceVibGetProfile(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        (void)runtime;
++        if (uint8_t *profile = getMemPtr(rdram, getRegU32(ctx, 5)))
++            profile[0] = 0u;
++        setReturnS32(ctx, 0);
++    }
++
++    void sceVibSetActParam(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        (void)rdram;
++        (void)runtime;
++        setReturnS32(ctx, 1);
++    }
++}
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.h b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.h
+new file mode 100644
+index 0000000..ef04c44
+--- /dev/null
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.h
+@@ -0,0 +1,18 @@
++#pragma once
++
++#include "ps2_stubs.h"
++
++#include <cstdint>
++
++namespace ps2_stubs
++{
++    void scePad2Init(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void scePad2End(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void scePad2CreateSocket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void scePad2DeleteSocket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void scePad2GetState(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void scePad2GetButtonProfile(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void scePad2Read(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void sceVibGetProfile(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void sceVibSetActParam(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++}
+diff --git a/ps2xRuntime/src/lib/gs/gs_frontend.cpp b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+index d9fe2c0..07ff105 100644
+--- a/ps2xRuntime/src/lib/gs/gs_frontend.cpp
++++ b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+@@ -130,10 +130,30 @@ void GS::raiseInterruptIfUnmasked(uint32_t csrBit)
+     // IMR bits 8 (SIGMSK) and 9 (FINISHMSK): 1 = masked. CSR bit 0 = SIGNAL, bit 1 = FINISH.
+     const uint64_t imr = m_privRegs ? m_privRegs->imr : 0xFF00u;
+     const uint64_t maskBit = (csrBit == 0x1u) ? 0x100u : 0x200u;
++    static const bool trace = std::getenv("PS2X_GS_IRQ_TRACE") != nullptr;
++    if (trace)
++        std::fprintf(stderr, "[gs irq] %s imr %llx -> %s\n", csrBit == 1u ? "SIGNAL" : "FINISH", (unsigned long long)imr,
++                     (imr & maskBit) == 0u ? "raise" : "masked");
+     if ((imr & maskBit) == 0u && m_interruptCallback)
+         m_interruptCallback();
+ }
+ 
++void GS::recheckInterrupt()
++{
++    if (!m_privRegs || !m_interruptCallback)
++        return;
++    const uint64_t csr = m_privRegs->csr.load();
++    const uint64_t imr = m_privRegs->imr;
++    static const bool trace = std::getenv("PS2X_GS_IRQ_TRACE") != nullptr;
++    if (((csr & 0x1u) && !(imr & 0x100u)) || ((csr & 0x2u) && !(imr & 0x200u)))
++    {
++        if (trace)
++            std::fprintf(stderr, "[gs irq] raised on IMR/CSR write csr %llx imr %llx\n", (unsigned long long)csr,
++                         (unsigned long long)imr);
++        m_interruptCallback();
++    }
++}
++
+ void GS::reset()
+ {
+     std::lock_guard<std::recursive_mutex> lock(m_stateMutex);
+diff --git a/ps2xRuntime/src/lib/ps2_memory.cpp b/ps2xRuntime/src/lib/ps2_memory.cpp
+index 8a3002d..ee1817e 100644
+--- a/ps2xRuntime/src/lib/ps2_memory.cpp
++++ b/ps2xRuntime/src/lib/ps2_memory.cpp
+@@ -969,6 +969,8 @@ void PS2Memory::write32(uint32_t address, uint32_t value)
+             uint64_t newVal = (*reg & ~mask) | ((uint64_t)value << (off * 8));
+             *reg = newVal;
+         }
++        if (m_gsPrivWriteCallback)
++            m_gsPrivWriteCallback();
+         return;
+     }
+ 
+@@ -1026,6 +1028,8 @@ void PS2Memory::write64(uint32_t address, uint64_t value)
+         {
+             *reg = value;
+         }
++        if (m_gsPrivWriteCallback)
++            m_gsPrivWriteCallback();
+         return;
+     }
+ 
+@@ -1310,8 +1314,8 @@ bool PS2Memory::writeIORegister(uint32_t address, uint32_t value)
+             // PS2X_DMA_TRACE=1: every DMA start (channel, CHCR, MADR, QWC, TADR).
+             static const bool dmaTrace = std::getenv("PS2X_DMA_TRACE") != nullptr;
+             if (dmaTrace)
+-                std::fprintf(stderr, "[ee dma] ch %08x chcr %08x madr %08x qwc %u tadr %08x\n", channelBase, value, madr,
+-                             qwc, m_ioRegisters[channelBase + 0x30]);
++                std::fprintf(stderr, "[ee dma] ch %08x chcr %08x madr %08x qwc %u tadr %08x path3masked %d\n", channelBase, value, madr,
++                             qwc, m_ioRegisters[channelBase + 0x30], m_path3Masked ? 1 : 0);
+ 
+             if (tryProcessScratchpadDma(channelBase, value))
+             {
+@@ -1555,6 +1559,14 @@ bool PS2Memory::writeIORegister(uint32_t address, uint32_t value)
+                             m_pendingVif0Transfers.push_back(std::move(pt));
+                         }
+                     }
++                    else
++                    {
++                        // A chain that moves no data (e.g. a lone REFE/END tag with QWC 0, an empty display list)
++                        // still ends: clear STR and raise the channel's DMAC interrupt. Without this the game's
++                        // render chain (Downhill Jam) waited for a completion that never came, every frame.
++                        const uint32_t cause = channelBase == 0x1000A000u ? 2u : channelBase == 0x10009000u ? 1u : 0u;
++                        completeDmacChannel(channelBase, cause);
++                    }
+                     // else if (channelBase == 0x10009000u)
+                     // {
+ 
+diff --git a/ps2xRuntime/src/lib/ps2_runtime.cpp b/ps2xRuntime/src/lib/ps2_runtime.cpp
+index f9eaf76..b6dbfee 100644
+--- a/ps2xRuntime/src/lib/ps2_runtime.cpp
++++ b/ps2xRuntime/src/lib/ps2_runtime.cpp
+@@ -675,12 +675,11 @@ bool PS2Runtime::syncCoreSubsystems()
+     }
+ 
+     m_gs.init(gsVram, static_cast<uint32_t>(PS2_GS_VRAM_SIZE), &m_memory.gs());
++    m_memory.setGsPrivWriteCallback([this]() { m_gs.recheckInterrupt(); });
+     m_gs.setInterruptCallback([this]()
+                               {
+-                                  EeEvent event{};
+-                                  event.type = EeEventType::GsInterrupt;
+                                   if (m_eeScheduler)
+-                                      m_eeScheduler->postEvent(event);
++                                      m_eeScheduler->raiseGsInterrupt();
+                               });
+     m_gifArbiter.setProcessPacketFn([this](const uint8_t *data, uint32_t size)
+                                     { m_gs.processGIFPacket(data, size); });
+-- 
+2.56.0
+

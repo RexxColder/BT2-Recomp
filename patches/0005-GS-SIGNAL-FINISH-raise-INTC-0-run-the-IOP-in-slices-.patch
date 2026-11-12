@@ -1,0 +1,416 @@
+From 6493734445e7430169e82ea9b8eb2e523db1026a Mon Sep 17 00:00:00 2001
+From: RexxColder <palettafacundo@gmail.com>
+Date: Thu, 8 Oct 2026 06:44:10 -0300
+Subject: [PATCH 5/9] GS SIGNAL/FINISH raise INTC 0; run the IOP in slices;
+ SPU2 idle fast path; DMA/GS/VIF/VU1 traces
+
+---
+ ps2xIOP/src/emulator/core/iop_spu2.cpp       | 15 ++++++++
+ ps2xIOP/src/emulator/core/iop_spu2.h         |  2 +
+ ps2xIOP/src/emulator/iop_emulator.cpp        | 15 ++++++--
+ ps2xRuntime/include/runtime/ee_scheduler.h   |  1 +
+ ps2xRuntime/include/runtime/gs/gs_frontend.h | 13 +++++++
+ ps2xRuntime/src/lib/Kernel/EeScheduler.cpp   |  4 ++
+ ps2xRuntime/src/lib/gs/gs_frontend.cpp       | 40 ++++++++++++++++++++
+ ps2xRuntime/src/lib/ps2_memory.cpp           |  7 ++++
+ ps2xRuntime/src/lib/ps2_runtime.cpp          |  7 ++++
+ ps2xRuntime/src/lib/ps2_vif1_interpreter.cpp | 19 ++++++++++
+ ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp      |  8 ++++
+ 11 files changed, 128 insertions(+), 3 deletions(-)
+
+diff --git a/ps2xIOP/src/emulator/core/iop_spu2.cpp b/ps2xIOP/src/emulator/core/iop_spu2.cpp
+index 988fdf5..0a61c0d 100644
+--- a/ps2xIOP/src/emulator/core/iop_spu2.cpp
++++ b/ps2xIOP/src/emulator/core/iop_spu2.cpp
+@@ -73,6 +73,7 @@ namespace ps2x::iop::detail
+         m_irqInfo = 0u;
+         m_irqPending = false;
+         m_lastCycle = 0u;
++        m_playingVoices = 0u;
+     }
+ 
+     uint32_t IopSpu2::irqAddress(int core) const
+@@ -237,6 +238,16 @@ namespace ps2x::iop::detail
+             voice.playing = true;
+             m_endx[core] &= ~(1u << v);
+         }
++        countPlaying();
++    }
++
++    void IopSpu2::countPlaying()
++    {
++        uint32_t count = 0u;
++        for (const auto &core : m_voices)
++            for (const Voice &voice : core)
++                count += voice.playing ? 1u : 0u;
++        m_playingVoices = count;
+     }
+ 
+     void IopSpu2::keyOff(int core, uint32_t mask)
+@@ -247,6 +258,7 @@ namespace ps2x::iop::detail
+         for (int v = 0; v < 24; ++v)
+             if (mask & (1u << v))
+                 m_voices[core][v].playing = false;
++        countPlaying();
+     }
+ 
+     void IopSpu2::stepBlock(int core, int v)
+@@ -279,6 +291,8 @@ namespace ps2x::iop::detail
+             return;
+         const uint64_t elapsed = currentCycle - m_lastCycle;
+         m_lastCycle = currentCycle;
++        if (m_playingVoices == 0u)
++            return;
+         for (int core = 0; core < 2; ++core)
+         {
+             const uint32_t base = static_cast<uint32_t>(core) * kCoreSize;
+@@ -298,6 +312,7 @@ namespace ps2x::iop::detail
+                     voice.phase %= kBlockPhase;
+             }
+         }
++        countPlaying();
+     }
+ 
+     void IopSpu2::dmaWrite(int core, const uint8_t *source, size_t bytes)
+diff --git a/ps2xIOP/src/emulator/core/iop_spu2.h b/ps2xIOP/src/emulator/core/iop_spu2.h
+index e55784f..dae01a3 100644
+--- a/ps2xIOP/src/emulator/core/iop_spu2.h
++++ b/ps2xIOP/src/emulator/core/iop_spu2.h
+@@ -58,6 +58,7 @@ namespace ps2x::iop::detail
+         void keyOn(int core, uint32_t mask);
+         void keyOff(int core, uint32_t mask);
+         void stepBlock(int core, int voice);
++        void countPlaying();
+ 
+         std::vector<uint8_t> m_ram;
+         std::array<uint16_t, 0x400> m_regs{};
+@@ -67,5 +68,6 @@ namespace ps2x::iop::detail
+         mutable uint16_t m_irqInfo = 0;
+         bool m_irqPending = false;
+         uint64_t m_lastCycle = 0;
++        uint32_t m_playingVoices = 0;
+     };
+ }
+diff --git a/ps2xIOP/src/emulator/iop_emulator.cpp b/ps2xIOP/src/emulator/iop_emulator.cpp
+index 045a206..ba98a2d 100644
+--- a/ps2xIOP/src/emulator/iop_emulator.cpp
++++ b/ps2xIOP/src/emulator/iop_emulator.cpp
+@@ -133,6 +133,7 @@ namespace ps2x::iop::detail
+             totalCycles = 0;
+             totalInstructions = 0;
+             eeCycleCarry = 0;
++            pendingIopCycles = 0u;
+             activeCpu = nullptr;
+             lastError.clear();
+             servicingDmaInterrupts = false;
+@@ -727,6 +728,7 @@ namespace ps2x::iop::detail
+         uint64_t totalCycles = 0;
+         uint64_t totalInstructions = 0;
+         uint64_t eeCycleCarry = 0;
++        uint64_t pendingIopCycles = 0u;
+         CpuState *activeCpu = nullptr;
+         std::string lastError;
+         bool servicingDmaInterrupts = false;
+@@ -767,11 +769,18 @@ namespace ps2x::iop::detail
+     void IopEmulator::runEeCycles(uint64_t eeCycles) noexcept
+     {
+         const uint64_t total = m_impl->eeCycleCarry + eeCycles;
+-        const uint64_t iopCycles = total / 8u;
+         m_impl->eeCycleCarry = total % 8u;
+-        if (iopCycles)
++        // The EE charges a few cycles per guest call, so running the IOP on every call meant 1-cycle slices, each
++        // walking the thread table (half of all host time). Run it in slices of at least kDefaultSlice cycles;
++        // RPCs and SIF commands still reach it synchronously.
++        m_impl->pendingIopCycles += total / 8u;
++        if (m_impl->pendingIopCycles >= kDefaultSlice)
++        {
++            const uint64_t iopCycles = m_impl->pendingIopCycles;
++            m_impl->pendingIopCycles = 0u;
+             m_impl->runCycles(iopCycles);
+-        m_impl->rpc.deliverPendingCommands(*m_impl);
++            m_impl->rpc.deliverPendingCommands(*m_impl);
++        }
+     }
+ 
+     RpcResult IopEmulator::handleRpc(const RpcRequest &request)
+diff --git a/ps2xRuntime/include/runtime/ee_scheduler.h b/ps2xRuntime/include/runtime/ee_scheduler.h
+index f247ff9..5ef0b13 100644
+--- a/ps2xRuntime/include/runtime/ee_scheduler.h
++++ b/ps2xRuntime/include/runtime/ee_scheduler.h
+@@ -236,6 +236,7 @@ enum class EeEventType : uint8_t
+     Dmac,
+     ExternalWake,
+     Alarm,
++    GsInterrupt,
+ };
+ 
+ struct EeEvent
+diff --git a/ps2xRuntime/include/runtime/gs/gs_frontend.h b/ps2xRuntime/include/runtime/gs/gs_frontend.h
+index 4c3f641..3de9bf2 100644
+--- a/ps2xRuntime/include/runtime/gs/gs_frontend.h
++++ b/ps2xRuntime/include/runtime/gs/gs_frontend.h
+@@ -2,8 +2,10 @@
+ #define PS2_GS_FRONTEND_H
+ 
+ #include <array>
++#include <atomic>
+ #include <cstddef>
+ #include <cstdint>
++#include <functional>
+ #include <memory>
+ #include <mutex>
+ #include <vector>
+@@ -103,6 +105,8 @@ public:
+     ~GS() = default;
+ 
+     void init(uint8_t *vram, uint32_t vramSize, struct GSRegisters *privRegs = nullptr);
++    // Called when SIGNAL or FINISH set their CSR bit and GS IMR does not mask them (the GS raises INTC 0).
++    void setInterruptCallback(std::function<void()> callback) { m_interruptCallback = std::move(callback); }
+     void reset();
+     void setRasterBackend(std::unique_ptr<GSRasterBackend> backend);
+ 
+@@ -140,6 +144,10 @@ public:
+     bool clearActiveFramebuffer(uint32_t rgba);
+     uint64_t nativeImageUploadCount() const { return m_nativeImageUploadCount; }
+     uint64_t nativePackedGIFPacketCount() const { return m_nativePackedGIFPacketCount; }
++    // Totals for diagnostics: GIF packets processed, register writes, vertex kicks that drew.
++    uint64_t gifPacketCount() const { return m_statGifPackets.load(std::memory_order_relaxed); }
++    uint64_t registerWriteCount() const { return m_statRegWrites.load(std::memory_order_relaxed); }
++    uint64_t drawKickCount() const { return m_statDrawKicks.load(std::memory_order_relaxed); }
+ 
+     uint32_t consumeLocalToHostBytes(uint8_t *dst, uint32_t maxBytes);
+ 
+@@ -180,6 +188,8 @@ private:
+     uint8_t *m_localMemoryStorage = nullptr;
+     uint32_t m_localMemorySize = 0u;
+     struct GSRegisters *m_privRegs = nullptr;
++    std::function<void()> m_interruptCallback;
++    void raiseInterruptIfUnmasked(uint32_t csrBit);
+     mutable std::recursive_mutex m_stateMutex;
+     mutable std::mutex m_backendLifetimeMutex;
+     mutable std::mutex m_presentationMutex;
+@@ -230,6 +240,9 @@ private:
+     bool m_hostPresentationUsedPreferred = false;
+     bool m_hasHostPresentationFrame = false;
+     uint64_t m_nativeImageUploadCount = 0;
++    std::atomic<uint64_t> m_statGifPackets{0};
++    std::atomic<uint64_t> m_statRegWrites{0};
++    std::atomic<uint64_t> m_statDrawKicks{0};
+     uint64_t m_nativePackedGIFPacketCount = 0;
+ 
+     static constexpr size_t kDebugHistoryCapacity = 512;
+diff --git a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+index 31c4e18..b1b8eae 100644
+--- a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
++++ b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+@@ -1921,6 +1921,10 @@ void EeScheduler::processEvent(const EeEvent &event)
+         break;
+     case EeEventType::Dmac:
+         break;
++    case EeEventType::GsInterrupt:
++        // INTC cause 0: GS SIGNAL/FINISH/HSYNC/VSYNC/EDW when not masked by GS IMR.
++        dispatchIrq(false, 0u);
++        break;
+     case EeEventType::Alarm:
+     {
+         auto it = m_alarms.find(static_cast<int>(event.id));
+diff --git a/ps2xRuntime/src/lib/gs/gs_frontend.cpp b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+index 5658928..d9fe2c0 100644
+--- a/ps2xRuntime/src/lib/gs/gs_frontend.cpp
++++ b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+@@ -1,4 +1,7 @@
+ #include "runtime/gs/gs_frontend.h"
++
++#include <cstdio>
++#include <cstdlib>
+ #include "runtime/gs/gs_cpu_backend.h"
+ #include "ps2_log.h"
+ #include "runtime/ps2_memory.h"
+@@ -122,6 +125,15 @@ void GS::init(uint8_t *vram, uint32_t vramSize, GSRegisters *privRegs)
+     reset();
+ }
+ 
++void GS::raiseInterruptIfUnmasked(uint32_t csrBit)
++{
++    // IMR bits 8 (SIGMSK) and 9 (FINISHMSK): 1 = masked. CSR bit 0 = SIGNAL, bit 1 = FINISH.
++    const uint64_t imr = m_privRegs ? m_privRegs->imr : 0xFF00u;
++    const uint64_t maskBit = (csrBit == 0x1u) ? 0x100u : 0x200u;
++    if ((imr & maskBit) == 0u && m_interruptCallback)
++        m_interruptCallback();
++}
++
+ void GS::reset()
+ {
+     std::lock_guard<std::recursive_mutex> lock(m_stateMutex);
+@@ -640,6 +652,7 @@ bool GS::copyLatchedHostPresentationFrame(std::vector<uint8_t> &outPixels,
+ 
+ void GS::processGIFPacket(const uint8_t *data, uint32_t sizeBytes)
+ {
++    m_statGifPackets.fetch_add(1, std::memory_order_relaxed);
+     std::lock_guard<std::recursive_mutex> lock(m_stateMutex);
+     if (!data || sizeBytes < 16 || !m_backend)
+         return;
+@@ -1067,6 +1080,7 @@ void GS::writeRegister(uint8_t regAddr, uint64_t value)
+ 
+ void GS::writeRegisterUnlocked(uint8_t regAddr, uint64_t value)
+ {
++    m_statRegWrites.fetch_add(1, std::memory_order_relaxed);
+     const bool interestingReg =
+         regAddr == GS_REG_PRIM ||
+         regAddr == GS_REG_RGBAQ ||
+@@ -1471,6 +1485,7 @@ void GS::writeRegisterUnlocked(uint8_t regAddr, uint64_t value)
+             lo = (lo & ~mask) | (id & mask);
+             m_privRegs->siglblid = (m_privRegs->siglblid & 0xFFFFFFFF00000000ULL) | lo;
+             m_privRegs->csr.fetch_or(0x1);
++            raiseInterruptIfUnmasked(0x1u);
+         }
+         break;
+     }
+@@ -1482,7 +1497,10 @@ void GS::writeRegisterUnlocked(uint8_t regAddr, uint64_t value)
+             m_backend->Sync(GSSyncReason::Finish);
+         }
+         if (m_privRegs)
++        {
+             m_privRegs->csr.fetch_or(0x2);
++            raiseInterruptIfUnmasked(0x2u);
++        }
+         break;
+     }
+     case GS_REG_LABEL:
+@@ -1526,6 +1544,8 @@ void GS::writeRegisterUnlocked(uint8_t regAddr, uint64_t value)
+ 
+ void GS::vertexKick(bool drawing)
+ {
++    if (drawing)
++        m_statDrawKicks.fetch_add(1, std::memory_order_relaxed);
+     ++m_vtxCount;
+     ++m_vtxIndex;
+ 
+@@ -1575,6 +1595,26 @@ void GS::vertexKick(bool drawing)
+     if (drawing && m_backend)
+     {
+         GSPrimitiveBatch batch = buildDrawBatch(needed);
++        // PS2X_GS_TRACE=<n>: log draw n, 2n, 3n, ... (primitive, vertices, target, tests).
++        static const uint64_t drawTrace = []
++        {
++            const char *v = std::getenv("PS2X_GS_TRACE");
++            return v ? std::strtoull(v, nullptr, 0) : 0ull;
++        }();
++        if (drawTrace != 0u && m_statDrawKicks.load(std::memory_order_relaxed) % drawTrace == 0u)
++        {
++            const GSContext &c = batch.state.context;
++            std::fprintf(stderr, "[gs draw] prim %u tme %u abe %u fbp %x fbw %u psm %x fbmsk %08x zbp %x scissor %u-%u,%u-%u "
++                                 "xyoff %u,%u test %llx alpha %llx tex0 tbp %x psm %x |",
++                         static_cast<unsigned>(batch.state.prim.type), batch.state.prim.tme, batch.state.prim.abe,
++                         c.frame.fbp, c.frame.fbw, c.frame.psm, c.frame.fbmsk, c.zbuf.zbp, c.scissor.x0, c.scissor.x1,
++                         c.scissor.y0, c.scissor.y1, c.xyoffset.ofx, c.xyoffset.ofy, (unsigned long long)c.test,
++                         (unsigned long long)c.alpha, c.tex0.tbp0, c.tex0.psm);
++            for (uint32_t i = 0; i < batch.vertexCount; ++i)
++                std::fprintf(stderr, " (%.1f,%.1f rgba %02x%02x%02x%02x)", batch.vertices[i].x, batch.vertices[i].y,
++                             batch.vertices[i].r, batch.vertices[i].g, batch.vertices[i].b, batch.vertices[i].a);
++            std::fprintf(stderr, "\n");
++        }
+         updatePreferredDisplaySourceForDraw(batch);
+         m_backend->Submit(batch);
+         recordDrawDebugEventUnlocked(needed);
+diff --git a/ps2xRuntime/src/lib/ps2_memory.cpp b/ps2xRuntime/src/lib/ps2_memory.cpp
+index 37b6a4d..8a3002d 100644
+--- a/ps2xRuntime/src/lib/ps2_memory.cpp
++++ b/ps2xRuntime/src/lib/ps2_memory.cpp
+@@ -3,6 +3,8 @@
+ #include "runtime/gs/gs_frontend.h"
+ #include "ps2_log.h"
+ #include <atomic>
++#include <cstdio>
++#include <cstdlib>
+ #include <cstring>
+ #include <limits>
+ #include <stdexcept>
+@@ -1305,6 +1307,11 @@ bool PS2Memory::writeIORegister(uint32_t address, uint32_t value)
+             const uint32_t madr = m_ioRegisters[channelBase + 0x10];
+             const uint32_t qwc = m_ioRegisters[channelBase + 0x20];
+             m_dmaStartCount.fetch_add(1, std::memory_order_relaxed);
++            // PS2X_DMA_TRACE=1: every DMA start (channel, CHCR, MADR, QWC, TADR).
++            static const bool dmaTrace = std::getenv("PS2X_DMA_TRACE") != nullptr;
++            if (dmaTrace)
++                std::fprintf(stderr, "[ee dma] ch %08x chcr %08x madr %08x qwc %u tadr %08x\n", channelBase, value, madr,
++                             qwc, m_ioRegisters[channelBase + 0x30]);
+ 
+             if (tryProcessScratchpadDma(channelBase, value))
+             {
+diff --git a/ps2xRuntime/src/lib/ps2_runtime.cpp b/ps2xRuntime/src/lib/ps2_runtime.cpp
+index deeec56..f9eaf76 100644
+--- a/ps2xRuntime/src/lib/ps2_runtime.cpp
++++ b/ps2xRuntime/src/lib/ps2_runtime.cpp
+@@ -675,6 +675,13 @@ bool PS2Runtime::syncCoreSubsystems()
+     }
+ 
+     m_gs.init(gsVram, static_cast<uint32_t>(PS2_GS_VRAM_SIZE), &m_memory.gs());
++    m_gs.setInterruptCallback([this]()
++                              {
++                                  EeEvent event{};
++                                  event.type = EeEventType::GsInterrupt;
++                                  if (m_eeScheduler)
++                                      m_eeScheduler->postEvent(event);
++                              });
+     m_gifArbiter.setProcessPacketFn([this](const uint8_t *data, uint32_t size)
+                                     { m_gs.processGIFPacket(data, size); });
+     m_memory.setGifArbiter(&m_gifArbiter);
+diff --git a/ps2xRuntime/src/lib/ps2_vif1_interpreter.cpp b/ps2xRuntime/src/lib/ps2_vif1_interpreter.cpp
+index b02c7ca..ae0cf39 100644
+--- a/ps2xRuntime/src/lib/ps2_vif1_interpreter.cpp
++++ b/ps2xRuntime/src/lib/ps2_vif1_interpreter.cpp
+@@ -1,5 +1,7 @@
+ // Based on Blackline Interactive implementation
+ #include "runtime/ps2_memory.h"
++#include <cstdio>
++#include <cstdlib>
+ #include <cstring>
+ 
+ enum VIFCmd : uint8_t
+@@ -340,6 +342,23 @@ void PS2Memory::processVIF1Data(const uint8_t *data, uint32_t sizeBytes)
+         uint8_t num = (cmd >> 16) & 0xFF;
+         const bool irq = (cmd & 0x80000000u) != 0u;
+ 
++        // PS2X_VIF_TRACE=1: count VIF1 codes, print the histogram every 4096 codes.
++        static const bool vifTrace = std::getenv("PS2X_VIF_TRACE") != nullptr;
++        if (vifTrace)
++        {
++            static uint64_t counts[128] = {};
++            static uint64_t total = 0;
++            ++counts[opcode];
++            if ((++total & 4095u) == 0u)
++            {
++                std::fprintf(stderr, "[vif1 codes after %llu]", static_cast<unsigned long long>(total));
++                for (int i = 0; i < 128; ++i)
++                    if (counts[i])
++                        std::fprintf(stderr, " %02x:%llu", i, static_cast<unsigned long long>(counts[i]));
++                std::fprintf(stderr, "\n");
++            }
++        }
++
+         // Track most-recent command for VIFn_CODE emulation.
+         vif1_regs.code = cmd;
+         vif1_regs.num = num;
+diff --git a/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp b/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
+index bd75bba..494345a 100644
+--- a/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
++++ b/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
+@@ -928,6 +928,14 @@ void VU1Interpreter::finishXgkick()
+ 
+ void VU1Interpreter::startXgkick(uint32_t qwordAddress)
+ {
++    // PS2X_VIF_TRACE also counts XGKICKs (VU1 -> GS path 1).
++    static const bool trace = std::getenv("PS2X_VIF_TRACE") != nullptr;
++    if (trace)
++    {
++        static uint64_t kicks = 0;
++        if ((++kicks & 255u) == 1u)
++            std::fprintf(stderr, "[vu1] xgkick #%llu at qw %03x\n", static_cast<unsigned long long>(kicks), qwordAddress);
++    }
+     if (m_unit != Unit::VU1 || !m_activeVuData || m_activeVuDataSize < 16u)
+         return;
+ 
+-- 
+2.56.0
+

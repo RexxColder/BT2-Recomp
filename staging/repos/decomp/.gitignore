@@ -1,0 +1,44 @@
+# BT2-Decompiled: solo C traducido, cabeceras, config de splat y herramientas propias.
+# Datos del juego (nunca se suben)
+*.iso
+*.rvz
+*.cso
+*.chd
+*.elf
+*.ELF
+*.rom
+SLUS_*
+!config/SLUS_*.yaml
+/disc/
+/gamedata*
+/assets/
+/asm/
+/reference/
+# Salidas de build y herramientas descargadas
+/build/
+/build_port/
+/tools/
+/.venv/
+/build.ninja
+.ninja_*
+.splache
+*.o
+*.a
+__pycache__/
+# Trabajo local
+/scratch/
+/src_dropped/
+/BT2-backups/
+/third_party/
+/saves/
+/mc0/
+/mc1/
+/logs/
+*.log
+*.mp4
+*.mkv
+*.png
+*.jpg
+*.pre_*
+*.bak
+*.orig

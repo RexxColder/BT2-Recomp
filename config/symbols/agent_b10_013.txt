@@ -1,0 +1,2 @@
+EftBlastObj_IsAlive = 0x00194E30; // type:func
+EftBill_IsAlive = 0x001CCA88; // type:func

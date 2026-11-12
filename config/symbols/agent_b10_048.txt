@@ -1,0 +1,1 @@
+BtlObj_GetNodeByCode = 0x00269B80; // type:func

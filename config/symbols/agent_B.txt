@@ -1,0 +1,35 @@
+// Agent B (range 0x158EB0..0x1B0298). BT3 names where the code is the same as the BT3 function of that name.
+// Aura sparks (BT3 eft_m.c): creates one spark of an emitter.
+EftAura_SpawnSpark = 0x001791D0;
+// Aura flames (BT3 eft_m.c, same code apart from the BT2 aura layout).
+EftAura_GetFlameFlags = 0x00179D00;
+EftAura_SpawnFlame = 0x0017A260;
+EftAura_SpawnFlames = 0x0017A838;
+EftAura_Start = 0x0017ABD0;
+// Aura entry points (BT3 eft_n.c, same code; BT3 names).
+EftAura_Request = 0x0017CE20;
+EftAura_Stop = 0x0017CEB8;
+EftAura_SetLevel = 0x0017CF80;
+EftAura_IsVisible = 0x0017CFB0;
+EftAura_IsBurstRising = 0x0017D010;
+EftAura_StartBurst = 0x0017D078;
+EftAura_EndBurst = 0x0017D0C0;
+EftAura_PeakBurst = 0x0017D108;
+EftAura_FadeIn = 0x0017D168;
+EftAura_FadeOut = 0x0017D1C0;
+// Aura task (BT3 eft_n.c names; same code apart from the BT2 layout; SetType reads the parameter flags in BT2).
+EftAura_UpdateTextures = 0x0017C0D8;
+EftAura_SetType = 0x0017C280;
+EftAura_Setup = 0x0017C5A8;
+EftAuraTask_Init = 0x0017C630;
+EftAuraTask_Term = 0x0017C6B8;
+EftAuraTask_Update = 0x0017C708;
+EftAura_UpdateState = 0x0017B158;
+// Aura task draw and manager (BT3 eft_n.c names).
+EftAuraMgr_Init = 0x0017CAA8;
+EftAuraMgr_Update = 0x0017CD98;
+// Aura task draw (BT3 eft_n.c name; no C yet: matches only with a .lit4 literal, see the report).
+EftAuraTask_Draw = 0x0017C9D0;
+// Body lightning task and manager (BT3 eft_o.c names, same code).
+EftBoltTask_Update = 0x0017FE20;
+EftBoltMgr_Init = 0x00180088;

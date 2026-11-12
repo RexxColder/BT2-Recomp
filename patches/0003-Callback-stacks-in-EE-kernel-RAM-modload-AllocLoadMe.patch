@@ -1,0 +1,180 @@
+From df923ac265d1d3ac05bd6bd224188a5ca9642bbe Mon Sep 17 00:00:00 2001
+From: RexxColder <palettafacundo@gmail.com>
+Date: Thu, 8 Oct 2026 04:43:58 -0300
+Subject: [PATCH 3/9] Callback stacks in EE kernel RAM; modload
+ AllocLoadMemory/FreeLoadMemory; IOP debug traces
+
+---
+ ps2xIOP/src/emulator/core/iop_kernel.cpp     | 22 ++++++++++++++++++
+ ps2xIOP/src/emulator/imports/iop_timrman.cpp |  7 ++++++
+ ps2xIOP/src/emulator/iop_emulator.cpp        | 15 ++++++++++++
+ ps2xIOP/src/emulator/services/iop_rpc.cpp    |  8 ++++++-
+ ps2xRuntime/src/lib/ps2_runtime.cpp          | 24 ++++++++++++++++----
+ 5 files changed, 70 insertions(+), 6 deletions(-)
+
+diff --git a/ps2xIOP/src/emulator/core/iop_kernel.cpp b/ps2xIOP/src/emulator/core/iop_kernel.cpp
+index 4832d8f..4529ebc 100644
+--- a/ps2xIOP/src/emulator/core/iop_kernel.cpp
++++ b/ps2xIOP/src/emulator/core/iop_kernel.cpp
+@@ -1,4 +1,6 @@
+ #include "iop_kernel.h"
++#include <cstdlib>
++#include <cstdio>
+ 
+ #include "iop_memory.h"
+ #include "../iop_emulator_const.h"
+@@ -671,6 +673,26 @@ namespace ps2x::iop::detail
+ 
+     IopThread *IopKernel::beginNextReady(uint64_t currentCycle)
+     {
++        // PS2X_IOP_THREADS=<cycles>: print every IOP thread's state about every <cycles> IOP cycles.
++        static const uint64_t dumpPeriod = []
++        {
++            const char *v = std::getenv("PS2X_IOP_THREADS");
++            return v ? std::strtoull(v, nullptr, 0) : 0ull;
++        }();
++        static uint64_t nextDump = 0;
++        if (dumpPeriod != 0u && currentCycle >= nextDump)
++        {
++            nextDump = currentCycle + dumpPeriod;
++            static const char *const names[] = {"dormant", "ready", "running", "sleep", "delay",
++                                                "sema", "evflag", "suspended", "dead"};
++            std::fprintf(stderr, "[iop threads @%llu]\n", static_cast<unsigned long long>(currentCycle));
++            for (const auto &[tid, t] : m_threads)
++                std::fprintf(stderr, "  iop thread %2d %-9s wait %3d bits %08x pc %08x ra %08x entry %08x prio %u\n",
++                             tid, names[static_cast<int>(t.state)], t.waitId, t.waitBits, t.cpu.pc, t.cpu.gpr[31],
++                             t.entry, t.priority);
++            for (const auto &[sid, sema] : m_semaphores)
++                std::fprintf(stderr, "  iop sema %3d count %d/%d\n", sid, sema.current, sema.maximum);
++        }
+         for (auto &[id, thread] : m_threads)
+         {
+             if (thread.state == IopThreadState::Delay && thread.wakeCycle <= currentCycle)
+diff --git a/ps2xIOP/src/emulator/imports/iop_timrman.cpp b/ps2xIOP/src/emulator/imports/iop_timrman.cpp
+index 3d80897..26ae503 100644
+--- a/ps2xIOP/src/emulator/imports/iop_timrman.cpp
++++ b/ps2xIOP/src/emulator/imports/iop_timrman.cpp
+@@ -1,5 +1,8 @@
+ #include "iop_timrman.h"
+ 
++#include <cstdio>
++#include <cstdlib>
++
+ #include "../core/iop_cpu.h"
+ #include "../services/iop_rpc.h"
+ 
+@@ -436,6 +439,10 @@ namespace ps2x::iop::detail
+                 continue;
+ 
+             const Callback callback = compareDue ? timer.compareCallback : timer.overflowCallback;
++            if (std::getenv("PS2X_TIMER_TRACE"))
++                std::fprintf(stderr, "[iop timer] fire %s handler %08x compare %u at cycle %llu\n",
++                             compareDue ? "compare" : "overflow", callback.function, timer.compare,
++                             static_cast<unsigned long long>(currentCycle));
+             timer.compareCycle = UINT64_MAX;
+             timer.overflowCycle = UINT64_MAX;
+             const uint32_t result = callback.function != 0u
+diff --git a/ps2xIOP/src/emulator/iop_emulator.cpp b/ps2xIOP/src/emulator/iop_emulator.cpp
+index 31a6d9e..e66509c 100644
+--- a/ps2xIOP/src/emulator/iop_emulator.cpp
++++ b/ps2xIOP/src/emulator/iop_emulator.cpp
+@@ -314,6 +314,21 @@ namespace ps2x::iop::detail
+                 setV0(0);
+                 return ImportDisposition::Handled;
+             }
++            if (iequals(call.library, "modload") && call.ordinal == 28u)
++            {
++                // AllocLoadMemory(type, size, addr): a sysmem block for loading into. Same placement rules as
++                // AllocSysMemory (2 = at addr). EZPCM (Neversoft) takes its audio stream buffer from it.
++                const uint32_t size = cpu.gpr[5];
++                const uint32_t address = a0 == 2u ? memory.allocate(size, 16u, cpu.gpr[6]) : memory.allocate(size, 16u);
++                setV0(address);
++                return ImportDisposition::Handled;
++            }
++            if (iequals(call.library, "modload") && call.ordinal == 29u)
++            {
++                // FreeLoadMemory(area)
++                setV0(memory.freeAllocation(a0) ? 0u : 0xFFFFFFFFu);
++                return ImportDisposition::Handled;
++            }
+             if (iequals(call.library, "ioman") && ioman.dispatchImport(call.ordinal, cpu, *this))
+                 return ImportDisposition::Handled;
+             if (iequals(call.library, "sifman"))
+diff --git a/ps2xIOP/src/emulator/services/iop_rpc.cpp b/ps2xIOP/src/emulator/services/iop_rpc.cpp
+index c6bc7ec..8d8359f 100644
+--- a/ps2xIOP/src/emulator/services/iop_rpc.cpp
++++ b/ps2xIOP/src/emulator/services/iop_rpc.cpp
+@@ -7,6 +7,8 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <cstdio>
++#include <cstdlib>
+ #include <cstring>
+ #include <limits>
+ #include <vector>
+@@ -209,7 +211,11 @@ namespace ps2x::iop::detail
+             std::memcpy(packet.data() + 4u, &extraDestination, sizeof(extraDestination));
+             std::memcpy(packet.data() + 8u, &commandId, sizeof(commandId));
+ 
+-            if (!m_host.sendSifCommand(commandId, packet.data(), packetSize))
++            const bool delivered = m_host.sendSifCommand(commandId, packet.data(), packetSize);
++            if (std::getenv("PS2X_SIF_TRACE"))
++                std::fprintf(stderr, "[iop sifcmd] -> EE cid %08x size %u extra %u -> %08x pc %08x %s\n", commandId,
++                             packetSize, extraSize, extraDestination, cpu.gpr[31], delivered ? "delivered" : "NO HANDLER");
++            if (!delivered)
+             {
+                 // A command without an EE handler is still a completed DMA on  real hardware. Only malformed packets fail above.
+             }
+diff --git a/ps2xRuntime/src/lib/ps2_runtime.cpp b/ps2xRuntime/src/lib/ps2_runtime.cpp
+index 72092ca..deeec56 100644
+--- a/ps2xRuntime/src/lib/ps2_runtime.cpp
++++ b/ps2xRuntime/src/lib/ps2_runtime.cpp
+@@ -91,6 +91,9 @@ namespace
+     constexpr uint32_t kGuestHeapDefaultAlignment = 16u;
+     constexpr uint32_t kGuestHeapSafetyPad = 0x1000u;
+     constexpr uint32_t kGuestHeapHardLimit = 0x01F00000u;
++    // Stacks for callbacks/interrupt handlers: EE kernel RAM, never used by a user ELF loaded at 0x100000.
++    constexpr uint32_t kKernelStackFloor = 0x00010000u;
++    constexpr uint32_t kKernelStackTop = 0x00080000u;
+ 
+     constexpr uint32_t COP0_CAUSE_EXCCODE_MASK = 0x0000007Cu;
+     constexpr uint32_t COP0_CAUSE_BD = 0x80000000u;
+@@ -503,8 +506,8 @@ PS2Runtime::PS2Runtime()
+     m_guestHeapLimit = std::min(kGuestHeapHardLimit, PS2_RAM_SIZE);
+     m_guestHeapSuggestedBase = kGuestHeapDefaultBase;
+     m_guestHeapConfigured = false;
+-    m_asyncCallbackStackFloor = std::min(kGuestHeapHardLimit, PS2_RAM_SIZE);
+-    m_asyncCallbackStackTop = PS2_RAM_SIZE;
++    m_asyncCallbackStackFloor = kKernelStackFloor;
++    m_asyncCallbackStackTop = kKernelStackTop;
+ }
+ 
+ void PS2Runtime::setDebugUiCallbacks(DebugUiCallback initCallback,
+@@ -978,9 +981,20 @@ bool PS2Runtime::loadELF(const std::string &elfPath)
+     }
+     {
+         std::lock_guard<std::mutex> lock(m_asyncCallbackStackMutex);
+-        const uint32_t hardLimit = std::min(kGuestHeapHardLimit, PS2_RAM_SIZE);
+-        m_asyncCallbackStackFloor = std::min(std::max(hardLimit, suggestedHeapBase), PS2_RAM_SIZE);
+-        m_asyncCallbackStackTop = PS2_RAM_SIZE;
++        // Interrupt handlers and callbacks run on the kernel's stack on the console, inside the EE kernel's
++        // 512 KB below every user ELF. The top of RAM belongs to the game: Neversoft titles (Downhill Jam) load
++        // data right up to 0x2000000, and a handler stack there overwrote it.
++        if (moduleBase >= kKernelStackTop)
++        {
++            m_asyncCallbackStackFloor = kKernelStackFloor;
++            m_asyncCallbackStackTop = kKernelStackTop;
++        }
++        else
++        {
++            const uint32_t hardLimit = std::min(kGuestHeapHardLimit, PS2_RAM_SIZE);
++            m_asyncCallbackStackFloor = std::min(std::max(hardLimit, suggestedHeapBase), PS2_RAM_SIZE);
++            m_asyncCallbackStackTop = PS2_RAM_SIZE;
++        }
+     }
+ 
+     LoadedModule module;
+-- 
+2.56.0
+

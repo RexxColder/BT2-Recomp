@@ -109,6 +109,10 @@ typedef void GLvoid; typedef ptrdiff_t GLsizeiptr; typedef ptrdiff_t GLintptr; t
 GL_FUNCS(GL_DECL)
 #undef GL_DECL
 
+/* GL 4.3's texture-to-texture copy (ARB_copy_image): optional. The alpha snapshot (native 5) uses it instead of a
+   framebuffer blit when the driver has it (no framebuffer to bind and no draw buffers to set for every copy). */
+static void (*glCopyImageSubData)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei);
+
 #define GL_FALSE 0
 #define GL_TRUE 1
 #define GL_NO_ERROR 0
@@ -193,6 +197,7 @@ static int load_gl(void) {
     if (!name) { fprintf(stderr, "bt3: gl: missing GL entry point %s\n", #name); return 0; }
     GL_FUNCS(LOAD)
 #undef LOAD
+    glCopyImageSubData = (void (*)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei))SDL_GL_GetProcAddress("glCopyImageSubData");
     return 1;
 }
 
@@ -461,6 +466,13 @@ static GLuint sSamplers[16];
 static GLuint sWhite;
 static GLuint sUboU, sUboParams;
 static GLuint sTgCol[MAX_TARGETS], sTgAux[MAX_TARGETS], sTgDep[MAX_TARGETS], sTgFbo[MAX_TARGETS];
+/* The dclut pass samples its target's depth texture while drawing into it (feedback loop). One extra framebuffer
+   per target, same colour/aux attachments and no depth, keeps the pass away from the depth attachment. */
+static GLuint sTgFboNoDep[MAX_TARGETS];
+/* A DATE draw that writes no alpha can sample the target's live alpha with this one: the colour and depth
+   attachments, and no aux, so that reading the aux texture is not a feedback loop (nothing is lost: the draw's
+   aux write mask is off). */
+static GLuint sTgFboNoAux[MAX_TARGETS];
 static GLuint sDateCopy, sAuxCopy, sSelfCopy; /* sSelfCopy: a target's colour, for a draw that samples its own target */
 static GLuint sScratchRead, sScratchDraw;
 static GLuint sFbTex[2], sFbFbo[2];
@@ -477,6 +489,7 @@ static void target_ensure(int i);
 static void target_drop(int i);
 static void set_pipe(int pipe);
 static void bind_target(int i, int clear);
+static void bind_target_nodep(int i);
 
 /* ---- the attachments of the shared targets ------------------------------------------------------ */
 static void target_ensure(int i) {
@@ -501,6 +514,22 @@ static void target_ensure(int i) {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         fprintf(stderr, "bt3: gl: target %d framebuffer incomplete\n", i);
     }
+    glGenFramebuffers(1, &sTgFboNoDep[i]);
+    glBindFramebuffer(GL_FRAMEBUFFER, sTgFboNoDep[i]);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sTgCol[i], 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, sTgAux[i], 0);
+    glDrawBuffers(2, bufs);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        fprintf(stderr, "bt3: gl: target %d (no depth) framebuffer incomplete\n", i);
+    }
+    glGenFramebuffers(1, &sTgFboNoAux[i]);
+    glBindFramebuffer(GL_FRAMEBUFFER, sTgFboNoAux[i]);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sTgCol[i], 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, sTgDep[i], 0);
+    glDrawBuffers(1, bufs);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        fprintf(stderr, "bt3: gl: target %d (no aux) framebuffer incomplete\n", i);
+    }
 }
 
 static void target_drop(int i) {
@@ -508,7 +537,9 @@ static void target_drop(int i) {
     glDeleteTextures(1, &sTgAux[i]);
     glDeleteTextures(1, &sTgDep[i]);
     glDeleteFramebuffers(1, &sTgFbo[i]);
-    sTgCol[i] = sTgAux[i] = sTgDep[i] = sTgFbo[i] = 0;
+    glDeleteFramebuffers(1, &sTgFboNoDep[i]);
+    glDeleteFramebuffers(1, &sTgFboNoAux[i]);
+    sTgCol[i] = sTgAux[i] = sTgDep[i] = sTgFbo[i] = sTgFboNoDep[i] = sTgFboNoAux[i] = 0;
 }
 
 static GsTex target_color(int i) { return (GsTex)sTgCol[i]; }
@@ -596,6 +627,7 @@ static int pipe_get(uint32_t key) {
 
 static GLuint sCurProgram;
 static int sCurPipe = -1;
+static int sCurNoDep;
 static GLuint sCurTex0, sCurTex1, sCurTex2;
 static int sCurSamp0, sCurSamp1;
 static int haveScissor = 0;
@@ -720,6 +752,7 @@ static void set_textures(GLuint t0, int s0, GLuint t1, int s1, GLuint t2, int s2
 
 static void bind_target(int i, int clear) {
     GLenum bufs[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    sCurNoDep = 0;
     glBindFramebuffer(GL_FRAMEBUFFER, sTgFbo[i]);
     glDrawBuffers(2, bufs);
     glViewport(0, 0, GS_W * SCALE, GS_H * SCALE);
@@ -734,10 +767,35 @@ static void bind_target(int i, int clear) {
     }
 }
 
+/* Binds the target's colour/aux attachments with no depth attachment: the dclut pass samples the target's depth
+   texture, and sampling it while it is attached would serialise the driver. No clear (the pass only blends). */
+static void bind_target_nodep(int i) {
+    GLenum bufs[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glBindFramebuffer(GL_FRAMEBUFFER, sTgFboNoDep[i]);
+    glDrawBuffers(2, bufs);
+    glViewport(0, 0, GS_W * SCALE, GS_H * SCALE);
+}
+
+/* Binds the target's colour and depth attachments without the aux one: a DATE draw that writes no alpha samples
+   the target's live alpha (texture unit 1) through this, where the normal framebuffer (aux attached) would be a
+   feedback loop and a copy of the alpha bytes would be needed for every run of such draws. The depth attachment
+   stays: DATE draws test and write depth like any other (the stage's own layers), and dropping it would change
+   them. No clear: the normal framebuffer was bound and cleared first when the target had to be cleared. */
+static void bind_target_noaux(int i) {
+    GLenum one[1] = {GL_COLOR_ATTACHMENT0};
+    sCurNoDep = 0;
+    glBindFramebuffer(GL_FRAMEBUFFER, sTgFboNoAux[i]);
+    glDrawBuffers(1, one);
+    glViewport(0, 0, GS_W * SCALE, GS_H * SCALE);
+}
+
 /* ---- init --------------------------------------------------------------------------------------- */
 static int gl_init(void) {
     static const uint32_t white = 0xFFFFFFFFu;
     int i;
+    gsDateLiveAux = 0; /* DATE draws read the alpha snapshot (native 5), one copy of the draw's scissor per DATE
+                          run up to BT2_DATE_CAP (200) per target per frame, then a full-picture copy
+                          (date_snapshot): the live-aux path left the HUD with a frame-old alpha */
 
     sWindow = GsDraw_WindowCreate(1);
     if (sWindow == NULL) { return 0; }
@@ -847,12 +905,36 @@ static int gl_init(void) {
 }
 
 /* ---- the frame ---------------------------------------------------------------------------------- */
+/* TEMP (impact square hunt): see the end of the draw loop in frame_end */
+static uint8_t *sProbePrev, *sProbeCur;
+static int probeOn(const GsDraw *d) {
+    extern volatile int gGsDumpOnHit;
+    static int from = -1;
+    if (gGsDumpOnHit == 2 && from < 0 && getenv("BT3_PROBE_HIT") != NULL) { from = (int)gGsFrame; } /* opt-in only: it reads the whole frame twice per draw (10 s/frame freeze) */
+    if (getenv("BT3_PROBE_FROM") != NULL) { from = atoi(getenv("BT3_PROBE_FROM")); }
+    if (from < 0 || (int)gGsFrame < from || (int)gGsFrame >= from + 400 || gGsMainFbp < 0 || d->native != 0 ||
+        gsTargets[d->target].fbp != (uint32_t)gGsMainFbp) {
+        return 0;
+    }
+    if (sProbePrev == NULL) {
+        sProbePrev = malloc((size_t)512 * 448 * 4 * SCALE * SCALE);
+        sProbeCur = malloc((size_t)512 * 448 * 4 * SCALE * SCALE);
+    }
+    return 1;
+}
+
 static void frame_end(void) {
     SDL_Event ev;
     int cur = -1, best = -1, i;
+    /* whether `cur` was bound through the no-aux framebuffer (see bind_target_noaux) */
+    int curNoAux = 0;
     uint32_t n;
     struct { int32_t mode[4]; float misc[4]; float rect[4]; float orig[4]; } fu, lastFu;
     int haveFu = 0;
+    /* TEMP gltime (drop en pelea con silueta): cuanto tardan las pasadas dclut, los blits de alfa, el loop de draws y el swap */
+    uint64_t tFrame = SDL_GetTicksNS(), tLoop = 0, tSwap = 0, tEnd = 0;
+    unsigned nDclut = 0, nBlit = 0, n4 = 0, n5 = 0, n6 = 0;
+    uint64_t dclutNs = 0, blitNs = 0;
 
     while (SDL_PollEvent(&ev)) {
         if (ev.type == SDL_EVENT_QUIT) { exit(0); }
@@ -860,10 +942,13 @@ static void frame_end(void) {
         if (Ui_Event(&ev)) { continue; }
         if (ev.type == SDL_EVENT_KEY_DOWN && ev.key.key == SDLK_ESCAPE) { exit(0); }
         if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F11) { GsDraw_FullscreenToggle(); }
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F9) { extern volatile int gGsDumpKey; gGsDumpKey = 1; }
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F10) { extern volatile int gRamDumpKey; gRamDumpKey = 1; }
     }
     if (getenv("BT3_GS_VERBOSE") != NULL && gGsFrame % 30 == 0) {
         fprintf(stderr, "gpu: frame %u: %u draws, %u vertices, %d targets, %d textures, %d pipelines, %u primitives of PS2-only passes dropped, %u native effects\n",
                 gGsFrame, gsDrawCount, gsVertCount + gsVuVertCount, gsTargetCount, gsTexCount, sPipeCount, gsSkipped, gsNative);
+        fprintf(stderr, "gpu: dropped by site: %u %u %u %u %u %u\n", gsSkipWhy[0], gsSkipWhy[1], gsSkipWhy[2], gsSkipWhy[3], gsSkipWhy[4], gsSkipWhy[5]);
     }
     if (getenv("BT3_GPU_CUT") != NULL && (int)gGsFrame == atoi(getenv("BT3_GPU_CUT")) && strchr(getenv("BT3_GPU_CUT"), ':') != NULL) {
         uint32_t c = (uint32_t)atoi(strchr(getenv("BT3_GPU_CUT"), ':') + 1);
@@ -923,6 +1008,7 @@ static void frame_end(void) {
     glEnable(GL_SCISSOR_TEST);
     for (n = 0; n < gsDrawCount; n++) {
         const GsDraw *d = &gsDraws[n];
+        int noaux = 0; /* set for a primitive that reads the target's live alpha (no aux attachment bound) */
         if (d->native >= 100) {
             GLenum one[1] = {GL_COLOR_ATTACHMENT0};
             if (sFbTex[d->native - 100] == 0) { continue; }
@@ -940,7 +1026,40 @@ static void frame_end(void) {
         if (d->native == 5 || d->native == 4 || d->native == 6) {
             GLuint dst = d->native == 6 ? sSelfCopy : d->native == 5 ? sDateCopy : sAuxCopy;
             GLenum one[1] = {GL_COLOR_ATTACHMENT0};
+            GLint bx = 0, by = 0;
+            GLsizei bw = GS_W * SCALE, bh = GS_H * SCALE;
             if (!gsTargets[d->target].cleared) { continue; }
+            /* A native 5 snapshot copies only the part of the alpha the DATE draws it serves read (its scissor),
+               not the whole GS_W x GS_H allocation: a fight's hundreds of runs made the whole-buffer copies the
+               frame's cost. */
+            if (d->native == 5 && d->scissor[2] > 0 && d->scissor[3] > 0) {
+                bx = d->scissor[0];
+                by = d->scissor[1];
+                bw = d->scissor[2];
+                bh = d->scissor[3];
+            }
+            if (bx < 0) { bw += bx; bx = 0; }
+            if (by < 0) { bh += by; by = 0; }
+            if (bx + bw > GS_W * SCALE) { bw = GS_W * SCALE - bx; }
+            if (by + bh > GS_H * SCALE) { bh = GS_H * SCALE - by; }
+            if (d->native == 5 && glCopyImageSubData != NULL) {
+                /* Texture-to-texture: no framebuffer to bind and no draw buffers to set (the blit below cost
+                   ~30 us of driver flushes, and a fight has hundreds of these copies). The framebuffer has to be
+                   unbound: copying into or from a texture attached to the bound framebuffer is an error. */
+                uint64_t td = SDL_GetTicksNS();
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glCopyImageSubData(sTgAux[d->target], GL_TEXTURE_2D, 0, bx, by, 0, dst, GL_TEXTURE_2D, 0, bx, by, 0, bw, bh, 1);
+                cur = -1;
+                haveScissor = 0;
+                {   /* TEMP gltime */
+                    uint64_t dt = SDL_GetTicksNS() - td;
+                    nBlit++;
+                    blitNs += dt;
+                    n5++;
+                    if (dt > 5000000ull) { fprintf(stderr, "ALFABLIT f=%u draw %.1f ms\n", gGsFrame, (double)dt / 1e6); }
+                }
+                continue; /* the next draw binds its target again */
+            }
             /* The copy of the frame's alpha ids (the outline and the DATE passes read it). glBlitFramebuffer is
                clipped by the scissor test, so with a partial scissor in force (the split screen's halves) only
                part of the alpha would be copied and the outline would draw a stale silhouette; turn it off for
@@ -952,7 +1071,15 @@ static void frame_end(void) {
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, sScratchDraw);
             glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, dst, 0);
             glDrawBuffers(1, one);
-            glBlitFramebuffer(0, 0, GS_W * SCALE, GS_H * SCALE, 0, 0, GS_W * SCALE, GS_H * SCALE, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            {   /* TEMP gltime */
+                uint64_t td = SDL_GetTicksNS();
+                glBlitFramebuffer(bx, by, bx + bw, by + bh, bx, by, bx + bw, by + bh, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                uint64_t dt = SDL_GetTicksNS() - td;
+                nBlit++;
+                blitNs += dt;
+                if (d->native == 4) { n4++; } else if (d->native == 5) { n5++; } else if (d->native == 6) { n6++; }
+                if (dt > 5000000ull) { fprintf(stderr, "ALFABLIT f=%u draw %.1f ms\n", gGsFrame, (double)dt / 1e6); }
+            }
             glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
             glEnable(GL_SCISSOR_TEST);
@@ -963,19 +1090,34 @@ static void frame_end(void) {
         if (d->native == 3) {
             float params[4] = {(float)d->src, d->misc[0], 0.0f, 0.0f};
             if (!gsTargets[d->target].cleared) { continue; }
-            if (cur != d->target) { bind_target(d->target, 0); cur = d->target; }
+            if (cur != d->target || !sCurNoDep) { bind_target_nodep(d->target); cur = d->target; sCurNoDep = 1; }
             set_pipe(d->pipeline);
             set_textures(sTgDep[d->target], 6, sAuxCopy, 6, (GLuint)d->tex, 6);
             set_params(params, 16);
+            /* B24: the parameter buffer now holds this pass's numbers. Forget the last primitive's, or the next one
+               with the same parameters skips the upload and its shader reads these as texture mode and alpha (the
+               world map's zeni HUD came out opaque: digits over each other, a grey box; only in some draw orders). */
+            haveFu = 0;
             if (d->blendc != lastBlendc) { glBlendColor(d->blendc, d->blendc, d->blendc, d->blendc); lastBlendc = d->blendc; }
             set_scissor(d->scissor);
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+            {   /* TEMP gltime */
+                uint64_t td = SDL_GetTicksNS();
+                glDrawArrays(GL_TRIANGLES, 0, 3);
+                uint64_t dt = SDL_GetTicksNS() - td;
+                nDclut++;
+                dclutNs += dt;
+                if (dt > 5000000ull) { fprintf(stderr, "DCLUT f=%u draw %.1f ms\n", gGsFrame, (double)dt / 1e6); }
+            }
+            /* Next draw must go back to the normal target framebuffer (with depth); this one had none. */
+            cur = -1;
+            sCurNoDep = 0;
             continue;
         }
         if (d->native) {
             float params[4];
             if (!gsTargets[d->target].cleared) { continue; }
-            if (cur != d->target) { bind_target(d->target, 0); cur = d->target; }
+            if (cur != d->target || curNoAux) { bind_target(d->target, 0); cur = d->target; }
+            curNoAux = 0;
             set_native(d->native);
             set_textures(sAuxCopy, 6, 0, 6, 0, 6);
             params[0] = 1.0f / (float)GS_W;
@@ -983,20 +1125,34 @@ static void frame_end(void) {
             params[2] = 100.0f / 255.0f;
             params[3] = getenv("BT3_FX_DEBUG") != NULL ? 1.0f : 0.0f;
             set_params(params, 16);
+            haveFu = 0; /* B24: as above */
             set_scissor(d->scissor);
             glDrawArrays(GL_TRIANGLES, 0, 3);
             continue;
         }
         /* an ordinary primitive */
-        if (cur != d->target) {
-            bind_target(d->target, !gsTargets[d->target].cleared);
-            gsTargets[d->target].cleared = 1;
-            cur = d->target;
-            haveFu = 0;
-            sCurPipe = -1;
-            haveScissor = 0;
-        } else if (!gsTargets[d->target].cleared) {
-            gsTargets[d->target].cleared = 1;
+        {
+            /* A DATE draw that writes no alpha reads the target's live alpha: bind the framebuffer without the aux
+               attachment (a copy of the alpha bytes per run of DATE draws is what a fight's 600 runs made the
+               whole frame cost). Any other draw uses the normal framebuffer. */
+            noaux = d->misc[1] != 0.0f && !(d->wmask & GS_CC_A) && gsDateLiveAux;
+            if (cur != d->target || curNoAux != noaux) {
+                int clear = !gsTargets[d->target].cleared;
+                if (noaux) {
+                    if (clear) { bind_target(d->target, 1); } /* clears colour, aux and depth */
+                    bind_target_noaux(d->target);
+                } else {
+                    bind_target(d->target, clear);
+                }
+                gsTargets[d->target].cleared = 1;
+                cur = d->target;
+                curNoAux = noaux;
+                haveFu = 0;
+                sCurPipe = -1;
+                haveScissor = 0;
+            } else if (!gsTargets[d->target].cleared) {
+                gsTargets[d->target].cleared = 1;
+            }
         }
         set_pipe(d->pipeline);
         glBindVertexArray(d->vu ? sVaoVu : sVaoGs);
@@ -1011,10 +1167,38 @@ static void frame_end(void) {
             memcpy(&lastFu, &fu, sizeof(fu));
             haveFu = 1;
         }
-        set_textures((GLuint)d->tex, d->sampler, sDateCopy, 6, 0, 6);
+        set_textures((GLuint)d->tex, d->sampler, noaux ? sTgAux[d->target] : sDateCopy, 6, 0, 6);
         if (d->blendc != lastBlendc) { glBlendColor(d->blendc, d->blendc, d->blendc, d->blendc); lastBlendc = d->blendc; }
         set_scissor(d->scissor);
+        if (probeOn(d)) {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, sTgFbo[d->target]);
+            glReadPixels(0, 0, 512 * SCALE, 448 * SCALE, GL_RGBA, GL_UNSIGNED_BYTE, sProbePrev);
+        }
         glDrawArrays(sPipes[d->pipeline].topo == 0 ? GL_TRIANGLES : sPipes[d->pipeline].topo == 1 ? GL_LINES : GL_POINTS, (GLint)d->first, (GLsizei)d->count);
+        /* TEMP (impact square hunt): for 600 frames after the first impact (BT3_GS_DUMP=hit), read the shown buffer
+           before and after each small draw (<= 12 vertices) and log the ones that fill a solid box of 20..160 px */
+        if (probeOn(d)) {
+            int w = 512 * SCALE, h = 448 * SCALE, x, y, x0 = w, y0 = h, x1 = -1, y1 = -1;
+            long long dl = 0, ch = 0;
+            glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, sProbeCur);
+            for (y = 0; y < h; y++) {
+                for (x = 0; x < w; x++) {
+                    const uint8_t *a = &sProbePrev[((size_t)y * w + x) * 4], *c = &sProbeCur[((size_t)y * w + x) * 4];
+                    int d0 = (c[0] + c[1] + c[2]) - (a[0] + a[1] + a[2]);
+                    if (d0 > 6 || d0 < -6) {
+                        ch++; dl += d0;
+                        if (x < x0) { x0 = x; } if (x > x1) { x1 = x; } if (y < y0) { y0 = y; } if (y > y1) { y1 = y; }
+                    }
+                }
+            }
+            if (ch > 0 && x1 - x0 >= 20 * SCALE && x1 - x0 < 160 * SCALE && y1 - y0 >= 20 * SCALE && y1 - y0 < 160 * SCALE &&
+                ch * 10 >= (long long)(x1 - x0 + 1) * (y1 - y0 + 1) * 9) {
+                fprintf(stderr, "probe f%u draw %u vu %d count %u key %08x tex %lu mode %d,%d,%d,%d misc %.0f,%.0f blendc %.2f | box %d,%d-%d,%d px %lld mean %+.1f\n",
+                        gGsFrame, n, d->vu, d->count, sPipes[d->pipeline].key, (unsigned long)d->tex,
+                        d->mode[0], d->mode[1], d->mode[2], d->mode[3], d->misc[0], d->misc[1], d->blendc,
+                        x0 / SCALE, y0 / SCALE, x1 / SCALE, y1 / SCALE, ch, (double)dl / (double)ch);
+            }
+        }
     }
 
     /* the shown buffer: the one sceGsSwapDBuff set up for this frame, else the first target */
@@ -1092,7 +1276,11 @@ static void frame_end(void) {
         }
         free(wp);
     }
+    /* TEMP gltime: BT2_GLTIME_FINISH=1 waits for the GPU here so its cost shows in `loop`, not in `swap` */
+    if (getenv("BT2_GLTIME_FINISH") != NULL) { glFinish(); }
+    tLoop = SDL_GetTicksNS(); /* TEMP gltime: fin del loop de draws + present */
     SDL_GL_SwapWindow(sWindow);
+    tSwap = SDL_GetTicksNS(); /* TEMP gltime */
     if (getenv("BT3_GS_VERBOSE") != NULL) {
         GLenum e = glGetError();
         if (e != GL_NO_ERROR) { fprintf(stderr, "bt3: gl: frame error 0x%x\n", e); }
@@ -1103,7 +1291,8 @@ static void frame_end(void) {
     {
         static int every = -1;
         if (every < 0) { every = getenv("BT3_SHOT") != NULL ? atoi(getenv("BT3_SHOT")) : 0; }
-        if (every > 0 && gGsFrame % (unsigned)every == 0 && best >= 0 && gsTargets[best].cleared &&
+        extern int gGsDumpFrame;
+        if (((every > 0 && gGsFrame % (unsigned)every == 0) || (gGsDumpFrame >= 0 && gGsFrame - (unsigned)gGsDumpFrame <= 1u)) && best >= 0 && gsTargets[best].cleared &&
             (getenv("BT3_SHOT_FROM") == NULL || (int)gGsFrame >= atoi(getenv("BT3_SHOT_FROM"))) &&
             (getenv("BT3_SHOT_TO") == NULL || (int)gGsFrame <= atoi(getenv("BT3_SHOT_TO")))) {
             GLsizei w = 512 * SCALE, h = 448 * SCALE;
@@ -1168,6 +1357,14 @@ static void frame_end(void) {
         }
     }
 
+    /* TEMP gltime: resumen por frame (BT2_GLTIME=1) */
+    tEnd = SDL_GetTicksNS();
+    if (getenv("BT2_GLTIME") != NULL && (gGsFrame % 60 == 0 || dclutNs > 20000000ull)) {
+        fprintf(stderr, "GLTIME f=%u dclut %u/%.1f ms blit %u/%.1f blit4 %u blit5 %u blit6 %u loop %.1f swap %.1f total %.1f\n",
+                gGsFrame, nDclut, (double)dclutNs / 1e6, nBlit, (double)blitNs / 1e6, n4, n5, n6,
+                (double)(tLoop - tFrame) / 1e6, (double)(tSwap - tLoop) / 1e6, (double)(tEnd - tFrame) / 1e6);
+    }
+
     for (i = 0; i < gsTargetCount; i++) { gsTargets[i].draws = 0; }
     gsVertCount = 0;
     gsVuVertCount = 0;
@@ -1176,6 +1373,7 @@ static void frame_end(void) {
     for (int zc = 0; zc < gsTargetCount; zc++) gsTargets[zc].zcolour = 0; /* the radar's buffer is a picture for one frame */
     gsAnchor = 0;
     gsSkipped = 0;
+    memset(gsSkipWhy, 0, sizeof(gsSkipWhy));
     gsNative = 0;
 }
 

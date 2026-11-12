@@ -1,0 +1,1 @@
+Num_DrawDigits = 0x0024AB10; // type:func

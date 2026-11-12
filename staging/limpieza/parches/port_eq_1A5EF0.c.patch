@@ -1,0 +1,10 @@
+--- a/port/eq/1A5EF0.c
++++ b/port/eq/1A5EF0.c
+@@ -20,7 +20,6 @@
+     f32 f20;
+ 
+     idx = arg0 & 0xFF;
+-    { static int n; if (n++ < 60) bt2_fightlog_note("EFECTO-1A5EF0 tipo %X lista %p", idx, D_00387830); } /* TEMP: chispas de golpe */
+     memset(blk, 0, 0x30);
+     v0 = 0;
+     if (D_00387830 != NULL) {

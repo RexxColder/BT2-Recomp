@@ -1,0 +1,1 @@
+Vec4_SetZero = 0x00129AB8; // type:func

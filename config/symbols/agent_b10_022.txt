@@ -1,0 +1,3 @@
+IVec4_InGsRange4 = 0x0012A290; // type:func
+ADXF_GetFnameRangeEx = 0x002ECB18; // type:func
+Mtx_ProjectPoints = 0x00129FE0; // type:func

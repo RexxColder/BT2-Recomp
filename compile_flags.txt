@@ -1,0 +1,2 @@
+-Iinclude
+-D__GNUC__=2

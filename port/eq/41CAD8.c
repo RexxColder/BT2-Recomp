@@ -1,0 +1,16 @@
+#include "common.h"
+
+extern u8 *D_0042FD74 __attribute__((section(".data")));
+
+/* 0x0041CAD8: G = D_0042FD74; indices 0..24 (jtbl_0042FE70) store a fixed value into G->0x2E4, others return. */
+void func_0041CAD8(s32 idx) {
+    static const s32 kVal[25] = {
+        0x01, 0x12, 0x15, 0x18, 0x1B, 0x2F, 0x32, 0x37, 0x3E, 0x41, 0x59, 0x5E, 0x65,
+        0x68, 0x70, 0x85, 0x8B, 0x96, 0x9D, 0xA2, 0xA8, 0xAE, 0xB7, 0xC0, 0xC7,
+    };
+
+    if ((u32)idx >= 25) {
+        return;
+    }
+    *(s32 *)(D_0042FD74 + 0x2E4) = kVal[idx];
+}

@@ -1,0 +1,17 @@
+StgSlot_Call02 = 0x002E0FD8;
+StgSlot_Call03 = 0x002E1000;
+StgSlot_Call05 = 0x002E1058;
+StgSlot_Call07 = 0x002E1080;
+StgSlot_Call06 = 0x002E10A8;
+StgSlot_Call08 = 0x002E10D0;
+StgSlot_Call09 = 0x002E10F8;
+StgSlot_Call10 = 0x002E1120;
+StgSlot_Call11 = 0x002E1148;
+StgSlot_Call12 = 0x002E1170;
+StgSlot_Call13 = 0x002E1198;
+StgSlot_Call14 = 0x002E11C0;
+StgSlot_Call16 = 0x002E1218;
+StgSlot_Call17 = 0x002E1240;
+StgSlot_Call18 = 0x002E1268;
+StgSlot_Call19 = 0x002E1290;
+StgSlot_Call20 = 0x002E12B8;

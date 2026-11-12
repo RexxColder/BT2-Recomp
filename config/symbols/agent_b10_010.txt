@@ -1,0 +1,3 @@
+ClipPlane_EdgeParam = 0x00129970; // type:func
+Mtx_MulVec4 = 0x00129C50; // type:func
+Vec4_AddClamp = 0x0012A3C8; // type:func

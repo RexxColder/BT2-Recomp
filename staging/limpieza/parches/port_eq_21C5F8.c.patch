@@ -1,0 +1,10 @@
+--- a/port/eq/21C5F8.c
++++ b/port/eq/21C5F8.c
+@@ -59,7 +59,6 @@
+             if (BtlPad_Test4C((s32)arg0, 3) != 0 || BtlPad_Test4C((s32)arg0, 2) != 0 ||
+                 BtlPad_Test4C((s32)arg0, 1) != 0) {
+                 W(arg0, 0x8DC) = W(arg0, 0x8DC) | 2;
+-                bt2_fightlog_note("B3 BIT2 21C5F8 chr %08X", (s32)arg0); /* TEMP */
+                 func_0020FC38((s32)arg0, 0x1F);
+             }
+         }

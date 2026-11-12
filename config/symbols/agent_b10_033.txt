@@ -1,0 +1,1 @@
+EftDet_PrepareAll = 0x0011AC70; // type:func

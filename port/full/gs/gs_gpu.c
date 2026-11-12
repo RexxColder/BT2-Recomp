@@ -508,6 +508,8 @@ static void vk_frame_end(void) {
         if (ev.type == SDL_EVENT_KEY_DOWN && ev.key.key == SDLK_ESCAPE) {
             exit(0);
         }
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F9) { extern volatile int gGsDumpKey; gGsDumpKey = 1; }
+        if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F10) { extern volatile int gRamDumpKey; gRamDumpKey = 1; }
         if (ev.type == SDL_EVENT_KEY_DOWN && !ev.key.repeat && ev.key.key == SDLK_F11) {
             GsDraw_FullscreenToggle();
         }
@@ -515,6 +517,7 @@ static void vk_frame_end(void) {
     if (getenv("BT3_GS_VERBOSE") != NULL && gGsFrame % 30 == 0) {
         fprintf(stderr, "gpu: frame %u: %u draws, %u vertices, %d targets, %d textures, %d pipelines, %u primitives of PS2-only passes dropped, %u native effects\n",
                 gGsFrame, gsDrawCount, gsVertCount + gsVuVertCount, gsTargetCount, gsTexCount, sPipeCount, gsSkipped, gsNative);
+        fprintf(stderr, "gpu: dropped by site: %u %u %u %u %u %u\n", gsSkipWhy[0], gsSkipWhy[1], gsSkipWhy[2], gsSkipWhy[3], gsSkipWhy[4], gsSkipWhy[5]);
     }
     if (getenv("BT3_GPU_CUT") != NULL && (int)gGsFrame == atoi(getenv("BT3_GPU_CUT")) && strchr(getenv("BT3_GPU_CUT"), ':') != NULL) {
         /* BT3_GPU_CUT=<frame>:<n>: only the first n draws of that frame (finding the draw that spoils a picture) */
@@ -713,7 +716,19 @@ static void vk_frame_end(void) {
             SDL_zero(to);
             from.texture = sTgAux[d->target];
             to.texture = sDateCopy;
-            SDL_CopyGPUTextureToTexture(cp, &from, &to, GS_W * SCALE, GS_H * SCALE, 1, false);
+            {   /* only the part of the alpha the DATE draw reads (its scissor), as the GL back end does:
+                   a full-picture copy per DATE run was the frame's cost */
+                uint32_t x = d->scissor[0] > 0 ? (uint32_t)d->scissor[0] : 0;
+                uint32_t y = d->scissor[1] > 0 ? (uint32_t)d->scissor[1] : 0;
+                uint32_t w = d->scissor[2] > 0 ? (uint32_t)d->scissor[2] : 0;
+                uint32_t h = d->scissor[3] > 0 ? (uint32_t)d->scissor[3] : 0;
+                if (w == 0 || h == 0) { w = GS_W * SCALE; h = GS_H * SCALE; x = y = 0; }
+                if (x + w > (uint32_t)(GS_W * SCALE)) { w = (uint32_t)(GS_W * SCALE) - x; }
+                if (y + h > (uint32_t)(GS_H * SCALE)) { h = (uint32_t)(GS_H * SCALE) - y; }
+                from.x = to.x = x;
+                from.y = to.y = y;
+                SDL_CopyGPUTextureToTexture(cp, &from, &to, w, h, 1, false);
+            }
             SDL_EndGPUCopyPass(cp);
             continue;
         }
@@ -820,6 +835,7 @@ static void vk_frame_end(void) {
             ct.texture = sTgCol[d->target];
             ct.load_op = gsTargets[d->target].cleared ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
             ct.store_op = SDL_GPU_STOREOP_STORE;
+            ct.clear_color.a = 1.0f; /* the same clear as gs_gl.c (bind_target): opaque black, alpha 1.0 */
             cts[1] = ct;
             cts[1].texture = sTgAux[d->target];
             if (getenv("BT3_GPU_MAGENTA") != NULL) { ct.clear_color.r = 1.0f; ct.clear_color.b = 1.0f; ct.clear_color.a = 1.0f; }
@@ -1067,7 +1083,9 @@ static void vk_frame_end(void) {
             }
         }
         /* BT3_SHOT_FROM / BT3_SHOT_TO limit the frames */
-        if (every > 0 && gGsFrame % (unsigned)every == 0 && best >= 0 && gsTargets[best].cleared &&
+        extern int gGsDumpFrame; /* BT3_GS_DUMP=<frame> / F9: also save the picture of the dumped frame, as gs_gl.c does */
+        if (((every > 0 && gGsFrame % (unsigned)every == 0) || (gGsDumpFrame >= 0 && gGsFrame - (unsigned)gGsDumpFrame <= 1u)) &&
+            best >= 0 && gsTargets[best].cleared &&
             (getenv("BT3_SHOT_FROM") == NULL || (int)gGsFrame >= atoi(getenv("BT3_SHOT_FROM"))) &&
             (getenv("BT3_SHOT_TO") == NULL || (int)gGsFrame <= atoi(getenv("BT3_SHOT_TO")))) {
             SDL_GPUTransferBufferCreateInfo ti;
@@ -1129,6 +1147,7 @@ static void vk_frame_end(void) {
     for (int zc = 0; zc < gsTargetCount; zc++) gsTargets[zc].zcolour = 0; /* the radar's buffer is a picture for one frame */
     gsAnchor = 0;
     gsSkipped = 0;
+    memset(gsSkipWhy, 0, sizeof(gsSkipWhy));
     gsNative = 0;
 }
 

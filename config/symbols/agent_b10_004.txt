@@ -1,0 +1,3 @@
+Gsc_MakeFileHandle = 0x002A02B8; // type:func
+FlashDraw_AdjustY = 0x002A2AD0; // type:func
+adxf_ChkPrmGfr = 0x002EC9F8; // type:func

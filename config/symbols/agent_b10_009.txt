@@ -1,0 +1,11 @@
+Vec3_Dot = 0x00129CD8; // type:func
+Vec4_Clamp = 0x00129D68; // type:func
+Vec3_Clamp = 0x00129D90; // type:func
+Vec4_Lerp = 0x00129DB8; // type:func
+Vec3_Lerp = 0x00129DE0; // type:func
+Vec3_DistSq = 0x00129E80; // type:func
+Vec3_Add4 = 0x0012A3A0; // type:func
+GfxPost_DrawDepthClutAt = 0x0027DE68; // type:func
+adxstmf_stat_exec = 0x002F2718; // type:func
+adxf_LoadPtBothNw = 0x002EAC10; // type:func
+MdlTex_RebaseChain = 0x00269F00; // type:func

@@ -59,6 +59,16 @@ void main() {
                 uv = clamp(uv, p.rect.xy + inset, p.rect.zw - inset);
             }
         }
+        if (p.mode.x == 2 && p.orig.x > 0.0) {
+            // A frame buffer read with another width than it was drawn with (orig.x = read width, orig.y = drawn
+            // width, orig.zw = the texture's size in GS pixels): same PSMCT32 page (64 x 32), other place.
+            vec2 px = uv * p.orig.zw;
+            vec2 ip = floor(px);
+            float page = floor(ip.y / 32.0) * (p.orig.x / 64.0) + floor(ip.x / 64.0);
+            float per = p.orig.y / 64.0;
+            vec2 np = vec2(mod(page, per), floor(page / per));
+            uv = (np * vec2(64.0, 32.0) + mod(ip, vec2(64.0, 32.0)) + (px - ip)) / p.orig.zw;
+        }
         if (p.mode.x == 2) uv = clamp(uv, p.rect.xy, p.rect.zw);
         vec4 t = texture(tex, uv);
         if (p.mode.x == 1 || p.mode.x == 3) t.a *= k; // a texture from GS memory keeps the GS alpha (0x80 opaque, up to 0xFF)

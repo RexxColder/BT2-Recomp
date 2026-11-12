@@ -1,0 +1,2 @@
+BtlActB_NextVariant = 0x0021FE80; // type:func
+BtlObj_FindBound = 0x00269A08; // type:func

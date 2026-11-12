@@ -1,0 +1,43 @@
+# Everything game-specific for the ps2-decomp-kit scripts (see scripts/gamecfg.py).
+
+[game]
+name = "Dragon Ball Z: Budokai Tenkaichi 2 (USA)"
+iso = "DragonBall Z - Budokai Tenkaichi 2 (USA) (En,Ja).iso"
+extract = ["SYSTEM.CNF", "SLUS_214.41"]
+
+[toolchain]
+binutils = "tools/binutils/mips-ps2-decompals-"
+# ld 2.47 (mips64-elf-binutils package): 2.40's is quadratic in the object count (scripts/gamecfg.py LINKER).
+linker = "/usr/bin/mips64-elf-ld"
+# elf_survey.py: main prologue style sd8 -> first guess ee-gcc2.96; confirm with
+# scripts/cc_probe.py on a few probe functions, then set cc/cc_flags (see ps2-decomp-kit docs/METHOD.md).
+cc = "tools/ee-gcc2.96/bin/ee-gcc"
+cc_flags = "-O2 -fno-strict-aliasing -Iinclude"  # same as BT3-Decompiled (same engine)
+cxx_flags = "-O2 -fno-strict-aliasing -fno-exceptions -fno-rtti -Iinclude"
+# small data present
+g_default = "-G8"
+e_flags = 0x20924001
+# Every tools/ee-gcc*/ build is an alt compiler named after its folder (scripts/cc_probe.py tries them all);
+# a src path listed in config/cc_<folder>.txt is built with that one. The 2.9 builds emit a trailing .p2align.
+strip_func_pad = ["ee-gcc2.9-990721", "ee-gcc2.9-991111", "ee-gcc2.9-991111-01", "ee-gcc2.9-991111a"]
+
+[toolchain.alt_cc]
+
+[toolchain.g_flags]
+# As in BT3-Decompiled: Spike code -G8, the CRI middleware and the menu code -G0.
+"src/cri/" = "-G0"
+"src/menu/" = "-G0"
+"src/sys/late_a" = "-G0"
+"scratch/xfer/src/cri/" = "-G0"
+"scratch/xfer/src/menu/" = "-G0"
+"scratch/xfer/src/sys/late_a" = "-G0"
+
+[[target]]
+name = "SLUS_214.41"
+elf = "disc/SLUS_214.41"
+image = [0x100000, 0x3b3038]
+flatten = false
+# Where the game's own code is (progress.py's denominator). Compiler runs found by elf_survey.py:
+#   0x0030fdc0-0x003206f8 sd16 (161 functions): not the main compiler; library?
+#   0x0032f228-0x0033a9e8 sd16 (146 functions): not the main compiler; library?
+game_ranges = [[0x100000, 0x387e80]]

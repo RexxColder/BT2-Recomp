@@ -1,0 +1,1 @@
+Gfx_SetDisplayRegs = 0x002712B0; // type:func

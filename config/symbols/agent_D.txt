@@ -1,0 +1,45 @@
+// Agent D (BT2 batch 1), range 0x207BF0..0x25DF98.
+
+// Stage rigid bodies (BT3 stg_d.c): same code and pool as BT3's functions of these names.
+StgRigidList_Collide = 0x00242C40;
+StgRigid_Init = 0x00242F60;
+StgRigid_Term = 0x00242FC8;
+StgRigid_Create = 0x00242FF0;
+StgRigid_Launch = 0x002430C8;
+StgRigid_LaunchSpin = 0x00243408;
+StgRigid_Update = 0x00243680;
+gStgRigidRestitution = 0x00387944;
+gStgRigidFriction = 0x00387948;
+gStgRigidDensity = 0x0038794C;
+
+// Fighter pad queries (0x207BF0..): button words +0x48/+0x4C/+0x50, key mask table +0x58, per-bit frame counters
+// +0xDC/+0xFC/+0x11C. Called from the action code with key numbers; meaning of the three words not established.
+BtlPad_TestMask = 0x00207BF0; // type:func
+BtlPad_Test4C = 0x00207C08; // type:func
+BtlPad_Test48 = 0x00207C30; // type:func
+BtlPad_Test50 = 0x00207C58; // type:func
+BtlPad_GetMask = 0x00207C80; // type:func
+BtlPad_GetCount = 0x00207C90; // type:func
+BtlPad_GetCountDC = 0x00207CC8; // type:func
+BtlPad_GetCountFC = 0x00207CF0; // type:func
+BtlPad_GetCount11C = 0x00207D18; // type:func
+BtlPad_TestStep = 0x00207D40; // type:func
+BtlObjVis_GetView_207EA0 = 0x00207EA0; // type:func
+Vec3_DiffToEuler_20E478 = 0x0020E478; // type:func
+BtlFacade_AreBothInterruptible_20EC60 = 0x0020EC60; // type:func
+BtlMember_IsHealthEmpty_2127F8 = 0x002127F8; // type:func
+BtlKiBlast_GetReactS4000Of_240848 = 0x00240848; // type:func
+BtlKiBlast_GetReactS4000Of_240880 = 0x00240880; // type:func
+BtlKiBlast_GetReactS200Of_2408F0 = 0x002408F0; // type:func
+BtlKiBlast_GetReactS200Of_240928 = 0x00240928; // type:func
+BtlKiBlast_GetHitsOf_240980 = 0x00240980; // type:func
+BtlKiBlast_GetHitsOf_2409A0 = 0x002409A0; // type:func
+BtlKiBlast_GetUnk31Of_2409E0 = 0x002409E0; // type:func
+BtlKiBlast_GetUnk31Of_240A00 = 0x00240A00; // type:func
+BtlKiBlast_GetUnk28Of_240AA0 = 0x00240AA0; // type:func
+BtlKiBlast_GetUnk28Of_240AC0 = 0x00240AC0; // type:func
+BtlKiBlast_GetUnk2COf_240B00 = 0x00240B00; // type:func
+BtlKiBlast_GetUnk2COf_240B20 = 0x00240B20; // type:func
+EftShotFx_Update_2494A0 = 0x002494A0; // type:func
+ObjOutline_Term_25A468 = 0x0025A468; // type:func
+BtlFacade_ShakeCamera_25B990 = 0x0025B990; // type:func

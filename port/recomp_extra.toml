@@ -1,0 +1,16 @@
+# Hand-written additions to port/recomp.toml (read by scripts/recomp.py). Each entry says why.
+stubs = [
+  # libcdvd here has sceCdLayerSearchFile(file, name, layer) at 0x31F088; sceCdSearchFile (0x31F388) only forwards
+  # layer 0, and the game (func_002FD318) calls the layer version directly. The original binds CDVDFSV's RPC, which
+  # the IOP emulation lacks: without this it spins forever (first boot, 2026-10-08, pc 0x31f128).
+  # The runtime's sceCdSearchFile ignores $a2; the disc is single-layer (2.99 GB), so there is no layer offset.
+  "sceCdSearchFile@0x0031F088",
+]
+skip = [
+]
+unstub = [
+  # As in Downhill Jam: the game loads the real SDRDRV.IRX + LIBSD.IRX; the runtime's sceSdRemote stubs answer on
+  # the host and never reach SDRDRV, so LIBSD would never be initialised. Let the game's own RPC client run.
+  "sceSdRemoteInit",
+  "sceSdRemote",
+]

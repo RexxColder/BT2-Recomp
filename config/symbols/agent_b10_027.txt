@@ -1,0 +1,1 @@
+cvFsGetFileSize = 0x002FA088; // type:func

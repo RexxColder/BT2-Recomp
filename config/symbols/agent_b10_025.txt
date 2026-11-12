@@ -1,0 +1,2 @@
+adxf_SetCmdHstry = 0x002EA2F0; // type:func
+adxt_SetReloadTime = 0x002F56F8; // type:func

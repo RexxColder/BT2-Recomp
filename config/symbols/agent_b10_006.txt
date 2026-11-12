@@ -1,0 +1,6 @@
+Vec4_ToFixed12 = 0x00129D20; // type:func
+Vec4_ToFixed4 = 0x00129D30; // type:func
+Vec4_ToInt = 0x00129D40; // type:func
+IVec4_ToFloat12 = 0x00135E90; // type:func
+Vu0Cur_Init = 0x00128EC0; // type:func
+Vu0Cur_TranslateLocal = 0x00129038; // type:func

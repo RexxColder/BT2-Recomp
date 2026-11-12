@@ -1,0 +1,3 @@
+Mtx_AxisZToEuler = 0x001287A8; // type:func
+Vu0Cur_MulMtx = 0x001290A8; // type:func
+Vu0Cur_InverseRT = 0x00129158; // type:func

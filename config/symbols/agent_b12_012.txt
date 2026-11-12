@@ -1,0 +1,1 @@
+StgCol_CollectSphere = 0x0011E320; // type:func

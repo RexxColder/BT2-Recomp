@@ -1,0 +1,11 @@
+Vu0Cur_ScaleDiagUniform = 0x00129398; // type:func
+Vec4_Add = 0x00129B28; // type:func
+Vec4_Sub = 0x00129B58; // type:func
+Vec4_Mul = 0x00129B88; // type:func
+Vec3_Mul = 0x00129BA0; // type:func
+Vec4_Scale = 0x00129BB8; // type:func
+Vec3_Scale = 0x00129BD0; // type:func
+Vu0Screen_LoadMtx = 0x0029C848; // type:func
+Vu0Clip_LoadMtx = 0x0029C860; // type:func
+Vu0View_StoreMtx = 0x0029D5B0; // type:func
+Vu0View_LoadMtx = 0x0029D5C8; // type:func

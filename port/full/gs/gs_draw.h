@@ -15,6 +15,10 @@ extern int gsScale;
 #define SCALE gsScale
 #define GS_W 1024
 #define GS_H 1024
+/* The picture the GS shows inside that buffer (the game's 512 x 448 frame): a copy of the alpha bytes only has to
+   cover it, never the whole 1024 x 1024 allocation. */
+#define GS_PIC_W 512
+#define GS_PIC_H 448
 
 #define MAX_VERTS (1 << 20)
 #define MAX_DRAWS (1 << 16)
@@ -57,6 +61,9 @@ typedef struct GsTarget {
     int zcolour;    /* drawn as a picture although it is the depth buffer's address (the radar's work buffer) */
     int stale;      /* a pass that should have filled it was dropped: its contents are not what the game expects */
     unsigned last;  /* frame it was last asked for */
+    unsigned drawn; /* frame it was last drawn into */
+    uint32_t fbw;   /* FRAME.FBW it was last drawn with (64-pixel units): a read with another TEX0.TBW sees its pages
+                       rearranged (the underwater ripple reads a 256-wide buffer as 512 wide) */
 } GsTarget;
 
 /* One recorded primitive. Everything inside is GS state or a handle a back end made (`tex`, `pipeline`); a
@@ -79,6 +86,9 @@ typedef struct GsDraw {
                        a texture pack's replacement drawn as 2D art: the piece's own rectangle of the sheet */
     float orig[4];  /* a texture pack's replacement: xy = the original texture's size in texels, z = its largest alpha */
     float blendc;
+    uint32_t wmask; /* which channels the primitive writes, as GS_CC_* bits (FRAME.FBMSK's whole-channel form, the
+                       same bits the pipelines' colour mask uses). Only read to tell whether a DATE snapshot of
+                       the alpha bytes is still current. */
     int scissor[4]; /* x, y, width, height, at SCALE */
 } GsDraw;
 
@@ -104,10 +114,15 @@ extern int gsTexCount;          /* textures in the shared decode cache */
 extern GsTex gsWhite;           /* the back end's 1x1 white texture */
 extern int gsPendingScale;      /* the user asked for a new SCALE: applied between two frames */
 extern unsigned gsFxOff;        /* effects the user can switch off (BT3_FX_OFF, or F1..F5 while running) */
+/* The back end can sample the target's aux (alpha) attachment directly for a DATE draw that writes no alpha, with
+   a framebuffer that does not have it attached, instead of a copy of the alpha bytes taken before every run. Set by
+   the OpenGL back end (gs_gl.c); 0 means every DATE draw needs the copy (native 5). */
+extern int gsDateLiveAux;
 extern int gsGlowPercent;
 extern int gsAnchor;            /* widescreen: which part of the screen the 2D pieces being drawn belong to */
 extern int gsDepthByteIsFog;    /* the top byte of the depth page as the game last left it */
 extern unsigned gsNative;       /* native effect markers seen this frame */
+extern unsigned gsSkipWhy[8];   /* the same, by drop site in draw_state (0 16-bit/depth target, 1 depth table, 2 depth/index texture, 3 stale, 4 effect switch, 5 own target / other view) */
 extern unsigned gsSkipped;      /* primitives of PS2-only passes dropped this frame */
 extern int gGsMainFbp;          /* the frame buffer the game shows (gs_sony.c), -1 before the first swap */
 /* created / spent since the front end last cleared them (gs_core.c's slow-frame report) */

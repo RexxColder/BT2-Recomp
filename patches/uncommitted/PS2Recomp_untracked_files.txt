@@ -1,0 +1,5 @@
+ps2xRuntime/cmake/raylib_sdl3.cmake
+ps2xRuntime/cmake/raylib_sdl3_gamepad.patch
+ps2xRuntime/include/ps2_identity.h
+ps2xRuntime/include/runtime/gs/gs_gl_backend.h
+ps2xRuntime/src/lib/gs/gs_gl_backend.cpp

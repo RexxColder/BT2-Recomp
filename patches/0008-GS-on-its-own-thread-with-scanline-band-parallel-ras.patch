@@ -1,0 +1,766 @@
+From 1bdb8dcd57f75d3206c19583f9b64de61bee5f3e Mon Sep 17 00:00:00 2001
+From: RexxColder <palettafacundo@gmail.com>
+Date: Thu, 8 Oct 2026 14:13:51 -0300
+Subject: [PATCH 8/9] GS on its own thread with scanline-band parallel
+ rasterization; multi-page texture cache; VU1 pipeline commit early-out
+
+---
+ ps2xRuntime/CMakeLists.txt                    |   1 +
+ .../include/runtime/gs/gs_cpu_backend.h       |   8 +
+ .../runtime/gs/gs_texture_page_cache.h        |  23 +-
+ .../include/runtime/gs/gs_threaded_backend.h  |  89 ++++++
+ ps2xRuntime/include/runtime/ps2_vu1.h         |   2 +
+ ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp     |  34 ++-
+ ps2xRuntime/src/lib/gs/gs_frontend.cpp        |  19 +-
+ .../src/lib/gs/gs_threaded_backend.cpp        | 282 ++++++++++++++++++
+ ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp       |  45 ++-
+ 9 files changed, 482 insertions(+), 21 deletions(-)
+ create mode 100644 ps2xRuntime/include/runtime/gs/gs_threaded_backend.h
+ create mode 100644 ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp
+
+diff --git a/ps2xRuntime/CMakeLists.txt b/ps2xRuntime/CMakeLists.txt
+index 589d768..5109c65 100644
+--- a/ps2xRuntime/CMakeLists.txt
++++ b/ps2xRuntime/CMakeLists.txt
+@@ -383,6 +383,7 @@ add_library(ps2_runtime STATIC
+     src/lib/gs/ps2_gs_memory.cpp
+     src/lib/gs/gs_frontend.cpp
+     src/lib/gs/gs_cpu_backend.cpp
++    src/lib/gs/gs_threaded_backend.cpp
+     src/lib/ps2_iop_host.cpp
+     src/lib/ps2_memory.cpp
+     src/lib/ps2_pad.cpp
+diff --git a/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h b/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h
+index 2421f9e..83d759b 100644
+--- a/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h
++++ b/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h
+@@ -61,6 +61,14 @@ private:
+                              uint32_t sourceOriginX,
+                              uint32_t sourceOriginY) const;
+ 
++public:
++    // Band rendering: several threads draw the same primitive list, each only on rows y % count == index, with
++    // its own texture page cache. Set per thread; the default (0 of 1) draws every row.
++    static void SetThreadBand(int index, int count, GSMem::TexturePageCache *cache) noexcept;
++    // Draws without taking the backend lock: the caller (GSThreadedBackend) guarantees exclusive use.
++    void SubmitUnlocked(const GSPrimitiveBatch &batch);
++
++private:
+     using WriteVramFunc = void (*)(uint8_t *, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t);
+     using ReadVramFunc = uint32_t (*)(uint8_t *, uint32_t, uint32_t, uint32_t, uint32_t);
+ 
+diff --git a/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h b/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h
+index 1cb1540..1daf778 100644
+--- a/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h
++++ b/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h
+@@ -14,24 +14,33 @@ namespace GSMem
+ 
+         void Invalidate() noexcept
+         {
+-            m_pageBase = UINT32_MAX;
++            for (Slot &slot : m_slots)
++                slot.pageBase = UINT32_MAX;
+         }
+ 
+         // byteAddress is the wrapped, swizzled VRAM address. The returned
+         // pointer is valid only until the next miss or invalidation.
++        // Several pages stay cached (direct-mapped by page number): with one slot, a texture spanning pages or
++        // bilinear taps across a page edge re-copied 8 KB on almost every texel.
+         const uint8_t* Resolve(const uint8_t* vram, uint32_t byteAddress) noexcept
+         {
+             const uint32_t pageBase = byteAddress & ~(kPageSize - 1u);
+-            if (m_pageBase != pageBase)
++            Slot &slot = m_slots[(pageBase / kPageSize) % kSlots];
++            if (slot.pageBase != pageBase)
+             {
+-                std::memcpy(m_bytes.data(), vram + pageBase, kPageSize);
+-                m_pageBase = pageBase;
++                std::memcpy(slot.bytes.data(), vram + pageBase, kPageSize);
++                slot.pageBase = pageBase;
+             }
+-            return m_bytes.data() + (byteAddress & (kPageSize - 1u));
++            return slot.bytes.data() + (byteAddress & (kPageSize - 1u));
+         }
+ 
+     private:
+-        alignas(64) std::array<uint8_t, kPageSize> m_bytes{};
+-        uint32_t m_pageBase = UINT32_MAX;
++        static constexpr uint32_t kSlots = 64u;
++        struct Slot
++        {
++            alignas(64) std::array<uint8_t, kPageSize> bytes{};
++            uint32_t pageBase = UINT32_MAX;
++        };
++        std::array<Slot, kSlots> m_slots{};
+     };
+ }
+diff --git a/ps2xRuntime/include/runtime/gs/gs_threaded_backend.h b/ps2xRuntime/include/runtime/gs/gs_threaded_backend.h
+new file mode 100644
+index 0000000..e2b04ad
+--- /dev/null
++++ b/ps2xRuntime/include/runtime/gs/gs_threaded_backend.h
+@@ -0,0 +1,89 @@
++#pragma once
++
++#include "runtime/gs/gs_backend.h"
++
++#include <atomic>
++#include <condition_variable>
++#include <deque>
++#include <functional>
++#include <memory>
++#include <mutex>
++#include <thread>
++#include <vector>
++
++// Runs another raster backend on its own thread, so the GS draws while the EE keeps running (on the console the
++// GS is a separate chip). Writes (draws, CLUT loads, uploads, flushes) are queued in order; anything that reads
++// GS state (presentation, VRAM reads, readbacks, transfer status) first waits for the commands queued before it.
++// The wrapped backend keeps its own lock, so a read and the worker never touch VRAM at the same time.
++// With a GSCpuBackend inside, consecutive draws are rasterized by several threads at once, each owning every
++// N-th scanline (PS2X_GS_THREADS=N, default: cores - 2, at most 8).
++class GSThreadedBackend final : public GSRasterBackend
++{
++public:
++    explicit GSThreadedBackend(std::unique_ptr<GSRasterBackend> inner);
++    ~GSThreadedBackend() override;
++
++    void Initialize(uint8_t *vram, uint32_t vramSize) override;
++    void Reset() override;
++
++    void Submit(const GSPrimitiveBatch &batch) override;
++    void LoadClut(const GSTex0Reg &tex0, const GSTexClutReg &texclut) override;
++
++    void BeginTransfer(const GSTransferCommand &command) override;
++    void UploadImage(const uint8_t *data, uint32_t sizeBytes) override;
++
++    void Flush() override;
++    void TextureFlush() override;
++    void Sync(GSSyncReason reason) override;
++    PresentationFrame Present(const GSPresentationRequest &request) override;
++
++    bool ClearFramebuffer(const GSContext &context, uint32_t rgba) override;
++    uint32_t ConsumeLocalToHostBytes(uint8_t *dst, uint32_t maxBytes) override;
++
++    uint32_t ReadVram(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y) const override;
++    void WriteVram(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y, uint32_t value) override;
++    void SnapshotVram(std::vector<uint8_t> &out) const override;
++    GSTransferSnapshot GetTransferSnapshot() const override;
++
++private:
++    using Command = std::function<void(GSRasterBackend &)>;
++    struct Item
++    {
++        bool isDraw = false;
++        GSPrimitiveBatch batch{};
++        Command command;
++    };
++
++    void enqueue(Command command);
++    void push(Item item);
++    void drawBanded(const std::vector<GSPrimitiveBatch> &batches);
++    void helperLoop(int index);
++    // Waits until every command queued so far has run.
++    void drain() const;
++    void workerLoop();
++
++    std::unique_ptr<GSRasterBackend> m_inner;
++    mutable std::mutex m_queueMutex;
++    mutable std::condition_variable m_queueCv;
++    mutable std::condition_variable m_doneCv;
++    std::deque<Item> m_queue;
++    uint64_t m_enqueued = 0;
++    uint64_t m_completed = 0;
++    bool m_stop = false;
++    std::thread m_worker;
++
++    // Serializes the wrapped backend between the worker and direct (read) calls.
++    mutable std::mutex m_innerLock;
++
++    // Band helpers.
++    class GSCpuBackend *m_cpu = nullptr;
++    int m_bands = 1;
++    std::vector<std::thread> m_helpers;
++    std::mutex m_bandMutex;
++    std::condition_variable m_bandCv;
++    std::condition_variable m_bandDoneCv;
++    const std::vector<GSPrimitiveBatch> *m_bandWork = nullptr;
++    uint64_t m_bandGeneration = 0;
++    int m_bandPending = 0;
++    bool m_bandStop = false;
++};
+diff --git a/ps2xRuntime/include/runtime/ps2_vu1.h b/ps2xRuntime/include/runtime/ps2_vu1.h
+index 67c8184..139f5c0 100644
+--- a/ps2xRuntime/include/runtime/ps2_vu1.h
++++ b/ps2xRuntime/include/runtime/ps2_vu1.h
+@@ -217,6 +217,7 @@ private:
+     std::array<PendingViWrite, kMaxPendingViWrites> m_viWritePipeline{};
+     std::array<PendingAccWrite, kMaxPendingAccWrites> m_accWritePipeline{};
+     XgkickPipeline m_xgkick{};
++    uint64_t m_pipelineWake = 0; // earliest readyCycle among pending pipeline entries
+     std::array<std::array<uint64_t, 4>, 32> m_vfReady{};
+     std::array<uint64_t, 16> m_viReady{};
+     std::array<uint64_t, 4> m_accReady{};
+@@ -278,6 +279,7 @@ private:
+ 
+     void resetScheduler();
+     void commitReadyPipelines();
++    void noteReady(uint64_t readyCycle) noexcept { if (readyCycle < m_pipelineWake) m_pipelineWake = readyCycle; }
+     void advanceOneCycle();
+     void advanceTo(uint64_t targetCycle);
+     void flushPipelines();
+diff --git a/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp b/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp
+index e766db3..3867438 100644
+--- a/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp
++++ b/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp
+@@ -550,6 +550,32 @@ void GSCpuBackend::ResetUnlocked()
+     m_localToHostReadPos = 0u;
+ }
+ 
++namespace
++{
++    thread_local int t_bandIndex = 0;
++    thread_local int t_bandCount = 1;
++    thread_local GSMem::TexturePageCache *t_bandCache = nullptr;
++
++    inline bool ownsRow(int y) noexcept
++    {
++        return t_bandCount == 1 || ((y % t_bandCount) + t_bandCount) % t_bandCount == t_bandIndex;
++    }
++}
++
++void GSCpuBackend::SetThreadBand(int index, int count, GSMem::TexturePageCache *cache) noexcept
++{
++    t_bandIndex = index;
++    t_bandCount = count > 0 ? count : 1;
++    t_bandCache = cache;
++}
++
++void GSCpuBackend::SubmitUnlocked(const GSPrimitiveBatch &batch)
++{
++    if (!m_vram || batch.vertexCount == 0u)
++        return;
++    DrawPrimitive(batch);
++}
++
+ void GSCpuBackend::Submit(const GSPrimitiveBatch &batch)
+ {
+     std::lock_guard<std::mutex> lock(m_mutex);
+@@ -677,7 +703,7 @@ uint32_t GSCpuBackend::ReadTextureVramUnlocked(uint32_t psm, uint32_t base, uint
+     if (!m_vram)
+         return 0u;
+ 
+-    return GSMem::ReadTexture(m_texturePageCache, m_vram, psm, base, bw, x, y);
++    return GSMem::ReadTexture(t_bandCache ? *t_bandCache : m_texturePageCache, m_vram, psm, base, bw, x, y);
+ }
+ 
+ void GSCpuBackend::WriteVram(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y, uint32_t value)
+@@ -855,6 +881,8 @@ void GSCpuBackend::DrawPrimitive(const GSPrimitiveBatch &batch)
+ 
+ void GSCpuBackend::WritePixel(const GSDrawState &state, int x, int y, int z, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t fog)
+ {
++    if (!ownsRow(y))
++        return;
+     const auto &ctx = state.context;
+     if (x < ctx.scissor.x0 || x > ctx.scissor.x1 || y < ctx.scissor.y0 || y > ctx.scissor.y1)
+         return;
+@@ -1243,6 +1271,8 @@ void GSCpuBackend::DrawSprite(const GSPrimitiveBatch &batch)
+ 
+         for (int y = drawY0; y <= drawY1; ++y)
+         {
++            if (!ownsRow(y))
++                continue;
+             float ty = (static_cast<float>(y - unclippedY0) + 0.5f) / spriteH;
+             float texVf = v0f + (v1f - v0f) * ty;
+ 
+@@ -1320,6 +1350,8 @@ void GSCpuBackend::DrawTriangle(const GSPrimitiveBatch &batch)
+ 
+     for (int y = minY; y <= maxY; ++y)
+     {
++        if (!ownsRow(y))
++            continue;
+         float py = static_cast<float>(y) + 0.5f;
+         for (int x = minX; x <= maxX; ++x)
+         {
+diff --git a/ps2xRuntime/src/lib/gs/gs_frontend.cpp b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+index 07ff105..5c9fcec 100644
+--- a/ps2xRuntime/src/lib/gs/gs_frontend.cpp
++++ b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+@@ -3,6 +3,19 @@
+ #include <cstdio>
+ #include <cstdlib>
+ #include "runtime/gs/gs_cpu_backend.h"
++#include "runtime/gs/gs_threaded_backend.h"
++
++namespace
++{
++    // The software rasterizer runs on its own thread unless PS2X_GS_THREAD=0.
++    std::unique_ptr<GSRasterBackend> makeDefaultRasterBackend()
++    {
++        const char *threaded = std::getenv("PS2X_GS_THREAD");
++        if (threaded && threaded[0] == '0')
++            return std::make_unique<GSCpuBackend>();
++        return std::make_unique<GSThreadedBackend>(std::make_unique<GSCpuBackend>());
++    }
++}
+ #include "ps2_log.h"
+ #include "runtime/ps2_memory.h"
+ #include <atomic>
+@@ -109,7 +122,7 @@ namespace
+ 
+ 
+ GS::GS()
+-    : m_backend(std::make_unique<GSCpuBackend>())
++    : m_backend(makeDefaultRasterBackend())
+ {
+     reset();
+ }
+@@ -120,7 +133,7 @@ void GS::init(uint8_t *vram, uint32_t vramSize, GSRegisters *privRegs)
+     m_localMemorySize = vramSize;
+     m_privRegs = privRegs;
+     if (!m_backend)
+-        m_backend = std::make_unique<GSCpuBackend>();
++        m_backend = makeDefaultRasterBackend();
+     m_backend->Initialize(vram, vramSize);
+     reset();
+ }
+@@ -1695,7 +1708,7 @@ uint32_t GS::consumeLocalToHostBytes(uint8_t *dst, uint32_t maxBytes)
+ void GS::setRasterBackend(std::unique_ptr<GSRasterBackend> backend)
+ {
+     if (!backend)
+-        backend = std::make_unique<GSCpuBackend>();
++        backend = makeDefaultRasterBackend();
+ 
+     std::lock_guard<std::recursive_mutex> lock(m_stateMutex);
+     std::lock_guard<std::mutex> backendLock(m_backendLifetimeMutex);
+diff --git a/ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp b/ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp
+new file mode 100644
+index 0000000..f8ac8d2
+--- /dev/null
++++ b/ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp
+@@ -0,0 +1,282 @@
++#include "runtime/gs/gs_threaded_backend.h"
++#include "runtime/gs/gs_cpu_backend.h"
++
++#include <algorithm>
++#include <cstdlib>
++#include <utility>
++
++namespace
++{
++    // Above this many pending commands the producer waits, bounding memory and latency.
++    constexpr size_t kMaxQueuedCommands = 65536u;
++    // Consecutive draws handed to the band threads at once.
++    constexpr size_t kMaxDrawsPerBatch = 1024u;
++
++    int bandCountFromEnvironment()
++    {
++        if (const char *value = std::getenv("PS2X_GS_THREADS"))
++            return std::clamp(std::atoi(value), 1, 16);
++        const unsigned cores = std::thread::hardware_concurrency();
++        return std::clamp(static_cast<int>(cores) - 2, 1, 8);
++    }
++}
++
++GSThreadedBackend::GSThreadedBackend(std::unique_ptr<GSRasterBackend> inner)
++    : m_inner(std::move(inner))
++{
++    m_cpu = dynamic_cast<GSCpuBackend *>(m_inner.get());
++    m_bands = m_cpu ? bandCountFromEnvironment() : 1;
++    for (int index = 1; index < m_bands; ++index)
++        m_helpers.emplace_back([this, index]() { helperLoop(index); });
++    m_worker = std::thread([this]() { workerLoop(); });
++}
++
++GSThreadedBackend::~GSThreadedBackend()
++{
++    {
++        std::lock_guard<std::mutex> lock(m_queueMutex);
++        m_stop = true;
++    }
++    m_queueCv.notify_all();
++    if (m_worker.joinable())
++        m_worker.join();
++    {
++        std::lock_guard<std::mutex> lock(m_bandMutex);
++        m_bandStop = true;
++    }
++    m_bandCv.notify_all();
++    for (std::thread &helper : m_helpers)
++        if (helper.joinable())
++            helper.join();
++}
++
++void GSThreadedBackend::helperLoop(int index)
++{
++    GSMem::TexturePageCache cache;
++    GSCpuBackend::SetThreadBand(index, m_bands, &cache);
++    uint64_t seen = 0;
++    for (;;)
++    {
++        const std::vector<GSPrimitiveBatch> *work = nullptr;
++        {
++            std::unique_lock<std::mutex> lock(m_bandMutex);
++            m_bandCv.wait(lock, [&]() { return m_bandStop || m_bandGeneration != seen; });
++            if (m_bandStop)
++                return;
++            seen = m_bandGeneration;
++            work = m_bandWork;
++        }
++        cache.Invalidate(); // VRAM may have changed (uploads, flushes) since the last batch
++        for (const GSPrimitiveBatch &batch : *work)
++            m_cpu->SubmitUnlocked(batch);
++        {
++            std::lock_guard<std::mutex> lock(m_bandMutex);
++            --m_bandPending;
++        }
++        m_bandDoneCv.notify_one();
++    }
++}
++
++void GSThreadedBackend::drawBanded(const std::vector<GSPrimitiveBatch> &batches)
++{
++    if (m_bands <= 1)
++    {
++        for (const GSPrimitiveBatch &batch : batches)
++            m_cpu ? m_cpu->SubmitUnlocked(batch) : m_inner->Submit(batch);
++        return;
++    }
++    {
++        std::lock_guard<std::mutex> lock(m_bandMutex);
++        m_bandWork = &batches;
++        m_bandPending = m_bands - 1;
++        ++m_bandGeneration;
++    }
++    m_bandCv.notify_all();
++
++    static thread_local GSMem::TexturePageCache cache;
++    cache.Invalidate();
++    GSCpuBackend::SetThreadBand(0, m_bands, &cache);
++    for (const GSPrimitiveBatch &batch : batches)
++        m_cpu->SubmitUnlocked(batch);
++    GSCpuBackend::SetThreadBand(0, 1, nullptr);
++
++    std::unique_lock<std::mutex> lock(m_bandMutex);
++    m_bandDoneCv.wait(lock, [this]() { return m_bandPending == 0; });
++}
++
++void GSThreadedBackend::workerLoop()
++{
++    std::vector<GSPrimitiveBatch> draws;
++    draws.reserve(kMaxDrawsPerBatch);
++    for (;;)
++    {
++        Item item;
++        size_t taken = 0;
++        {
++            std::unique_lock<std::mutex> lock(m_queueMutex);
++            m_queueCv.wait(lock, [this]() { return m_stop || !m_queue.empty(); });
++            if (m_queue.empty())
++                return;
++            if (m_queue.front().isDraw)
++            {
++                draws.clear();
++                while (!m_queue.empty() && m_queue.front().isDraw && draws.size() < kMaxDrawsPerBatch)
++                {
++                    draws.push_back(std::move(m_queue.front().batch));
++                    m_queue.pop_front();
++                }
++                taken = draws.size();
++            }
++            else
++            {
++                item = std::move(m_queue.front());
++                m_queue.pop_front();
++                taken = 1;
++            }
++        }
++        m_doneCv.notify_all(); // room in the queue
++        {
++            std::lock_guard<std::mutex> lock(m_innerLock);
++            if (item.command)
++                item.command(*m_inner);
++            else
++                drawBanded(draws);
++        }
++        {
++            std::lock_guard<std::mutex> lock(m_queueMutex);
++            m_completed += taken;
++        }
++        m_doneCv.notify_all();
++    }
++}
++
++void GSThreadedBackend::push(Item item)
++{
++    {
++        std::unique_lock<std::mutex> lock(m_queueMutex);
++        m_doneCv.wait(lock, [this]() { return m_queue.size() < kMaxQueuedCommands; });
++        m_queue.push_back(std::move(item));
++        ++m_enqueued;
++    }
++    m_queueCv.notify_one();
++}
++
++void GSThreadedBackend::enqueue(Command command)
++{
++    Item item;
++    item.command = std::move(command);
++    push(std::move(item));
++}
++
++void GSThreadedBackend::drain() const
++{
++    std::unique_lock<std::mutex> lock(m_queueMutex);
++    const uint64_t target = m_enqueued;
++    m_doneCv.wait(lock, [this, target]() { return m_completed >= target; });
++}
++
++void GSThreadedBackend::Initialize(uint8_t *vram, uint32_t vramSize)
++{
++    drain();
++    std::lock_guard<std::mutex> lock(m_innerLock);
++    m_inner->Initialize(vram, vramSize);
++}
++
++void GSThreadedBackend::Reset()
++{
++    drain();
++    std::lock_guard<std::mutex> lock(m_innerLock);
++    m_inner->Reset();
++}
++
++void GSThreadedBackend::Submit(const GSPrimitiveBatch &batch)
++{
++    Item item;
++    item.isDraw = true;
++    item.batch = batch;
++    push(std::move(item));
++}
++
++void GSThreadedBackend::LoadClut(const GSTex0Reg &tex0, const GSTexClutReg &texclut)
++{
++    enqueue([tex0, texclut](GSRasterBackend &backend) { backend.LoadClut(tex0, texclut); });
++}
++
++void GSThreadedBackend::BeginTransfer(const GSTransferCommand &command)
++{
++    enqueue([command](GSRasterBackend &backend) { backend.BeginTransfer(command); });
++}
++
++void GSThreadedBackend::UploadImage(const uint8_t *data, uint32_t sizeBytes)
++{
++    if (!data || sizeBytes == 0u)
++        return;
++    std::vector<uint8_t> copy(data, data + sizeBytes);
++    enqueue([copy = std::move(copy)](GSRasterBackend &backend)
++            { backend.UploadImage(copy.data(), static_cast<uint32_t>(copy.size())); });
++}
++
++void GSThreadedBackend::Flush()
++{
++    enqueue([](GSRasterBackend &backend) { backend.Flush(); });
++}
++
++void GSThreadedBackend::TextureFlush()
++{
++    enqueue([](GSRasterBackend &backend) { backend.TextureFlush(); });
++}
++
++void GSThreadedBackend::Sync(GSSyncReason reason)
++{
++    enqueue([reason](GSRasterBackend &backend) { backend.Sync(reason); });
++    // Readbacks need the drawing done; FINISH/presentation only need ordering, which the queue gives.
++    if (reason == GSSyncReason::DebugReadback || reason == GSSyncReason::Reset)
++        drain();
++}
++
++PresentationFrame GSThreadedBackend::Present(const GSPresentationRequest &request)
++{
++    drain();
++    std::lock_guard<std::mutex> lock(m_innerLock);
++    return m_inner->Present(request);
++}
++
++bool GSThreadedBackend::ClearFramebuffer(const GSContext &context, uint32_t rgba)
++{
++    drain();
++    std::lock_guard<std::mutex> lock(m_innerLock);
++    return m_inner->ClearFramebuffer(context, rgba);
++}
++
++uint32_t GSThreadedBackend::ConsumeLocalToHostBytes(uint8_t *dst, uint32_t maxBytes)
++{
++    drain();
++    std::lock_guard<std::mutex> lock(m_innerLock);
++    return m_inner->ConsumeLocalToHostBytes(dst, maxBytes);
++}
++
++uint32_t GSThreadedBackend::ReadVram(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y) const
++{
++    drain();
++    std::lock_guard<std::mutex> lock(m_innerLock);
++    return m_inner->ReadVram(psm, base, bw, x, y);
++}
++
++void GSThreadedBackend::WriteVram(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y, uint32_t value)
++{
++    enqueue([=](GSRasterBackend &backend) { backend.WriteVram(psm, base, bw, x, y, value); });
++}
++
++void GSThreadedBackend::SnapshotVram(std::vector<uint8_t> &out) const
++{
++    drain();
++    std::lock_guard<std::mutex> lock(m_innerLock);
++    m_inner->SnapshotVram(out);
++}
++
++GSTransferSnapshot GSThreadedBackend::GetTransferSnapshot() const
++{
++    // Only used for debug history (taken on every draw): no drain and no lock, the inner backend locks itself;
++    // the value may lag the queue slightly.
++    return m_inner->GetTransferSnapshot();
++}
+diff --git a/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp b/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
+index 494345a..7abccaa 100644
+--- a/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
++++ b/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
+@@ -98,6 +98,7 @@ void VU1Interpreter::reset()
+     m_state.q = 1.0f;
+     m_state.r = 0x3F800000u;
+     m_cycle = 0;
++    m_pipelineWake = 0;
+     resetScheduler();
+ }
+ 
+@@ -532,7 +533,7 @@ void VU1Interpreter::updateFmacFlags(const uint8_t laneFlags[4], uint8_t dest,
+     *entry = {};
+     entry->valid = true;
+     entry->issueCycle = m_cycle;
+-    entry->readyCycle = m_cycle + kFmacLatency;
++    entry->readyCycle = m_cycle + kFmacLatency; noteReady(entry->readyCycle);
+     entry->mac = mac;
+     entry->status = status;
+     entry->extraSticky = extraSticky;
+@@ -571,7 +572,7 @@ void VU1Interpreter::queueFsset(uint16_t immediate)
+             entry = {};
+             entry.valid = true;
+             entry.issueCycle = m_cycle;
+-            entry.readyCycle = m_cycle + kFmacLatency;
++            entry.readyCycle = m_cycle + kFmacLatency; noteReady(entry.readyCycle);
+             entry.status = static_cast<uint32_t>(immediate) & 0xFC0u;
+             entry.writesSticky = true;
+             return;
+@@ -590,7 +591,7 @@ void VU1Interpreter::queueClip(uint32_t clip)
+             entry = {};
+             entry.valid = true;
+             entry.issueCycle = m_cycle;
+-            entry.readyCycle = m_cycle + kFmacLatency;
++            entry.readyCycle = m_cycle + kFmacLatency; noteReady(entry.readyCycle);
+             entry.clip = m_workingClip;
+             entry.writesClip = true;
+             return;
+@@ -614,7 +615,7 @@ void VU1Interpreter::queueFcset(uint32_t clip)
+             entry = {};
+             entry.valid = true;
+             entry.issueCycle = m_cycle;
+-            entry.readyCycle = m_cycle + kFmacLatency;
++            entry.readyCycle = m_cycle + kFmacLatency; noteReady(entry.readyCycle);
+             entry.clip = m_workingClip;
+             entry.writesClip = true;
+             return;
+@@ -628,7 +629,7 @@ void VU1Interpreter::queueQ(float value, uint32_t latency, uint32_t statusDi)
+     uint32_t ignoredFlags = 0u;
+     value = normalizeResult(value, ignoredFlags);
+     m_fdiv.valid = true;
+-    m_fdiv.readyCycle = m_cycle + latency;
++    m_fdiv.readyCycle = m_cycle + latency; noteReady(m_fdiv.readyCycle);
+     m_fdiv.value = value;
+     m_fdiv.statusDi = statusDi & 0x30u;
+ }
+@@ -642,7 +643,7 @@ void VU1Interpreter::queueP(float value, uint32_t latency)
+         if (!entry.valid)
+         {
+             entry.valid = true;
+-            entry.readyCycle = m_cycle + latency;
++            entry.readyCycle = m_cycle + latency; noteReady(entry.readyCycle);
+             entry.value = value;
+             // EFU throughput is one cycle shorter than result visibility.
+             m_efuResourceReady = m_cycle + (latency > 0u ? latency - 1u : 0u);
+@@ -659,7 +660,7 @@ void VU1Interpreter::queueStore(uint32_t address, const uint32_t words[4], uint8
+         if (!store.valid)
+         {
+             store.valid = true;
+-            store.readyCycle = m_cycle + 1u;
++            store.readyCycle = m_cycle + 1u; noteReady(store.readyCycle);
+             store.address = address;
+             store.laneMask = laneMask;
+             std::copy(words, words + 4, store.words.begin());
+@@ -680,7 +681,7 @@ void VU1Interpreter::queueVfWrite(uint8_t reg, uint8_t laneMask,
+         {
+             write = {};
+             write.valid = true;
+-            write.readyCycle = m_cycle + latency;
++            write.readyCycle = m_cycle + latency; noteReady(write.readyCycle);
+             write.sequence = ++m_nextWriteSequence;
+             write.reg = reg;
+             write.laneMask = laneMask;
+@@ -706,7 +707,7 @@ void VU1Interpreter::queueViWrite(uint8_t reg, int32_t value, uint32_t latency)
+         {
+             write = {};
+             write.valid = true;
+-            write.readyCycle = m_cycle + latency;
++            write.readyCycle = m_cycle + latency; noteReady(write.readyCycle);
+             write.sequence = ++m_nextWriteSequence;
+             write.reg = reg;
+             write.value = value;
+@@ -727,7 +728,7 @@ void VU1Interpreter::queueAccWrite(uint8_t laneMask, const float value[4], uint3
+         {
+             write = {};
+             write.valid = true;
+-            write.readyCycle = m_cycle + latency;
++            write.readyCycle = m_cycle + latency; noteReady(write.readyCycle);
+             write.sequence = ++m_nextWriteSequence;
+             write.laneMask = laneMask;
+             std::copy(value, value + 4, write.value.begin());
+@@ -744,6 +745,10 @@ void VU1Interpreter::queueAccWrite(uint8_t laneMask, const float value[4], uint3
+ 
+ void VU1Interpreter::commitReadyPipelines()
+ {
++    // Called every VU cycle: skip the scan until the earliest pending result is due.
++    if (m_cycle < m_pipelineWake)
++        return;
++    m_pipelineWake = UINT64_MAX;
+     for (FlagPipelineEntry &entry : m_flagPipeline)
+     {
+         if (!entry.valid || entry.readyCycle > m_cycle)
+@@ -838,6 +843,26 @@ void VU1Interpreter::commitReadyPipelines()
+         }
+         write = {};
+     }
++    for (const FlagPipelineEntry &entry : m_flagPipeline)
++        if (entry.valid)
++            noteReady(entry.readyCycle);
++    if (m_fdiv.valid)
++        noteReady(m_fdiv.readyCycle);
++    for (const ScalarPipelineEntry &entry : m_efu)
++        if (entry.valid)
++            noteReady(entry.readyCycle);
++    for (const PendingStore &store : m_storePipeline)
++        if (store.valid)
++            noteReady(store.readyCycle);
++    for (const PendingVfWrite &write : m_vfWritePipeline)
++        if (write.valid)
++            noteReady(write.readyCycle);
++    for (const PendingViWrite &write : m_viWritePipeline)
++        if (write.valid)
++            noteReady(write.readyCycle);
++    for (const PendingAccWrite &write : m_accWritePipeline)
++        if (write.valid)
++            noteReady(write.readyCycle);
+ }
+ 
+ void VU1Interpreter::progressXgkick()
+-- 
+2.56.0
+

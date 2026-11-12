@@ -1,0 +1,64 @@
+# F8 : textes du dialogue de carte mémoire en français (proposition, NON installé).
+# Même format que BT2-test/bt2_texto.txt :  MSG=texte  avec \n pour le saut de ligne.
+# Vérifié contre les slots de la table 0x550/0xFCC80 (49 entrées) et la font0 :
+#   - chaque MSG tient dans son slot UTF-16 ;
+#   - aucune ligne ne dépasse 429 px ; 5 lignes maximum.
+# La font0 du jeu (AFS 0x542) a les accents latins, ç et les guillemets ASCII.
+# Pour tester : copier dans BT2-test/ sous le nom bt2_texto.txt (sauvegarder l'actuel avant).
+#
+# --- titres du panneau (non dessinés, mais traduits) ---
+0=Fichier de sauvegarde
+1=Fichier de sauvegarde
+2=Emplacements 1 et 2\nde sauvegarde
+
+# --- questions ---
+3=Les réglages actuels seront\nperdus. Continuer?
+4=Les réglages actuels seront\nperdus. Charger?
+5=Aucune sauvegarde.
+6=Pas assez d'espace.\nContinuer quand même?
+7=Sauvegarde introuvable.
+9=Échec du chargement.
+11=Créer une sauvegarde?
+13=Sauvegarde introuvable.\nLa créer?
+16=Pas assez d'espace.\n75 Ko requis.
+17=Pas assez d'espace.\nContinuer quand même?
+21=La sauvegarde existe.\nL'écraser?
+22=Écraser la sauvegarde?
+23=Échec de sauvegarde.\nÉcraser quand même?
+24=Sauvegarde modifiée.\nL'écraser?
+25=Échec du chargement.\nLa sauvegarde peut être corrompue.
+26=Aucune sauvegarde.
+27=Sauvegarder?
+28=Sauvegarder les données?
+31=Échec de sauvegarde.
+32=Sauvegarder maintenant?
+36=Commencer sans sauver?
+37=Sauvegarder les réglages?
+38=Effacer la sauvegarde?
+40=Échec de l'effacement.
+42=Lecture de la sauvegarde...
+43=Lecture de la sauvegarde...
+44=Sauvegarde introuvable.
+45=Sauvegarde corrompue.
+47=Quitter sans sauver?
+48=Quitter?
+
+# --- états (pendant le travail) ---
+8=Chargement...
+12=Création...
+18=Création...
+29=Sauvegarde...
+33=Vérification...
+34=Vérification...
+41=Effacement...
+46=Vérification...
+
+# --- résultats (courts) ---
+10=Chargement réussi
+14=Sauvegarde créée
+15=Échec de la création.
+19=Sauvegarde créée
+20=Échec de la création.
+30=Sauvegarde réussie
+35=Échec de sauvegarde.
+39=Sauvegarde effacée

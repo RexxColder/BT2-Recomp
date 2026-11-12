@@ -1,0 +1,1 @@
+EftRibbon_PlaceTrail1 = 0x001C52A0; // type:func

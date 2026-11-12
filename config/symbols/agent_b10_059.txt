@@ -1,0 +1,1 @@
+EftAura_DrawSparks = 0x00179A78; // type:func

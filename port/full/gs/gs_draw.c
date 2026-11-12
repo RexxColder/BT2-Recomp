@@ -68,12 +68,14 @@ GsTarget gsTargets[MAX_TARGETS];
 int gsTargetCount;
 int gsTexCount;
 unsigned gsFxOff;
+int gsDateLiveAux;
 int gsGlowPercent = GLOW_DEFAULT;
 static int sTexPackOn = 1; /* the setting: use the texture pack (if one was found) */
 int gsAnchor;
 int gsDepthByteIsFog;
 unsigned gsNative;
 unsigned gsSkipped;
+unsigned gsSkipWhy[8]; /* drops by site, for BT3_GS_VERBOSE */
 unsigned gGpuNewTex, gGpuNewTexPixels, gGpuNewPipes; /* created since the front end last cleared them (slow-frame report) */
 unsigned gGpuTexReplaced; /* textures taken from a texture pack so far */
 uint64_t gGpuTexNs, gGpuPipeNs, gGpuEndNs; /* time spent decoding textures, creating pipelines, in GsGpu_FrameEnd */
@@ -115,6 +117,9 @@ static uint32_t clut_hash(uint32_t cbp, uint32_t cpsm, uint32_t count) {
     uint32_t key = cbp << 5 | cpsm << 1 | (count == 256), slot = (key * 2654435761u) >> 22, h = 2166136261u, i;
     uint32_t g0 = gGsPageGen[(cbp / 32) & 511], g1 = gGsPageGen[(cbp / 32 + 1) & 511];
 
+    if (Gs_ClutHash(cbp, cpsm, count) != 0) {
+        return Gs_ClutHash(cbp, cpsm, count); /* the GS's palette buffer holds it (gs_core.c) */
+    }
     if (memo[slot].key == key + 1 && memo[slot].gen0 == g0 && memo[slot].gen1 == g1) {
         return memo[slot].hash;
     }
@@ -224,9 +229,9 @@ static GsTex texture_get(int ctx) {
                 c = Gs_Expand(c, psm);
             } else if (bits == 8) {
                 c = (c & 0xE7) | ((c & 8) << 1) | ((c & 0x10) >> 1);
-                c = Gs_Expand(Gs_VramRead(cbp, 1, cpsm, c & 15, c >> 4), cpsm);
+                c = Gs_Expand(Gs_ClutRead(cbp, cpsm, c & 15, c >> 4), cpsm);
             } else {
-                c = Gs_Expand(Gs_VramRead(cbp, 1, cpsm, c & 7, c >> 3), cpsm);
+                c = Gs_Expand(Gs_ClutRead(cbp, cpsm, c & 7, c >> 3), cpsm);
             }
             (void)a; /* alpha is kept as the GS has it (0x80 = opaque, up to 0xFF): the shader rescales it. Values
                         above 0x80 matter: the see-through pass gives palettes alpha 0xF9 to write an id */
@@ -347,6 +352,14 @@ static uint32_t blend_key(uint64_t alpha, int abe) {
     return 1u | (uint32_t)k[0] << 1 | (uint32_t)k[1] << 4 | (uint32_t)C << 7;
 }
 
+/* FRAME.FBMSK (bits set = NOT written) in the whole-channel form ordinary drawing uses: which channels a draw
+   writes, as GS_CC_* bits. A channel whose eight mask bits are all set is not written; partial masks are not
+   representable. */
+static uint32_t write_mask(uint32_t m) {
+    return ((m & 0xFF) != 0xFF ? GS_CC_R : 0) | ((m & 0xFF00) != 0xFF00 ? GS_CC_G : 0) |
+           ((m & 0xFF0000) != 0xFF0000 ? GS_CC_B : 0) | ((m & 0xFF000000u) != 0xFF000000u ? GS_CC_A : 0);
+}
+
 /* The pipeline a draw uses: everything a pipeline depends on is in the key (the back end makes and caches
    one pipeline per key, so this is pure GS state -> an index):
    bits 0..8 blend, 10..11 depth test, 12 depth write, 13..14 topology, 16..19 colour write mask,
@@ -354,16 +367,13 @@ static uint32_t blend_key(uint64_t alpha, int abe) {
 static int pipeline_get(int ctx, int topo, int vu) {
     uint64_t test = gGs.test[ctx], zb = gGs.zbuf[ctx];
     int zte = (test >> 16) & 1, ztst = (test >> 17) & 3, zwrite = !((zb >> 32) & 1);
-    uint32_t bkey, key, wmask, m = (uint32_t)(gGs.frame[ctx] >> 32);
+    uint32_t bkey, key, wmask;
 
     bkey = blend_key(gGs.alpha[ctx], (int)((gGs.prim >> 6) & 1));
     if (!zte) {
         ztst = 1;
     }
-    /* FRAME.FBMSK, in the whole-channel forms ordinary drawing uses (alpha only, everything but alpha, ...):
-       a channel whose eight mask bits are all set is not written. Partial masks are not representable. */
-    wmask = ((m & 0xFF) != 0xFF ? GS_CC_R : 0) | ((m & 0xFF00) != 0xFF00 ? GS_CC_G : 0) |
-            ((m & 0xFF0000) != 0xFF0000 ? GS_CC_B : 0) | ((m & 0xFF000000u) != 0xFF000000u ? GS_CC_A : 0);
+    wmask = write_mask((uint32_t)(gGs.frame[ctx] >> 32));
     key = bkey | (uint32_t)ztst << 10 | (uint32_t)zwrite << 12 | (uint32_t)topo << 13 | wmask << 16 | (uint32_t)vu << 20;
     if (vu == 4) { /* asked for by depth_clut: the table pass, which only depends on blending and the write mask */
         key = bkey | wmask << 16 | 1u << 22;
@@ -379,6 +389,9 @@ int GsDraw_TargetGet(uint32_t fbp, int create) {
     for (i = 0; i < gsTargetCount; i++) {
         if (gsTargets[i].fbp == fbp) {
             gsTargets[i].last = gGsFrame;
+            if (create) {
+                gsTargets[i].drawn = gGsFrame; /* asked for as a target: it is being drawn into */
+            }
             return i;
         }
     }
@@ -402,6 +415,7 @@ int GsDraw_TargetGet(uint32_t fbp, int create) {
     }
     sBackend->targetEnsure(slot);
     gsTargets[slot].fbp = fbp;
+    gsTargets[slot].drawn = gGsFrame;
     gsTargets[slot].cleared = 0;
     gsTargets[slot].draws = 0;
     gsTargets[slot].stale = 0;
@@ -428,6 +442,7 @@ static void depth_clut(int ctx) {
     memset(&d, 0, sizeof(d));
     d.native = 3;
     d.src = gsDepthByteIsFog ? 0 : 1;
+    d.wmask = write_mask((uint32_t)(gGs.frame[ctx] >> 32));
     d.target = GsDraw_TargetGet((uint32_t)(gGs.frame[ctx] & 0x1FF), 0);
     /* switched off by the user: the passes that colour the picture (the ones that only write alpha feed the glow) */
     if (d.target < 0 || ((gsFxOff & 4) && d.src == 0 && wm != 0x00FFFFFFu)) {
@@ -456,6 +471,11 @@ static void depth_clut(int ctx) {
     if (last != NULL && last->native == 3 && last->tex == d.tex && last->target == d.target && last->pipeline == d.pipeline && last->src == d.src) {
         return; /* the next strip of the same pass */
     }
+    /* TEMP FXSEE: which table passes survive the switches (one line per pass, not per strip) */
+    if (getenv("BT2_FXSEE") != NULL) {
+        fprintf(stderr, "DCLUT f=%u src=%d cbp=%04x wm=%08x tgt=%d\n", gGsFrame, d.src,
+                (unsigned)((gGs.tex0[ctx] >> 37) & 0x3FFF), (unsigned)(gGs.frame[ctx] >> 32), d.target);
+    }
     gsDraws[gsDrawCount++] = d;
 }
 
@@ -463,6 +483,14 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
     uint64_t prim = gGs.prim, t0 = gGs.tex0[ctx], test = gGs.test[ctx], cl = gGs.clamp[ctx], sc = gGs.scissor[ctx];
     int tme = (prim >> 4) & 1, src;
     float tw = (float)(1u << ((t0 >> 26) & 15)), th = (float)(1u << ((t0 >> 30) & 15));
+    /* TEMP: BT3_SKIP_TBP=<hex>: drop textured draws reading that tbp (finding the impact square) */
+    if (tme && getenv("BT3_SKIP_TBP") != NULL) {
+        char want[8];
+        snprintf(want, sizeof want, "%04x", (unsigned)(t0 & 0x3FFF));
+        if (strstr(getenv("BT3_SKIP_TBP"), want) != NULL) {
+            return 0;
+        }
+    }
 
     *us = *vs = 1.0f;
     /* Passes that only make sense on the PS2's memory layout are not drawn here: they belong to full-screen
@@ -491,8 +519,15 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
                 GsDraw c, *last = gsDrawCount ? &gsDraws[gsDrawCount - 1] : NULL;
                 memset(&c, 0, sizeof(c));
                 c.native = 4;
+                c.wmask = write_mask((uint32_t)(gGs.frame[ctx] >> 32));
                 c.target = GsDraw_TargetGet(tbp / 32, 0);
-                if (c.target >= 0 && gsDrawCount < MAX_DRAWS && !(last != NULL && last->native == 4)) {
+                /* The copy feeds three readers: the outline (bit 1, native pass), the see-through tint (bit 2,
+                   the depth table pass with CBP 0x3E94; the other table call, 0x3E8C, is the outline's own and is
+                   dropped in depth_clut) and the glare/glow's alpha-only table passes (bit 8, which read the ids
+                   through this same copy). Skip it only when all three are switched off, or a glow-only frame
+                   would read a stale copy: a whole 512 x 448 copy per pass, and the frame has several. */
+                if (c.target >= 0 && gsDrawCount < MAX_DRAWS && !(last != NULL && last->native == 4) &&
+                    !((gsFxOff & 1) && (gsFxOff & 2) && (gsFxOff & 8))) {
                     gsDraws[gsDrawCount++] = c;
                 }
             }
@@ -511,12 +546,12 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
                     gsTargets[t].gen = gGsPageGen[fbp & 511];
                 }
             }
-            gsSkipped++;
+            gsSkipped++; gsSkipWhy[0]++;
             return 0;
         }
         if (tme && sprite && tpsm == 0x1B && tbp / 32 == zbp) {
             depth_clut(ctx); /* that byte through a table over the screen: a native pass */
-            gsSkipped++;
+            gsSkipped++; gsSkipWhy[1]++;
             return 0;
         }
         if (tme && (tbp & 0x1F) == 0 && tpsm == 0 && GsDraw_TargetGet(tbp / 32, 0) >= 0 && gsTargets[GsDraw_TargetGet(tbp / 32, 0)].zcolour) {
@@ -526,15 +561,18 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
             if (t >= 0 && fbp != (uint32_t)gGsMainFbp) {
                 gsTargets[t].stale = 1; /* a work buffer missed a pass */
             }
-            gsSkipped++;
+            gsSkipped++; gsSkipWhy[2]++;
             return 0;
         }
     }
     memset(d, 0, sizeof(*d));
+    d->wmask = write_mask((uint32_t)(gGs.frame[ctx] >> 32)); /* which channels it writes (DATE snapshots) */
     d->target = GsDraw_TargetGet((uint32_t)(gGs.frame[ctx] & 0x1FF), 1);
     if (d->target < 0) {
         return 0;
     }
+    gsTargets[d->target].fbw = (uint32_t)((gGs.frame[ctx] >> 16) & 0x3F);
+    gsTargets[d->target].drawn = gGsFrame;
     d->tex = gsWhite;
     if (!tme && sprite) {
         gsTargets[d->target].stale = 0; /* cleared by the game: what is drawn into it from here on is real */
@@ -542,12 +580,19 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
     if (tme) {
         src = GsDraw_TargetGet((uint32_t)((t0 & 0x3FFF) / 32), 0);
         /* a frame buffer used as a texture: only if nothing was uploaded over it since it was drawn */
+        /* ...and only a buffer drawn lately: one left over from another screen (a menu drew at 0x180 = tbp 0x3000)
+           otherwise stood in for the texture uploaded there since without touching its page generation, e.g. the
+           world map's zeni digits and panel (garbage glyphs and a grey box, B24). Effects read buffers drawn in the
+           same or the previous frame. */
+        if (src >= 0 && gGsFrame - gsTargets[src].drawn > 60) {
+            src = -1;
+        }
         if (src >= 0 && (t0 & 0x1F) == 0 && gsTargets[src].cleared && gsTargets[src].gen == gGsPageGen[gsTargets[src].fbp & 511]) {
             uint32_t tp = (uint32_t)((t0 >> 20) & 0x3F);
             if (gsTargets[src].stale) {
                 /* The buffer was meant to hold a copy or a step of an effect that was dropped; what it holds now
                    is whatever was drawn there before (seen as blocks of noise over the picture). */
-                gsSkipped++;
+                gsSkipped++; gsSkipWhy[3]++;
                 return 0;
             }
             /* One buffer drawn into another is how the game builds its screen effects: the glare and the object
@@ -560,7 +605,7 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
                (the blur of distant things). */
             if (sprite && (uint32_t)(gGs.frame[ctx] & 0x1FF) == (uint32_t)gGsMainFbp && ((prim >> 6) & 1) &&
                 ((((gGs.alpha[ctx] & 0xFF) == 0x68) && (gsFxOff & 8)) || (((gGs.alpha[ctx] & 0xFF) == 0x54) && (gsFxOff & 16)))) {
-                gsSkipped++;
+                gsSkipped++; gsSkipWhy[4]++;
                 return 0;
             }
             if (src == d->target && tp <= 1) {
@@ -576,6 +621,7 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
                 }
                 memset(&c, 0, sizeof(c));
                 c.native = 6;
+                c.wmask = write_mask((uint32_t)(gGs.frame[ctx] >> 32));
                 c.target = src;
                 if (need && gsDrawCount + 1 < MAX_DRAWS) {
                     gsDraws[gsDrawCount++] = c;
@@ -584,7 +630,7 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
                 if (d->target != src && (uint32_t)(gGs.frame[ctx] & 0x1FF) != (uint32_t)gGsMainFbp) {
                     gsTargets[d->target].stale = 1; /* a work buffer missed a pass */
                 }
-                gsSkipped++;
+                gsSkipped++; gsSkipWhy[5]++;
                 return 0;
             }
             d->tex = src == d->target ? sBackend->selfCopy() : sBackend->targetColor(src);
@@ -596,8 +642,13 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
                    next to the buffer (seen as a box with an edge in the glare). */
                 int wms = (int)(cl & 3), wmt = (int)((cl >> 2) & 3);
                 float u0 = 0.0f, u1 = tw - 1.0f, v0 = 0.0f, v1 = th - 1.0f;
-                if (wms >= 2) { u0 = (float)((cl >> 4) & 0x3FF); u1 = (float)((cl >> 14) & 0x3FF); }
-                if (wmt >= 2) { v0 = (float)((cl >> 24) & 0x3FF); v1 = (float)((cl >> 34) & 0x3FF); }
+                /* Only REGION_CLAMP (2) is a range. REGION_REPEAT (3) is (coord & MIN) | MAX, not a clamp: read as a range
+                   it gave min > max (MINV 0x3FF, MAXV 0), every pixel took one row and the underwater copy came out as
+                   vertical streaks (B21). It is held to the whole texture here, like repeat. */
+                if (wms == 2) { u0 = (float)((cl >> 4) & 0x3FF); u1 = (float)((cl >> 14) & 0x3FF); }
+                if (wmt == 2) { v0 = (float)((cl >> 24) & 0x3FF); v1 = (float)((cl >> 34) & 0x3FF); }
+                if (u0 > u1) { float t_ = u0; u0 = u1; u1 = t_; }
+                if (v0 > v1) { float t_ = v0; v0 = v1; v1 = t_; }
                 d->rect[0] = (u0 + 0.5f) / (float)GS_W;
                 d->rect[1] = (v0 + 0.5f) / (float)GS_H;
                 d->rect[2] = (u1 + 0.5f) / (float)GS_W;
@@ -605,6 +656,18 @@ static int draw_state(int ctx, int topo, int sprite, int vu, GsDraw *d, float *u
             }
             *us = tw / (float)GS_W;
             *vs = th / (float)GS_H;
+            {
+                /* Read with another buffer width than it was drawn with: the GS addresses PSMCT32 memory in pages of
+                   64 x 32 pixels laid out row by row at the buffer width, so the shader moves each texel to where
+                   that address sits in the drawn picture (gs.frag, mode 2 with orig.x > 0). */
+                uint32_t tbw = (uint32_t)((t0 >> 14) & 0x3F), fbw = gsTargets[src].fbw;
+                if (tbw != 0 && fbw != 0 && tbw != fbw && ((t0 >> 20) & 0x3F) == 0) {
+                    d->orig[0] = (float)(tbw * 64);
+                    d->orig[1] = (float)(fbw * 64);
+                    d->orig[2] = (float)GS_W;
+                    d->orig[3] = (float)GS_H;
+                }
+            }
         } else {
             d->tex = texture_get(ctx);
         }
@@ -658,20 +721,71 @@ static int same_state(const GsDraw *a, const GsDraw *b) {
 }
 
 /* A draw that tests the alpha already in the frame buffer (TEST.DATE: the fill of a HUD bar cut to length by a
-   mask, a word shown through a band, and also some of the stage's own layers): at the start of a run of such
-   draws, a copy of the alpha bytes is taken for them to read. Called by every way a primitive can be recorded;
-   left out of the vertex-program paths at first, the stage's layers tested against the copy the HUD had made the
-   frame before, and showed a strip of different-looking scenery where an announcement's band had been. */
+   mask, a word shown through a band, and also some of the stage's own layers) reads a copy of the alpha bytes
+   taken before it (native 5). A fight makes hundreds of DATE runs, and the per-rectangle reuse kept the HUD's
+   alpha from the copy made a frame before (bars, life gauges and announcements showed the previous value while
+   the world moved), so each DATE draw gets its own copy, up to BT2_DATE_CAP per target per frame (200 by
+   default; 0 or an invalid value = 200). The copy covers only the draw's scissor clamped to the picture: a
+   full-picture copy is ~3.7 MB at SCALE 2, and hundreds per frame would be ~1.5 GB/frame of VRAM traffic.
+   Past the cap one full-picture copy is taken and reused by the rest (so their alpha is not a region that was
+   never copied). Called by every way a primitive can be recorded, including the vertex-program paths. */
 static void date_snapshot(const GsDraw *d) {
-    GsDraw *prev = gsDrawCount ? &gsDraws[gsDrawCount - 1] : NULL;
+    static unsigned sDateFrame = ~0u, sDateSnaps[MAX_TARGETS], sDateFull[MAX_TARGETS];
+    static int sDateCap = -1;
+    int x0, y0, x1, y1;
     GsDraw c;
 
-    if (d->misc[1] == 0.0f || (prev != NULL && !prev->native && prev->misc[1] != 0.0f && prev->target == d->target)) {
+    if (sDateCap < 0) {
+        const char *e = getenv("BT2_DATE_CAP");
+        sDateCap = e && atoi(e) > 0 ? atoi(e) : 200;
+    }
+    if (d->misc[1] == 0.0f) {
+        return; /* not a draw that tests the alpha already in the frame buffer */
+    }
+    if (gsDateLiveAux && !(d->wmask & GS_CC_A)) {
+        return; /* the back end reads the target's live alpha and this draw does not write it: nothing to copy */
+    }
+    if (d->target < 0 || d->target >= MAX_TARGETS) {
         return;
     }
+    if (sDateFrame != gGsFrame) { /* new frame: the back end starts a new list and every target starts over */
+        sDateFrame = gGsFrame;
+        memset(sDateSnaps, 0, sizeof(sDateSnaps));
+        memset(sDateFull, 0, sizeof(sDateFull));
+    }
+    if ((int)sDateSnaps[d->target] >= sDateCap && sDateFull[d->target]) {
+        return; /* the full copy the back end made this frame is what this draw reads */
+    }
+    /* The part of the alpha this draw can read: its own scissor, clamped to the picture. */
+    x0 = d->scissor[0];
+    y0 = d->scissor[1];
+    x1 = x0 + d->scissor[2];
+    y1 = y0 + d->scissor[3];
+    if (x0 < 0) { x0 = 0; }
+    if (y0 < 0) { y0 = 0; }
+    if (x1 > GS_PIC_W * SCALE) { x1 = GS_PIC_W * SCALE; }
+    if (y1 > GS_PIC_H * SCALE) { y1 = GS_PIC_H * SCALE; }
+    if (x1 <= x0 || y1 <= y0) {
+        return; /* nothing is drawn: nothing to copy */
+    }
     memset(&c, 0, sizeof(c));
-    c.native = 5;
+    c.native = 5; /* the back ends copy c.scissor[0..3] from the target's alpha */
+    c.wmask = d->wmask;
     c.target = d->target;
+    if ((int)sDateSnaps[d->target] < sDateCap) {
+        sDateSnaps[d->target]++;
+        c.scissor[0] = x0;
+        c.scissor[1] = y0;
+        c.scissor[2] = x1 - x0;
+        c.scissor[3] = y1 - y0;
+    } else {
+        /* Cap reached: one full-picture copy for the remaining DATE draws (they reuse the last copy). */
+        sDateFull[d->target] = 1;
+        c.scissor[0] = 0;
+        c.scissor[1] = 0;
+        c.scissor[2] = GS_PIC_W * SCALE;
+        c.scissor[3] = GS_PIC_H * SCALE;
+    }
     if (gsDrawCount + 1 < MAX_DRAWS) {
         gsDraws[gsDrawCount++] = c;
     }
@@ -685,13 +799,17 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
     float s[3], t[3], q[3];
     const GsVertex *flat = &v[n - 1];
     GsDraw d, *last;
-    int i, packed2d = 0;
+    int i, packed2d = 0, afail;
 
     if (gsVertCount + 6 > MAX_VERTS || gsDrawCount == MAX_DRAWS) {
         return;
     }
     if (!draw_state(ctx, type == 1 ? 1 : type == 0 ? 2 : 0, type == 6, 0, &d, &us, &vs)) {
         return;
+    }
+    afail = (gGs.test[ctx] & 1) && ((gGs.test[ctx] >> 1) & 7) != 1 ? (int)((gGs.test[ctx] >> 12) & 3) : 0;
+    if (afail) {
+        d.mode[3] = (int32_t)((gGs.test[ctx] >> 1) & 7) + 1; /* the passing pixels: written as with KEEP (the failing ones below) */
     }
     if (type == 6 || fst) {
         d.sampler &= 7; /* 2D art: never the smaller copies of a replacement */
@@ -802,7 +920,9 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
             }
         }
     }
-    if (Port_IsWide() && !gPortMenuMode && !d.tex_is_target && (type == 6 || fst) && gsTargets[d.target].fbp == (uint32_t)gGsMainFbp) {
+    static int sNarrow2D = -1;
+    if (sNarrow2D < 0) { const char *e = getenv("BT2_NARROW_2D"); sNarrow2D = e != NULL && *e != '0' ? 1 : 0; }
+    if (sNarrow2D && Port_IsWide() && !gPortMenuMode && !d.tex_is_target && (type == 6 || fst) && gsTargets[d.target].fbp == (uint32_t)gGsMainFbp) {
         /* Widescreen. The 3D scene is projected for a 16:9 picture by the game itself; 2D art is laid out for
            4:3 and would come out a third too wide. Each 2D piece is narrowed to 3/4 about a fixed point:
              (not in the menus: their pages are shown whole, stretched to the width; see Port_WideFactor)
@@ -812,7 +932,8 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
            Only what is drawn into the picture itself: the work buffers of the effects and of the shadow are
            filled with 2D rectangles too, and narrowing those left unfilled bands and stripes in them.
            Left alone: full-screen fills and fades (untextured, full height), and in a fight sprites as wide as
-           the screen (flashes, speed lines) and 2D triangles outside the HUD. */
+           the screen (flashes, speed lines) and 2D triangles outside the HUD.
+           F2b (2026-11-11): el usuario quiere TODO estirado al aspecto; el narrowing queda apagado por defecto y se prende con BT2_NARROW_2D=1. */
         float x0 = gsVerts[d.first].x, x1 = x0, y0 = gsVerts[d.first].y, y1 = y0, pivot = -1.0f;
         uint32_t k;
         for (k = d.first; k < gsVertCount; k++) {
@@ -853,8 +974,29 @@ void GsGpu_Draw(int type, int ctx, const GsVertex *v) {
     last = gsDrawCount ? &gsDraws[gsDrawCount - 1] : NULL;
     if (last != NULL && same_state(last, &d)) {
         last->count += d.count; /* same state as the previous primitive: one draw call */
+        last->wmask |= d.wmask; /* the merged draw writes alpha wherever either of them did */
     } else {
         gsDraws[gsDrawCount++] = d;
+    }
+    if (afail && gsDrawCount < MAX_DRAWS) {
+        /* TEST.AFAIL other than KEEP: the pixels that fail the alpha test are still written, only in part (frame
+           without depth, depth only, or colour without alpha). The HUD builds masks this way (the low-health flash
+           over the left panel: a mask texture tested EQUAL 0x53 with AFAIL RGB_ONLY writes alpha only where it
+           passes; with the test ignored the red flash covered the whole panel). A second draw of the same vertices
+           takes the failing pixels (inverted test) with that write mask. Vertex-program paths keep the old rule. */
+        static const int8_t inv[8] = {1, 0, 5, 6, 7, 2, 3, 4}; /* NEVER<->ALWAYS, LESS<->GEQUAL, LEQUAL<->GREATER, EQUAL<->NOTEQUAL */
+        uint64_t fr = gGs.frame[ctx], zb = gGs.zbuf[ctx];
+        GsDraw f = d;
+        f.first = d.first;
+        f.mode[3] = inv[(gGs.test[ctx] >> 1) & 7] + 1;
+        if (afail == 2) { gGs.frame[ctx] |= 0xFFFFFFFFull << 32; }                  /* ZB_ONLY */
+        if (afail == 3) { gGs.frame[ctx] |= 0xFF000000ull << 32; gGs.zbuf[ctx] |= 1ull << 32; } /* RGB_ONLY */
+        if (afail == 1) { gGs.zbuf[ctx] |= 1ull << 32; }                             /* FB_ONLY */
+        f.wmask = write_mask((uint32_t)(gGs.frame[ctx] >> 32)); /* this second draw has its own write mask */
+        f.pipeline = pipeline_get(ctx, type == 1 ? 1 : type == 0 ? 2 : 0, 0);
+        gGs.frame[ctx] = fr;
+        gGs.zbuf[ctx] = zb;
+        gsDraws[gsDrawCount++] = f;
     }
 }
 
@@ -907,6 +1049,7 @@ void GsGpu_DrawVu6(int ctx, const float *vertices, uint32_t count, const float *
     last = gsDrawCount ? &gsDraws[gsDrawCount - 1] : NULL;
     if (last != NULL && same_state(last, &d) && memcmp(&gsVuUni[last->uniform], &u, sizeof(u)) == 0) {
         last->count += d.count;
+        last->wmask |= d.wmask;
         return;
     }
     d.uniform = (int)gsVuUniCount;
@@ -947,6 +1090,7 @@ void GsGpu_DrawVu4(int ctx, const float *vertices, uint32_t count, const float *
     last = gsDrawCount ? &gsDraws[gsDrawCount - 1] : NULL;
     if (last != NULL && same_state(last, &d) && memcmp(&gsVuUni[last->uniform], &u, sizeof(u)) == 0) {
         last->count += d.count;
+        last->wmask |= d.wmask;
         return;
     }
     d.uniform = (int)gsVuUniCount;
@@ -1002,6 +1146,7 @@ void GsGpu_DrawVu0(int layer, int ctx, const float *vertices, uint32_t count, co
     last = gsDrawCount ? &gsDraws[gsDrawCount - 1] : NULL;
     if (last != NULL && same_state(last, &d) && memcmp(&gsVuUni[last->uniform], &u, sizeof(u)) == 0) {
         last->count += d.count;
+        last->wmask |= d.wmask;
         return;
     }
     d.uniform = (int)gsVuUniCount;
@@ -1019,6 +1164,7 @@ void GsGpu_FbUpload(int second) {
     }
     memset(&d, 0, sizeof(d));
     d.native = 100 + (second != 0);
+    d.wmask = write_mask((uint32_t)(gGs.frame[0] >> 32)); /* an upload, not a primitive: the first context's mask */
     d.target = GsDraw_TargetGet(second ? 0x70 : 0, 1);
     if (d.target >= 0) {
         gsDraws[gsDrawCount++] = d;
@@ -1041,6 +1187,7 @@ void GsGpu_Native(int effect) {
     gsNative++;
     memset(&d, 0, sizeof(d));
     d.native = effect;
+    d.wmask = write_mask((uint32_t)(gGs.frame[0] >> 32));
     d.target = GsDraw_TargetGet((uint32_t)(gGs.frame[0] & 0x1FF), 0);
     if (d.target < 0) {
         return;

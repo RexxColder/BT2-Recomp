@@ -1,0 +1,64 @@
+# F8: textos del diálogo de memory card en español (propuesta, NO instalado).
+# Mismo formato que BT2-test/bt2_texto.txt:  MSG=texto  con \n para el salto.
+# Verificado contra los slots de la tabla 0x550/0xFCC80 (49 entradas) y el font0:
+#   - cada MSG entra en su slot UTF-16 (capacidad máxima por slot);
+#   - ninguna línea pasa de 429 px; máximo 5 líneas.
+# El font0 del juego (AFS 0x542) tiene ¿ ¡ ñ Ñ y vocales acentuadas.
+# Para probar: copiar a BT2-test/ como bt2_texto.txt (backup del actual primero).
+#
+# --- títulos del panel (no se dibujan, pero quedan traducidos) ---
+0=Archivo de guardado
+1=Archivo de guardado
+2=Ranuras 1 y 2 de\nguardado
+
+# --- preguntas ---
+3=Se perderán los ajustes\nactuales. ¿Empezar?
+4=Se perderán los ajustes\nactuales. ¿Cargar?
+5=No hay archivo de guardado.
+6=No hay espacio.\n¿Continuar igualmente?
+7=No se encontró el archivo\nde guardado.
+9=Error al cargar.
+11=¿Crear archivo de guardado?
+13=No hay archivo.\n¿Crearlo?
+16=No hay espacio.\nSe necesitan 75 KB.
+17=No hay espacio.\n¿Continuar igualmente?
+21=Ya existe el archivo.\n¿Sobrescribirlo?
+22=¿Sobrescribir el archivo?
+23=Error al guardar.\n¿Sobrescribir igual?
+24=El archivo cambió.\n¿Sobrescribirlo?
+25=Error al cargar.\nEl archivo puede estar dañado.
+26=No hay archivo de guardado.
+27=¿Guardar?
+28=¿Guardar datos?
+31=Error al guardar.
+32=¿Guardar ahora?
+36=¿Empezar sin guardar?
+37=¿Guardar los ajustes?
+38=¿Borrar los datos\nde guardado?
+40=Error al borrar.
+42=Leyendo archivo...
+43=Leyendo archivo...
+44=No se encontró el archivo\nde guardado.
+45=El archivo de guardado\nestá dañado.
+47=¿Salir sin guardar?
+48=¿Salir?
+
+# --- estados (lo que se ve mientras trabaja) ---
+8=Cargando archivo
+12=Creando archivo
+18=Creando archivo
+29=Guardando archivo
+33=Comprobando archivo
+34=Comprobando archivo
+41=Borrando archivo
+46=Comprobando archivo
+
+# --- resultados (cortos) ---
+10=Carga correcta
+14=Archivo creado
+15=Error al crear
+19=Archivo creado
+20=Error al crear
+30=Guardado correcto
+35=Error al guardar.
+39=Datos de guardado\nborrados

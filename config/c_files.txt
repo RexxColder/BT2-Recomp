@@ -1,0 +1,3512 @@
+0x001002D8 0x00100388 main_1002D8  # from BT3-Decompiled
+0x100700 0x100708 auto/auto_100700
+0x00100E78 0x00100ED0 auto/m2c_100E78  # m2c
+0x1012b0 0x1012bc auto/auto_1012b0
+0x00101408 0x00101438 auto/m2c_101408  # m2c
+0x001014D0 0x001014E8 sys/xa_1014D0  # agent A
+0x001014E8 0x00101504 auto/m2c_1014E8  # m2c
+0x00101560 0x00101578 sys/gfxm_a_c101560  # bt3 copy
+0x00101740 0x00101794 auto/m2c_101740  # m2c
+0x00101798 0x001017EC auto/m2c_101798  # m2c
+0x001018B8 0x001018D0 sys/gfxm_a_c1018B8  # bt3 copy
+0x001018D0 0x001018E8 sys/gfxm_a_c1018D0  # bt3 copy
+0x001019C0 0x001019D8 sys/gfxm_a_c1019C0  # bt3 copy
+0x001019D8 0x001019F0 sys/gfxm_a_c1019D8  # bt3 copy
+0x001019F0 0x00101A0C auto/m2c_1019F0  # m2c
+0x00101A10 0x00101A34 auto/m2c_101A10  # m2c
+0x00101A38 0x00101A5C auto/m2c_101A38  # m2c
+0x00101A88 0x00101AAC auto/m2c_101A88  # m2c
+0x00101E58 0x00101E6C auto/m2c_101E58  # m2c
+0x00101E70 0x00101E84 auto/m2c_101E70  # m2c
+0x00101E88 0x00101E94 auto/m2c_101E88  # m2c
+0x00101E98 0x00101EA4 auto/m2c_101E98  # m2c
+0x00102180 0x001021E8 auto/m2c_102180  # m2c
+0x00102338 0x00102344 auto/m2c_102338  # m2c
+0x00102350 0x0010235C auto/m2c_102350  # m2c
+0x00102450 0x001024F0 battle/xa_102450  # agent A
+0x00102568 0x0010263C auto/m2c_102568  # m2c
+0x00102888 0x001028FC auto/m2c_102888  # m2c
+0x00102960 0x001029C4 auto/m2c_102960  # m2c
+0x00102AA0 0x00102C3C auto/m2c_102AA0  # m2c
+0x00105200 0x0010525C auto/perm_105200  # perm
+0x105260 0x105274 auto/auto_105260
+0x00105698 0x001056D8 auto/m2c_105698  # m2c
+0x001056D8 0x00105714 auto/m2c_1056D8  # m2c
+0x00105A78 0x00105A84 auto/m2c_105A78  # m2c
+0x00105A88 0x00105A94 auto/m2c_105A88  # m2c
+0x00105AB8 0x00105AC8 auto/m2c_105AB8  # m2c
+0x00105DA0 0x00105DC8 battle/xa_105DA0  # agent A
+0x00105DC8 0x00105DF0 auto/perm_105DC8  # perm
+0x00105DF0 0x00105E18 battle/xa_105DF0  # agent A
+0x00105E58 0x00105EE0 battle/xa_105E58  # agent A
+0x00105EE0 0x00105F08 auto/m2c_105EE0  # m2c
+0x00105F08 0x00105F30 auto/m2c_105F08  # m2c
+0x00106198 0x001061B8 auto/m2c_106198  # m2c
+0x00106680 0x001066B8 battle/hud_0_106680  # from BT3-Decompiled
+0x1066b8 0x1066cc auto/auto_1066b8
+0x1066d0 0x1066e4 auto/auto_1066d0
+0x00106928 0x00106958 battle/hud_0_b_106928  # from BT3-Decompiled
+0x00106958 0x0010696C auto/m2c_106958  # m2c
+0x106998 0x1069b0 auto/auto_106998
+0x001076A0 0x001076B0 auto/m2c_1076A0  # m2c
+0x001076B0 0x00107714 auto/m2c_1076B0  # m2c
+0x00107718 0x0010773C sys/xa_107718  # agent A
+0x00107850 0x0010785C auto/m2c_107850  # m2c
+0x00107F00 0x00107F2C battle/xa_107F00  # agent A
+0x00107F30 0x00107F58 battle/xa_107F30  # agent A
+0x00107F58 0x00107F84 battle/xa_107F58  # agent A
+0x00107F88 0x00107FB4 battle/xa_107F88  # agent A
+0x00107FB8 0x00108060 auto/m2c_107FB8  # m2c
+0x001081A0 0x001081AC auto/m2c_1081A0  # m2c
+0x001081B0 0x001081BC auto/m2c_1081B0  # m2c
+0x001081C0 0x001081CC auto/m2c_1081C0  # m2c
+0x001081D0 0x001081DC auto/m2c_1081D0  # m2c
+0x001081E0 0x001081EC auto/m2c_1081E0  # m2c
+0x001086B8 0x001086E0 auto/m2c_1086B8  # m2c
+0x00109BC8 0x00109BE8 auto/m2c_109BC8  # m2c
+0x10a640 0x10a648 auto/auto_10a640
+0x10a748 0x10a750 auto/auto_10a748
+0x10a838 0x10a840 auto/auto_10a838
+0x10a880 0x10a888 auto/auto_10a880
+0x10a8e0 0x10a8e8 auto/auto_10a8e0
+0x0010A9B8 0x0010A9D8 battle/btl_facade_10A9B8  # from BT3-Decompiled
+0x10aa80 0x10aa88 auto/auto_10aa80
+0x0010AB40 0x0010AB78 battle/btl_seq_10AB40  # from BT3-Decompiled
+0x0010AC90 0x0010ACE0 battle/xa_10AC90  # agent A
+0x0010ACE0 0x0010AD14 auto/m2c_10ACE0  # m2c
+0x0010AED8 0x0010AF00 sys/gfxm_a_c10AED8  # bt3 copy
+0x10af00 0x10af08 auto/auto_10af00
+0x0010B058 0x0010B074 auto/m2c_10B058  # m2c
+0x0010B080 0x0010B08C auto/m2c_10B080  # m2c
+0x0010B090 0x0010B09C auto/m2c_10B090  # m2c
+0x0010B0A0 0x0010B0C4 auto/m2c_10B0A0  # m2c
+0x0010B428 0x0010B48C auto/m2c_10B428  # m2c
+0x0010B490 0x0010B4F4 auto/m2c_10B490  # m2c
+0x0010B568 0x0010B5CC auto/m2c_10B568  # m2c
+0x0010B5D0 0x0010B634 auto/m2c_10B5D0  # m2c
+0x0010B638 0x0010B658 auto/m2c_10B638  # m2c
+0x0010B658 0x0010B678 auto/m2c_10B658  # m2c
+0x0010B678 0x0010B938 battle/hud_c_c_10B678  # from BT3-Decompiled
+0x0010B938 0x0010BB80 battle/hud_d_b_10B938  # from BT3-Decompiled
+0x10bcf8 0x10bd00 auto/auto_10bcf8
+0x0010F2A8 0x0010F3F0 auto/perm_10F2A8  # perm
+0x00110CA0 0x00110D20 auto/m2c_110CA0  # m2c
+0x00111138 0x00111170 auto/m2c_111138  # m2c
+0x00111A98 0x00111B10 auto/m2c_111A98  # m2c
+0x00112B28 0x00112B60 auto/m2c_112B28  # m2c
+0x00113528 0x00113548 battle/eft_t_c_113528  # from BT3-Decompiled
+0x1135e8 0x1135fc auto/auto_1135e8
+0x001137C8 0x0011382C battle/xa_1137C8  # agent A
+0x113830 0x113844 auto/auto_113830
+0x00114328 0x00114464 battle/xa_114328  # agent A
+0x00114468 0x00114490 auto/m2c_114468  # m2c
+0x001146E0 0x00114724 auto/m2c_1146E0  # m2c
+0x117168 0x117170 auto/auto_117168
+0x00117488 0x001174B8 auto/m2c_117488  # m2c
+0x0011A5F8 0x0011A620 main_11A5F8  # from BT3-Decompiled
+0x0011AB50 0x0011AC68 battle/xa_11AB50  # agent A
+0x11ac68 0x11ac70 auto/auto_11ac68
+0x11b138 0x11b140 auto/auto_11b138
+0x0011B140 0x0011B3C0 battle/eft_det_a_11B140  # from BT3-Decompiled
+0x0011B5F8 0x0011BCCC battle/xa_11B5F8  # agent A
+0x0011C6E8 0x0011C768 battle/xa_11C6E8  # agent A
+0x0011C888 0x0011C944 battle/xa_11C888  # agent A
+0x0011CB08 0x0011CB14 auto/m2c_11CB08  # m2c
+0x0011CD00 0x0011CD48 battle/eft_det_b_11CD00  # from BT3-Decompiled
+0x0011CE80 0x0011D294 battle/xa_11CE80  # agent A
+0x0011DB88 0x0011DCA8 battle/eft_det_b_11DB88  # from BT3-Decompiled
+0x0011DD88 0x0011DF4C battle/xa_11DD88  # agent A
+0x11e310 0x11e31c auto/auto_11e310
+0x0011E688 0x0011E6C0 auto/m2c_11E688  # m2c
+0x0011E6C0 0x0011E7F8 auto/m2c_11E6C0  # m2c
+0x0011E7F8 0x0011E828 auto/m2c_11E7F8  # m2c
+0x0011E828 0x0011E868 auto/m2c_11E828  # m2c
+0x0011E868 0x0011E928 auto/m2c_11E868  # m2c
+0x0011EB48 0x0011EB68 battle/xa_11EB48  # agent A
+0x0011EB68 0x0011EB88 battle/eft_ad_b_c11EB68  # bt3 copy
+0x0011EB88 0x0011EBA8 battle/eft_ad_b_c11EB88  # bt3 copy
+0x0011EBA8 0x0011EBC8 battle/eft_ad_b_c11EBA8  # bt3 copy
+0x0011EBC8 0x0011EC0C auto/m2c_11EBC8  # m2c
+0x11fac8 0x11fadc auto/auto_11fac8
+0x0011FF78 0x0011FF84 auto/m2c_11FF78  # m2c
+0x0011FF88 0x0011FF94 auto/m2c_11FF88  # m2c
+0x0011FF98 0x0011FFA4 auto/m2c_11FF98  # m2c
+0x1215f8 0x12160c auto/auto_1215f8
+0x00121688 0x00121694 auto/m2c_121688  # m2c
+0x121698 0x1216a8 auto/auto_121698
+0x1216b8 0x1216c0 auto/auto_1216b8
+0x00122708 0x00122724 auto/m2c_122708  # m2c
+0x00122728 0x00122738 auto/m2c_122728  # m2c
+0x001232F0 0x001232FC auto/m2c_1232F0  # m2c
+0x00124098 0x001240EC auto/perm_124098  # perm
+0x00124768 0x001247B0 auto/m2c_124768  # m2c
+0x00124D98 0x00124E14 auto/m2c_124D98  # m2c
+0x00125580 0x001255EC auto/m2c_125580  # m2c
+0x001255F0 0x0012574C auto/m2c_1255F0  # m2c
+0x126040 0x126058 auto/auto_126040
+0x00126098 0x001261DC auto/m2c_126098  # m2c
+0x001261E0 0x00126258 auto/perm_1261E0  # perm
+0x001263D0 0x0012645C battle/xa_1263D0  # agent A
+0x00126488 0x001264A8 battle/btl_scene_126488  # from BT3-Decompiled
+0x00126560 0x00126574 auto/m2c_126560  # m2c
+0x00126588 0x00126594 auto/m2c_126588  # m2c
+0x00126688 0x00126694 auto/m2c_126688  # m2c
+0x001266C0 0x00126738 battle/btl_scene_1266C0  # from BT3-Decompiled
+0x00126738 0x00126744 auto/m2c_126738  # m2c
+0x001268A0 0x001268E8 battle/btl_scene_1268A0  # from BT3-Decompiled
+0x00126AD0 0x00126B00 battle/btl_scene_126AD0  # from BT3-Decompiled
+0x126b00 0x126b10 auto/auto_126b00
+0x00126CC8 0x00126D3C auto/perm_126CC8  # perm
+0x00126D40 0x00126D78 auto/m2c_126D40  # m2c
+0x00126D78 0x00126DA8 battle/eft_a_126D78  # from BT3-Decompiled
+0x00126DA8 0x00126DDC auto/m2c_126DA8  # m2c
+0x00126E80 0x00126E8C auto/m2c_126E80  # m2c
+0x00126EB0 0x00126EBC auto/m2c_126EB0  # m2c
+0x00126EC0 0x00126ECC auto/m2c_126EC0  # m2c
+0x00126ED0 0x00126F04 auto/perm_126ED0  # perm
+0x00127018 0x00127054 auto/m2c_127018  # m2c
+0x00127058 0x00127098 battle/eft_a_127058  # from BT3-Decompiled
+0x00127098 0x00127124 battle/xa_127098  # agent A
+0x001272A8 0x001272E0 battle/xa_1272A8  # agent A
+0x00127888 0x001278D8 battle/eft_a_127888  # from BT3-Decompiled
+0x001278D8 0x00127908 auto/m2c_1278D8  # m2c
+0x00127908 0x00127938 auto/m2c_127908  # m2c
+0x00127938 0x00127988 battle/eft_a_127938  # from BT3-Decompiled
+0x00127AB8 0x00127BB8 battle/eft_a_127AB8  # from BT3-Decompiled
+0x00127BB8 0x00127C30 auto/m2c_127BB8  # m2c
+0x00127E40 0x00127F58 battle/eft_a_127E40  # from BT3-Decompiled
+0x00127F58 0x00127F70 battle/eft_a_c127F58  # bt3 copy
+0x00127F70 0x00127F88 battle/eft_a_127F70  # from BT3-Decompiled
+0x00127F88 0x00127FA0 battle/eft_a_c127F88  # bt3 copy
+0x00127FA0 0x00127FB8 battle/eft_a_c127FA0  # bt3 copy
+0x00127FB8 0x00128090 battle/eft_a_127FB8  # from BT3-Decompiled
+0x00128580 0x00128630 sys/randf_128580  # from BT3-Decompiled
+0x128630 0x128644 auto/auto_128630
+0x00128648 0x001286B8 sys/randf_128648  # from BT3-Decompiled
+0x00128B88 0x00128C28 sys/vu0_a_c_c_128B88  # from BT3-Decompiled
+0x00128C88 0x00128D38 sys/vu0_a_c_c_128C88  # from BT3-Decompiled
+0x128d38 0x128d4c auto/auto_128d38
+0x128d50 0x128d64 auto/auto_128d50
+0x00128D68 0x00128E78 sys/vu0_a_c_c_128D68  # from BT3-Decompiled
+0x128e78 0x128e8c auto/auto_128e78
+0x00128E90 0x00128EC0 auto/m2c_128E90  # m2c
+0x00128F30 0x00128F78 sys/vu0_a_c_c_128F30  # from BT3-Decompiled
+0x00128FC8 0x0012901C sys/xa_128FC8  # agent A
+0x00129310 0x00129380 sys/vu0_a_c_c_129310  # from BT3-Decompiled
+0x001293F0 0x00129440 sys/vu0_b_c_1293F0  # from BT3-Decompiled
+0x129658 0x129660 auto/auto_129658
+0x00129AC0 0x00129AE8 sys/vu0_b_c_129AC0  # from BT3-Decompiled
+0x00129C80 0x00129CD4 sys/xa_129C80  # agent A
+0x00129EA8 0x00129F5C sys/xa_129EA8  # agent A
+0x0012A490 0x0012A4AC sys/xa_12A490  # agent A
+0x0012AEE0 0x0012B0E8 battle/xa_12AEE0  # agent A
+0x12b9b0 0x12b9bc auto/auto_12b9b0
+0x0012D390 0x0012D39C auto/m2c_12D390  # m2c
+0x0012D928 0x0012D970 battle/eft_g_12D928  # from BT3-Decompiled
+0x0012E840 0x0012E888 battle/eft_g_c12E840  # bt3 copy
+0x0012E888 0x0012E8C8 auto/m2c_12E888  # m2c
+0x0012E8C8 0x0012E8FC battle/xa_12E8C8  # agent A
+0x12f2c0 0x12f2c8 auto/auto_12f2c0
+0x0012F2C8 0x0012F3B0 auto/m2c_12F2C8  # m2c
+0x0012F3B0 0x0012F498 battle/eft_b_12F3B0  # from BT3-Decompiled
+0x0012FEC0 0x0012FF44 auto/m2c_12FEC0  # m2c
+0x0012FF48 0x0012FFD8 battle/eft_b_12FF48  # from BT3-Decompiled
+0x001307B0 0x001307F8 battle/xa_1307B0  # agent A
+0x00130C88 0x00130CC4 auto/m2c_130C88  # m2c
+0x00130CC8 0x00130D04 auto/m2c_130CC8  # m2c
+0x00130D08 0x00130D38 battle/eft_a_c130D08  # bt3 copy
+0x130e10 0x130e24 auto/auto_130e10
+0x130e28 0x130e30 auto/auto_130e28
+0x00130F88 0x00131080 battle/eft_b_130F88  # from BT3-Decompiled
+0x001312A0 0x001312C8 battle/eft_q_1312A0  # from BT3-Decompiled
+0x001312C8 0x00131360 battle/eft_b_1312C8  # from BT3-Decompiled
+0x00131570 0x001315A0 battle/eft_a_c131570  # bt3 copy
+0x001315A0 0x00131758 battle/xa_1315A0  # agent A
+0x131758 0x131760 auto/auto_131758
+0x00131760 0x00131900 battle/eft_b_131760  # from BT3-Decompiled
+0x00131900 0x00131954 auto/m2c_131900  # m2c
+0x00131958 0x00131A14 battle/xa_131958  # agent A
+0x00132938 0x0013295C sys/xa_132938  # agent A
+0x00132960 0x001329A0 battle/eft_c_132960  # from BT3-Decompiled
+0x001329D8 0x00132A38 auto/m2c_1329D8  # m2c
+0x00132A38 0x00132A70 battle/eft_c_132A38  # from BT3-Decompiled
+0x132a70 0x132a78 auto/auto_132a70
+0x00132A78 0x00132AB8 battle/eft_c_132A78  # from BT3-Decompiled
+0x00132AB8 0x00132B4C auto/perm_132AB8  # perm
+0x00132D00 0x00132D78 battle/eft_c_132D00  # from BT3-Decompiled
+0x001335E8 0x00133670 battle/xa_1335E8  # agent A
+0x001337D0 0x00133AD8 battle/xa_1337D0  # agent A
+0x00134600 0x00134634 battle/xa_134600  # agent A
+0x134638 0x134640 auto/auto_134638
+0x00134640 0x00134688 battle/xa_134640  # agent A
+0x00134748 0x00134758 auto/m2c_134748  # m2c
+0x00135D70 0x00135D9C auto/m2c_135D70  # m2c
+0x135e28 0x135e38 auto/auto_135e28
+0x00135E80 0x00135E8C auto/m2c_135E80  # m2c
+0x00136238 0x00136270 battle/eft_c_136238  # from BT3-Decompiled
+0x00136270 0x001362C0 auto/m2c_136270  # m2c
+0x136310 0x136320 auto/auto_136310
+0x00136320 0x00136558 battle/xa_136320  # agent A
+0x00136558 0x00136758 battle/eft_c_136558  # from BT3-Decompiled
+0x001372C0 0x0013753C battle/xa_1372C0  # agent A
+0x00138640 0x001386A8 battle/eft_c_138640  # from BT3-Decompiled
+0x001392F8 0x00139318 auto/m2c_1392F8  # m2c
+0x00139318 0x00139338 auto/m2c_139318  # m2c
+0x00139338 0x00139358 auto/m2c_139338  # m2c
+0x00139358 0x00139368 battle/eft_d_139358  # from BT3-Decompiled
+0x00139368 0x00139374 auto/m2c_139368  # m2c
+0x00139378 0x00139390 battle/eft_d_139378  # from BT3-Decompiled
+0x0013A438 0x0013A460 battle/eft_q_c13A438  # bt3 copy
+0x0013A460 0x0013A4B0 battle/eft_e_13A460  # from BT3-Decompiled
+0x0013A518 0x0013A558 battle/eft_b_c13A518  # bt3 copy
+0x0013A558 0x0013A5AC battle/xa_13A558  # agent A
+0x0013A7B0 0x0013A7E0 battle/eft_a_c13A7B0  # bt3 copy
+0x0013A7E0 0x0013A8A8 battle/eft_e_13A7E0  # from BT3-Decompiled
+0x13a8a8 0x13a8b8 auto/auto_13a8a8
+0x0013A8B8 0x0013A948 battle/eft_e_13A8B8  # from BT3-Decompiled
+0x0013A948 0x0013A9A4 battle/xa_13A948  # agent A
+0x0013A9A8 0x0013A9E0 battle/eft_e_13A9A8  # from BT3-Decompiled
+0x0013ABD8 0x0013AD28 battle/eft_e_13ABD8  # from BT3-Decompiled
+0x0013B350 0x0013B370 battle/btl_facade_c13B350  # bt3 copy
+0x0013C578 0x0013C7A8 battle/eft_e_13C578  # from BT3-Decompiled
+0x13c7a8 0x13c7c4 auto/auto_13c7a8
+0x0013D210 0x0013D298 battle/eft_e_13D210  # from BT3-Decompiled
+0x0013DC20 0x0013DEB0 battle/xa_13DC20  # agent A
+0x0013E618 0x0013E728 battle/xa_13E618  # agent A
+0x0013E728 0x0013E898 battle/eft_e_13E728  # from BT3-Decompiled
+0x0013EC30 0x0013EE00 battle/eft_e_13EC30  # from BT3-Decompiled
+0x0013EF88 0x0013EFE8 battle/eft_e_13EF88  # from BT3-Decompiled
+0x0013EFE8 0x0013F048 battle/xa_13EFE8  # agent A
+0x0013F588 0x0013F638 battle/xa_13F588  # agent A
+0x0013FA60 0x0013FBD0 battle/eft_e_13FA60  # from BT3-Decompiled
+0x0013FD40 0x0013FD94 battle/xa_13FD40  # agent A
+0x00140610 0x001407A0 battle/eft_t_c_140610  # from BT3-Decompiled
+0x001415D8 0x00141624 auto/m2c_1415D8  # m2c
+0x00141FF0 0x001420EC battle/xa_141FF0  # agent A
+0x00142138 0x00142180 battle/eft_g_c142138  # bt3 copy
+0x00142710 0x00142738 battle/eft_g_142710  # from BT3-Decompiled
+0x00142738 0x001427E8 auto/m2c_142738  # m2c
+0x00142E38 0x00142E60 auto/m2c_142E38  # m2c
+0x142e60 0x142e68 auto/auto_142e60
+0x00142E68 0x001431C0 battle/xa_142E68  # agent A
+0x00143380 0x00143558 battle/eft_g_143380  # from BT3-Decompiled
+0x143790 0x1437a8 auto/auto_143790
+0x001437A8 0x001437D0 battle/eft_q_c1437A8  # bt3 copy
+0x001437D0 0x001438C4 battle/xa_1437D0  # agent A
+0x00143AD8 0x00143B08 battle/eft_a_c143AD8  # bt3 copy
+0x00143B08 0x00143C28 battle/eft_g_143B08  # from BT3-Decompiled
+0x143c28 0x143c38 auto/auto_143c28
+0x00143C38 0x00143E90 battle/xa_143C38  # agent A
+0x145758 0x145760 auto/auto_145758
+0x145818 0x145828 auto/auto_145818
+0x001458D8 0x00145984 auto/m2c_1458D8  # m2c
+0x00145988 0x001459C0 battle/eft_g_145988  # from BT3-Decompiled
+0x001459C0 0x001459CC auto/m2c_1459C0  # m2c
+0x001459D0 0x00145A00 battle/eft_g_1459D0  # from BT3-Decompiled
+0x00145A00 0x00145A18 auto/m2c_145A00  # m2c
+0x00145A18 0x00145A2C auto/m2c_145A18  # m2c
+0x00145B20 0x00145B6C auto/m2c_145B20  # m2c
+0x00145CC0 0x00145CF8 battle/eft_c_c145CC0  # bt3 copy
+0x145dd0 0x145de4 auto/auto_145dd0
+0x145de8 0x145df0 auto/auto_145de8
+0x00146648 0x0014666C battle/xa_146648  # agent A
+0x146670 0x146678 auto/auto_146670
+0x00146AA0 0x00146B7C auto/perm_146AA0  # perm
+0x00146B80 0x00146CC0 battle/xa_146B80  # agent A
+0x00146D00 0x00146D60 battle/eft_c_c146D00  # bt3 copy
+0x001471A0 0x001471C8 sys/gfxm_a_c1471A0  # bt3 copy
+0x1474f8 0x147508 auto/auto_1474f8
+0x00147D18 0x00147E70 battle/eft_g_147D18  # from BT3-Decompiled
+0x00147EB8 0x00147FB8 battle/eft_g_147EB8  # from BT3-Decompiled
+0x147fb8 0x147fcc auto/auto_147fb8
+0x147fd0 0x147fe4 auto/auto_147fd0
+0x147fe8 0x147ffc auto/auto_147fe8
+0x148000 0x148008 auto/auto_148000
+0x148260 0x148268 auto/auto_148260
+0x00148330 0x00148348 battle/eft_g_148330  # from BT3-Decompiled
+0x001483F0 0x00148418 battle/eft_g_1483F0  # from BT3-Decompiled
+0x00148418 0x00148440 battle/eft_g_c148418  # bt3 copy
+0x001485F8 0x00148670 auto/m2c_1485F8  # m2c
+0x00148810 0x00148884 auto/perm_148810  # perm
+0x148ae0 0x148afc auto/auto_148ae0
+0x148b00 0x148b10 auto/auto_148b00
+0x00148B10 0x00148B50 auto/m2c_148B10  # m2c
+0x148b50 0x148b6c auto/auto_148b50
+0x148c40 0x148c50 auto/auto_148c40
+0x1496f8 0x14970c auto/auto_1496f8
+0x149710 0x149718 auto/auto_149710
+0x00149718 0x00149790 auto/m2c_149718  # m2c
+0x149790 0x1497c8 auto/auto_149790
+0x14a378 0x14a380 auto/auto_14a378
+0x0014A380 0x0014A484 auto/m2c_14A380  # m2c
+0x0014A488 0x0014A4D0 auto/m2c_14A488  # m2c
+0x0014A4D0 0x0014A500 battle/xa_14A4D0  # agent A
+0x14a500 0x14a508 auto/auto_14a500
+0x0014AED0 0x0014AF78 auto/perm_14AED0  # perm
+0x14afd0 0x14afd8 auto/auto_14afd0
+0x0014AFD8 0x0014B040 auto/m2c_14AFD8  # m2c
+0x14b040 0x14b078 auto/auto_14b040
+0x14bed0 0x14bed8 auto/auto_14bed0
+0x0014BED8 0x0014BF40 auto/m2c_14BED8  # m2c
+0x14bf40 0x14bf78 auto/auto_14bf40
+0x0014D2D0 0x0014D364 auto/perm_14D2D0  # perm
+0x0014D3C0 0x0014D428 auto/m2c_14D3C0  # m2c
+0x14d428 0x14d458 auto/auto_14d428
+0x0014E088 0x0014E11C auto/perm_14E088  # perm
+0x14e120 0x14e134 auto/auto_14e120
+0x14e138 0x14e140 auto/auto_14e138
+0x0014E140 0x0014E1A8 auto/m2c_14E140  # m2c
+0x0014E1A8 0x0014E1C0 auto/m2c_14E1A8  # m2c
+0x14e1c0 0x14e1e0 auto/auto_14e1c0
+0x0014E1E0 0x0014E24C auto/m2c_14E1E0  # m2c
+0x14e250 0x14e258 auto/auto_14e250
+0x0014E970 0x0014EAD4 auto/m2c_14E970  # m2c
+0x0014EAD8 0x0014EAE4 auto/m2c_14EAD8  # m2c
+0x0014EEF8 0x0014EFA4 auto/perm_14EEF8  # perm
+0x00152530 0x00152604 auto/m2c_152530  # m2c
+0x00152930 0x00152958 auto/m2c_152930  # m2c
+0x153318 0x15332c auto/auto_153318
+0x153330 0x153338 auto/auto_153330
+0x00153338 0x001533A0 auto/m2c_153338  # m2c
+0x001533A0 0x001533B8 auto/m2c_1533A0  # m2c
+0x1533b8 0x1533d8 auto/auto_1533b8
+0x153ff0 0x153ff8 auto/auto_153ff0
+0x00153FF8 0x00154060 auto/m2c_153FF8  # m2c
+0x00154060 0x00154078 auto/m2c_154060  # m2c
+0x154078 0x154098 auto/auto_154078
+0x154c68 0x154c70 auto/auto_154c68
+0x00154C70 0x00154CD8 auto/m2c_154C70  # m2c
+0x00154CD8 0x00154CF0 auto/m2c_154CD8  # m2c
+0x154cf0 0x154d10 auto/auto_154cf0
+0x1557c0 0x1557c8 auto/auto_1557c0
+0x001557C8 0x00155830 auto/m2c_1557C8  # m2c
+0x00155830 0x00155848 auto/m2c_155830  # m2c
+0x155848 0x155868 auto/auto_155848
+0x00155EE8 0x00155F7C auto/perm_155EE8  # perm
+0x155f80 0x155f94 auto/auto_155f80
+0x155f98 0x155fa0 auto/auto_155f98
+0x001560E8 0x00156158 battle/xa_1560E8  # agent A
+0x00156158 0x001561BC auto/m2c_156158  # m2c
+0x1561c0 0x1561c8 auto/auto_1561c0
+0x00156448 0x001564B4 auto/perm_156448  # perm
+0x157338 0x15734c auto/auto_157338
+0x157350 0x157358 auto/auto_157350
+0x00157358 0x001573C0 auto/m2c_157358  # m2c
+0x001573C0 0x001573D8 auto/m2c_1573C0  # m2c
+0x1573d8 0x15740c auto/auto_1573d8
+0x157f88 0x157f9c auto/auto_157f88
+0x157fa0 0x157fa8 auto/auto_157fa0
+0x00157FA8 0x00158010 auto/m2c_157FA8  # m2c
+0x00158010 0x00158028 auto/m2c_158010  # m2c
+0x158028 0x15805c auto/auto_158028
+0x001582E8 0x00158324 auto/m2c_1582E8  # m2c
+0x001588E0 0x00158910 auto/m2c_1588E0  # m2c
+0x00159110 0x00159154 auto/m2c_159110  # m2c
+0x001595E0 0x00159648 auto/m2c_1595E0  # m2c
+0x00159648 0x00159660 auto/m2c_159648  # m2c
+0x159660 0x159678 auto/auto_159660
+0x0015A228 0x0015A2AC auto/m2c_15A228  # m2c
+0x15a2b0 0x15a2c4 auto/auto_15a2b0
+0x15a2c8 0x15a2d0 auto/auto_15a2c8
+0x0015A2D0 0x0015A338 auto/m2c_15A2D0  # m2c
+0x0015A338 0x0015A350 auto/m2c_15A338  # m2c
+0x15a350 0x15a370 auto/auto_15a350
+0x0015ABA0 0x0015AC48 auto/perm_15ABA0  # perm
+0x15ac48 0x15ac5c auto/auto_15ac48
+0x15ac60 0x15ac68 auto/auto_15ac60
+0x0015AC68 0x0015ACD0 auto/m2c_15AC68  # m2c
+0x0015ACD0 0x0015ACE8 auto/m2c_15ACD0  # m2c
+0x15ace8 0x15ad08 auto/auto_15ace8
+0x0015B568 0x0015B5FC battle/xb_15B568  # agent B
+0x15b600 0x15b614 auto/auto_15b600
+0x15b618 0x15b620 auto/auto_15b618
+0x0015B620 0x0015B688 auto/m2c_15B620  # m2c
+0x0015B688 0x0015B6A0 auto/m2c_15B688  # m2c
+0x15b6a0 0x15b6d4 auto/auto_15b6a0
+0x0015C620 0x0015C6B4 battle/xb_15C620  # agent B
+0x15c6b8 0x15c6cc auto/auto_15c6b8
+0x15c6d0 0x15c6d8 auto/auto_15c6d0
+0x0015C758 0x0015C788 auto/m2c_15C758  # m2c
+0x15c788 0x15c7a8 auto/auto_15c788
+0x0015C980 0x0015CA64 battle/xb_15C980  # agent B
+0x0015D608 0x0015D6B0 auto/perm_15D608  # perm
+0x15d708 0x15d710 auto/auto_15d708
+0x0015D710 0x0015D788 auto/m2c_15D710  # m2c
+0x0015D788 0x0015D7A0 auto/m2c_15D788  # m2c
+0x15d7a0 0x15d7c0 auto/auto_15d7a0
+0x15e350 0x15e358 auto/auto_15e350
+0x0015E358 0x0015E45C auto/m2c_15E358  # m2c
+0x0015E460 0x0015E4A8 auto/m2c_15E460  # m2c
+0x15e4d8 0x15e4e0 auto/auto_15e4d8
+0x15f0d0 0x15f0d8 auto/auto_15f0d0
+0x0015F0D8 0x0015F1DC auto/m2c_15F0D8  # m2c
+0x0015F1E0 0x0015F228 auto/m2c_15F1E0  # m2c
+0x15f258 0x15f260 auto/auto_15f258
+0x1600b0 0x1600c4 auto/auto_1600b0
+0x1600c8 0x1600d0 auto/auto_1600c8
+0x00160150 0x00160180 auto/m2c_160150  # m2c
+0x160180 0x1601a0 auto/auto_160180
+0x00160388 0x001603A4 auto/m2c_160388  # m2c
+0x001606C8 0x00160750 auto/perm_1606C8  # perm
+0x00160C48 0x00160CF0 auto/perm_160C48  # perm
+0x160d48 0x160d50 auto/auto_160d48
+0x00160DD0 0x00160E00 auto/m2c_160DD0  # m2c
+0x160e00 0x160e20 auto/auto_160e00
+0x001615D8 0x00161680 auto/perm_1615D8  # perm
+0x1616d8 0x1616e0 auto/auto_1616d8
+0x001616E0 0x00161748 auto/m2c_1616E0  # m2c
+0x00161748 0x00161760 auto/m2c_161748  # m2c
+0x161760 0x161780 auto/auto_161760
+0x001617E0 0x001617FC auto/m2c_1617E0  # m2c
+0x001621B8 0x0016224C battle/xb_1621B8  # agent B
+0x162250 0x162264 auto/auto_162250
+0x162268 0x162270 auto/auto_162268
+0x00162300 0x00162330 auto/m2c_162300  # m2c
+0x162330 0x162350 auto/auto_162330
+0x00162D00 0x00162DA8 auto/perm_162D00  # perm
+0x00162EF8 0x00162F60 auto/m2c_162EF8  # m2c
+0x00162F60 0x00162F78 auto/m2c_162F60  # m2c
+0x162f78 0x162f98 auto/auto_162f78
+0x001632E0 0x001633B4 auto/m2c_1632E0  # m2c
+0x1649d8 0x1649f4 auto/auto_1649d8
+0x1649f8 0x164a00 auto/auto_1649f8
+0x00164A00 0x00164A68 auto/m2c_164A00  # m2c
+0x00164A68 0x00164A80 auto/m2c_164A68  # m2c
+0x164a80 0x164aa0 auto/auto_164a80
+0x1651f8 0x165214 auto/auto_1651f8
+0x165218 0x165220 auto/auto_165218
+0x00165220 0x00165288 auto/m2c_165220  # m2c
+0x00165288 0x001652A0 auto/m2c_165288  # m2c
+0x1652a0 0x1652c0 auto/auto_1652a0
+0x00165618 0x0016564C auto/m2c_165618  # m2c
+0x165eb8 0x165ec0 auto/auto_165eb8
+0x00165EC0 0x00165F28 auto/m2c_165EC0  # m2c
+0x00165F28 0x00165F40 auto/m2c_165F28  # m2c
+0x165f40 0x165f60 auto/auto_165f40
+0x166e28 0x166e30 auto/auto_166e28
+0x00166E30 0x00166E98 auto/m2c_166E30  # m2c
+0x00166E98 0x00166EB0 auto/m2c_166E98  # m2c
+0x166eb0 0x166ed0 auto/auto_166eb0
+0x00167500 0x001675A8 auto/perm_167500  # perm
+0x167600 0x167608 auto/auto_167600
+0x00167608 0x00167670 auto/m2c_167608  # m2c
+0x00167670 0x00167688 auto/m2c_167670  # m2c
+0x167688 0x1676a8 auto/auto_167688
+0x00167FB0 0x00168058 auto/perm_167FB0  # perm
+0x1680b0 0x1680b8 auto/auto_1680b0
+0x001680B8 0x00168120 auto/m2c_1680B8  # m2c
+0x00168120 0x00168138 auto/m2c_168120  # m2c
+0x168138 0x168158 auto/auto_168138
+0x00168500 0x0016851C auto/m2c_168500  # m2c
+0x168dd8 0x168de0 auto/auto_168dd8
+0x00168E90 0x00168EC0 auto/m2c_168E90  # m2c
+0x168ec0 0x168ee8 auto/auto_168ec0
+0x00168F70 0x00168FB8 battle/xb_168F70  # agent B
+0x16a308 0x16a31c auto/auto_16a308
+0x16a320 0x16a328 auto/auto_16a320
+0x0016A3B8 0x0016A3E8 auto/m2c_16A3B8  # m2c
+0x16a3e8 0x16a408 auto/auto_16a3e8
+0x0016B100 0x0016B1A8 auto/perm_16B100  # perm
+0x16b200 0x16b208 auto/auto_16b200
+0x0016B288 0x0016B2B8 auto/m2c_16B288  # m2c
+0x16b2b8 0x16b2d8 auto/auto_16b2b8
+0x0016B2D8 0x0016B2E8 auto/m2c_16B2D8  # m2c
+0x0016C890 0x0016C924 battle/xb_16C890  # agent B
+0x16c928 0x16c93c auto/auto_16c928
+0x16c940 0x16c948 auto/auto_16c940
+0x0016C948 0x0016C9C8 auto/m2c_16C948  # m2c
+0x0016C9C8 0x0016C9F0 auto/m2c_16C9C8  # m2c
+0x0016C9F0 0x0016CA18 auto/m2c_16C9F0  # m2c
+0x16ca18 0x16ca34 auto/auto_16ca18
+0x0016CAE0 0x0016CBB4 auto/m2c_16CAE0  # m2c
+0x0016EDE8 0x0016EE7C battle/xb_16EDE8  # agent B
+0x16ee80 0x16ee94 auto/auto_16ee80
+0x16ee98 0x16eea0 auto/auto_16ee98
+0x0016EEA0 0x0016EF18 auto/m2c_16EEA0  # m2c
+0x0016EF18 0x0016EF30 auto/m2c_16EF18  # m2c
+0x16ef30 0x16ef50 auto/auto_16ef30
+0x0016F2B0 0x0016F2E4 auto/m2c_16F2B0  # m2c
+0x16fe18 0x16fe20 auto/auto_16fe18
+0x0016FE20 0x0016FE88 auto/m2c_16FE20  # m2c
+0x0016FE88 0x0016FEA0 auto/m2c_16FE88  # m2c
+0x16fea0 0x16fec0 auto/auto_16fea0
+0x170968 0x170970 auto/auto_170968
+0x00170970 0x001709D8 auto/m2c_170970  # m2c
+0x001709D8 0x001709F0 auto/m2c_1709D8  # m2c
+0x1709f0 0x170a10 auto/auto_1709f0
+0x00171140 0x001711E8 auto/perm_171140  # perm
+0x171240 0x171248 auto/auto_171240
+0x00171248 0x001712B0 auto/m2c_171248  # m2c
+0x001712B0 0x001712C8 auto/m2c_1712B0  # m2c
+0x1712c8 0x1712e8 auto/auto_1712c8
+0x001712E8 0x00171344 auto/m2c_1712E8  # m2c
+0x00171590 0x001715C0 auto/m2c_171590  # m2c
+0x001715C0 0x001715D0 auto/m2c_1715C0  # m2c
+0x172348 0x17235c auto/auto_172348
+0x172360 0x172368 auto/auto_172360
+0x00172368 0x001723D0 auto/m2c_172368  # m2c
+0x001723D0 0x001723E8 auto/m2c_1723D0  # m2c
+0x1723e8 0x172408 auto/auto_1723e8
+0x00172978 0x001729AC auto/m2c_172978  # m2c
+0x173040 0x173054 auto/auto_173040
+0x173058 0x173060 auto/auto_173058
+0x00173060 0x001730C8 auto/m2c_173060  # m2c
+0x001730C8 0x001730E0 auto/m2c_1730C8  # m2c
+0x1730e0 0x173100 auto/auto_1730e0
+0x173f68 0x173f70 auto/auto_173f68
+0x00173F70 0x00173FD8 auto/m2c_173F70  # m2c
+0x00173FD8 0x00173FF0 auto/m2c_173FD8  # m2c
+0x173ff0 0x174010 auto/auto_173ff0
+0x00174010 0x00174170 battle/eft_k_174010  # from BT3-Decompiled
+0x00174170 0x0017421C auto/m2c_174170  # m2c
+0x00174220 0x001742B0 battle/eft_k_174220  # from BT3-Decompiled
+0x1743c8 0x1743d0 auto/auto_1743c8
+0x001743D0 0x00174450 battle/eft_k_1743D0  # from BT3-Decompiled
+0x174450 0x174464 auto/auto_174450
+0x00174468 0x00174598 battle/eft_k_174468  # from BT3-Decompiled
+0x00174FE8 0x0017501C auto/m2c_174FE8  # m2c
+0x1759a8 0x1759b0 auto/auto_1759a8
+0x001759B0 0x00175A18 auto/m2c_1759B0  # m2c
+0x00175A18 0x00175A30 auto/m2c_175A18  # m2c
+0x175a30 0x175a50 auto/auto_175a30
+0x001765C0 0x00176668 auto/perm_1765C0  # perm
+0x1766c0 0x1766c8 auto/auto_1766c0
+0x001766C8 0x001767D8 auto/m2c_1766C8  # m2c
+0x001767D8 0x00176820 auto/m2c_1767D8  # m2c
+0x176850 0x176858 auto/auto_176850
+0x00176858 0x00176884 auto/m2c_176858  # m2c
+0x00176888 0x00176894 auto/m2c_176888  # m2c
+0x00176898 0x001768A4 auto/m2c_176898  # m2c
+0x00177480 0x001774B8 battle/eft_c_c177480  # bt3 copy
+0x001774B8 0x001774E8 battle/eft_m_1774B8  # from BT3-Decompiled
+0x1774e8 0x1774f0 auto/auto_1774e8
+0x001774F0 0x00177510 battle/eft_t_c_c1774F0  # bt3 copy
+0x00178940 0x001791D0 battle/xb_178940  # agent B
+0x001799F0 0x00179A78 battle/eft_m_1799F0  # from BT3-Decompiled
+0x00179C78 0x00179D00 battle/eft_m_179C78  # from BT3-Decompiled
+0x00179D00 0x0017A188 battle/xb_179D00  # agent B
+0x0017A188 0x0017A260 battle/eft_m_17A188  # from BT3-Decompiled
+0x0017AC40 0x0017ACA0 battle/eft_m_17AC40  # from BT3-Decompiled
+0x0017C0D8 0x0017C280 battle/xb_17C0D8  # agent B
+0x0017C5A8 0x0017C9B0 battle/xb_17C5A8  # agent B
+0x17c9b0 0x17c9cc auto/auto_17c9b0
+0x0017CAA8 0x0017CE18 battle/xb_17CAA8  # agent B
+0x17ce18 0x17ce20 auto/auto_17ce18
+0x0017CE20 0x0017D218 battle/xb_17CE20  # agent B
+0x0017D2D8 0x0017D658 battle/xb_17D2D8  # agent B
+0x0017FC00 0x0017FFB8 battle/xb_17FC00  # agent B
+0x17ffb8 0x17ffc0 auto/auto_17ffb8
+0x0017FFC0 0x0017FFF0 battle/xb_17FFC0  # agent B
+0x0017FFF0 0x00180088 battle/eft_o_17FFF0  # from BT3-Decompiled
+0x00180088 0x00180248 battle/xb_180088  # agent B
+0x00180248 0x001802D8 battle/eft_o_180248  # from BT3-Decompiled
+0x1802d8 0x1802e0 auto/auto_1802d8
+0x001802E0 0x00180398 battle/eft_o_1802E0  # from BT3-Decompiled
+0x001803E0 0x00180440 battle/xb_1803E0  # agent B
+0x00180580 0x001805E0 battle/xb_180580  # agent B
+0x001805E0 0x00180638 auto/m2c_1805E0  # m2c
+0x00180658 0x001806B4 auto/m2c_180658  # m2c
+0x001806B8 0x001806F0 battle/eft_c_c1806B8  # bt3 copy
+0x00180878 0x00180890 auto/m2c_180878  # m2c
+0x1809d8 0x1809ec auto/auto_1809d8
+0x00181760 0x001817A4 auto/m2c_181760  # m2c
+0x001817A8 0x001817D0 auto/m2c_1817A8  # m2c
+0x001817D0 0x001817F4 auto/m2c_1817D0  # m2c
+0x001817F8 0x00181828 auto/m2c_1817F8  # m2c
+0x00181848 0x00181898 auto/m2c_181848  # m2c
+0x00181898 0x001818C8 battle/eft_a_c181898  # bt3 copy
+0x1818c8 0x1818d0 auto/auto_1818c8
+0x181960 0x18198c auto/auto_181960
+0x00181990 0x00181A14 auto/m2c_181990  # m2c
+0x181a18 0x181a20 auto/auto_181a18
+0x00181CF0 0x00181D08 sys/gfxm_d_c_c181CF0  # bt3 copy
+0x181da0 0x181db4 auto/auto_181da0
+0x00181DB8 0x00181DE0 auto/m2c_181DB8  # m2c
+0x181de0 0x181de8 auto/auto_181de0
+0x00181DE8 0x00181E4C auto/m2c_181DE8  # m2c
+0x00181E50 0x00181E80 battle/eft_a_c181E50  # bt3 copy
+0x00181E80 0x00181E98 sys/gfxm_d_c_c181E80  # bt3 copy
+0x181e98 0x181ea0 auto/auto_181e98
+0x00181EA8 0x00181EC8 auto/m2c_181EA8  # m2c
+0x182368 0x18237c auto/auto_182368
+0x00182A00 0x00182A4C auto/m2c_182A00  # m2c
+0x00182A50 0x00182A80 battle/eft_a_c182A50  # bt3 copy
+0x00182AB8 0x00182B0C auto/m2c_182AB8  # m2c
+0x00182B10 0x00182B38 auto/m2c_182B10  # m2c
+0x00182B38 0x00182B60 battle/eft_q_c182B38  # bt3 copy
+0x00182BB0 0x00182BFC auto/m2c_182BB0  # m2c
+0x00182E18 0x00182E68 auto/m2c_182E18  # m2c
+0x00182E68 0x00182E98 battle/eft_a_c182E68  # bt3 copy
+0x182e98 0x182ea0 auto/auto_182e98
+0x001831E0 0x00183210 auto/m2c_1831E0  # m2c
+0x183210 0x183224 auto/auto_183210
+0x183408 0x183410 auto/auto_183408
+0x00183AE8 0x00183B2C auto/m2c_183AE8  # m2c
+0x00183B30 0x00183B74 auto/m2c_183B30  # m2c
+0x00184000 0x0018405C auto/m2c_184000  # m2c
+0x184060 0x184068 auto/auto_184060
+0x00184068 0x00184094 auto/m2c_184068  # m2c
+0x00184098 0x001840C8 battle/eft_a_c184098  # bt3 copy
+0x1846c8 0x1846e0 auto/auto_1846c8
+0x00184800 0x00184878 auto/m2c_184800  # m2c
+0x184878 0x184880 auto/auto_184878
+0x00184F18 0x00184F48 auto/m2c_184F18  # m2c
+0x00187440 0x00187470 battle/eft_b_187440  # from BT3-Decompiled
+0x001877B8 0x001877F4 auto/m2c_1877B8  # m2c
+0x001877F8 0x00187834 auto/m2c_1877F8  # m2c
+0x00187C58 0x00187CA4 auto/m2c_187C58  # m2c
+0x00187CA8 0x00187CEC auto/m2c_187CA8  # m2c
+0x00187CF0 0x00187D34 auto/m2c_187CF0  # m2c
+0x00187DF8 0x00187E54 auto/m2c_187DF8  # m2c
+0x187e58 0x187e60 auto/auto_187e58
+0x00187E60 0x00187E90 auto/m2c_187E60  # m2c
+0x00187E90 0x00187EC0 battle/eft_a_c187E90  # bt3 copy
+0x188838 0x188850 auto/auto_188838
+0x00188978 0x001889F0 auto/m2c_188978  # m2c
+0x1889f0 0x1889f8 auto/auto_1889f0
+0x001890C8 0x001890F8 auto/m2c_1890C8  # m2c
+0x0018B758 0x0018B788 battle/eft_b_c18B758  # bt3 copy
+0x0018BAD0 0x0018BB0C auto/m2c_18BAD0  # m2c
+0x0018BB10 0x0018BB4C auto/m2c_18BB10  # m2c
+0x0018BF88 0x0018BFD4 auto/m2c_18BF88  # m2c
+0x0018BFD8 0x0018C01C auto/m2c_18BFD8  # m2c
+0x0018C020 0x0018C064 auto/m2c_18C020  # m2c
+0x0018C308 0x0018C36C auto/m2c_18C308  # m2c
+0x18c370 0x18c378 auto/auto_18c370
+0x0018C378 0x0018C398 auto/m2c_18C378  # m2c
+0x0018C398 0x0018C3C8 battle/eft_a_c18C398  # bt3 copy
+0x0018CA90 0x0018CAC4 auto/m2c_18CA90  # m2c
+0x0018CAC8 0x0018CB2C auto/m2c_18CAC8  # m2c
+0x0018CB30 0x0018CBA8 auto/m2c_18CB30  # m2c
+0x0018CBA8 0x0018CBC8 auto/m2c_18CBA8  # m2c
+0x18e080 0x18e094 auto/auto_18e080
+0x0018E098 0x0018E0D4 auto/m2c_18E098  # m2c
+0x0018E168 0x0018E1A4 auto/m2c_18E168  # m2c
+0x0018E3E8 0x0018E428 auto/m2c_18E3E8  # m2c
+0x0018E480 0x0018E4C4 auto/m2c_18E480  # m2c
+0x0018E4C8 0x0018E50C auto/m2c_18E4C8  # m2c
+0x0018E590 0x0018E5E0 auto/perm_18E590  # perm
+0x0018E7D8 0x0018E834 auto/m2c_18E7D8  # m2c
+0x18e838 0x18e840 auto/auto_18e838
+0x0018E840 0x0018E860 auto/m2c_18E840  # m2c
+0x0018E860 0x0018E890 battle/eft_a_c18E860  # bt3 copy
+0x0018EF48 0x0018EF7C auto/m2c_18EF48  # m2c
+0x0018EF80 0x0018EFE4 auto/m2c_18EF80  # m2c
+0x0018EFE8 0x0018F060 auto/m2c_18EFE8  # m2c
+0x0018F060 0x0018F080 auto/m2c_18F060  # m2c
+0x190558 0x19056c auto/auto_190558
+0x00190570 0x001905AC auto/m2c_190570  # m2c
+0x00190640 0x0019067C auto/m2c_190640  # m2c
+0x001908C0 0x00190900 auto/m2c_1908C0  # m2c
+0x00190958 0x0019099C auto/m2c_190958  # m2c
+0x001909A0 0x001909E4 auto/m2c_1909A0  # m2c
+0x190aa8 0x190ab0 auto/auto_190aa8
+0x00191210 0x00191234 auto/m2c_191210  # m2c
+0x00191468 0x00191510 auto/perm_191468  # perm
+0x191568 0x191570 auto/auto_191568
+0x00191570 0x001915BC auto/m2c_191570  # m2c
+0x001915C0 0x001915F0 battle/eft_a_c1915C0  # bt3 copy
+0x1915f0 0x191600 auto/auto_1915f0
+0x00191B80 0x00191BC4 auto/perm_191B80  # perm
+0x00191BC8 0x00191BFC auto/m2c_191BC8  # m2c
+0x001940C0 0x001940F0 battle/eft_b_c1940C0  # bt3 copy
+0x00194928 0x00194944 auto/m2c_194928  # m2c
+0x00194948 0x001949D0 auto/m2c_194948  # m2c
+0x1949d0 0x1949ec auto/auto_1949d0
+0x00194C30 0x00194CC0 auto/m2c_194C30  # m2c
+0x00194CC0 0x00194D08 battle/eft_o_c_194CC0  # from BT3-Decompiled
+0x194d08 0x194d18 auto/auto_194d08
+0x00195650 0x00195704 auto/m2c_195650  # m2c
+0x00195708 0x00195738 battle/eft_a_c195708  # bt3 copy
+0x1957d0 0x1957d8 auto/auto_1957d0
+0x001957D8 0x001957F8 sys/mem_read_1957D8  # from BT3-Decompiled
+0x001957F8 0x00195818 sys/mem_read_c1957F8  # bt3 copy
+0x00195818 0x00195840 battle/eft_q_c195818  # bt3 copy
+0x00195840 0x0019587C auto/m2c_195840  # m2c
+0x00195880 0x001958BC auto/m2c_195880  # m2c
+0x001958C0 0x001958FC auto/m2c_1958C0  # m2c
+0x00195900 0x0019593C auto/m2c_195900  # m2c
+0x00195940 0x0019597C auto/m2c_195940  # m2c
+0x00195980 0x001959C4 auto/m2c_195980  # m2c
+0x001959C8 0x00195A14 auto/m2c_1959C8  # m2c
+0x00195A18 0x00195A58 auto/m2c_195A18  # m2c
+0x00195C30 0x00195C80 auto/m2c_195C30  # m2c
+0x00195C80 0x00195CB0 battle/eft_a_c195C80  # bt3 copy
+0x195cb0 0x195cb8 auto/auto_195cb0
+0x00195E38 0x00195E54 auto/m2c_195E38  # m2c
+0x195e58 0x195e6c auto/auto_195e58
+0x196030 0x196044 auto/auto_196030
+0x00197800 0x00197B28 battle/eft_p_b_197800  # from BT3-Decompiled
+0x00198EB0 0x00198F10 battle/eft_p_b_198EB0  # from BT3-Decompiled
+0x00199CF8 0x00199E60 battle/eft_q_199CF8  # from BT3-Decompiled
+0x0019A0E0 0x0019A220 battle/eft_q_19A0E0  # from BT3-Decompiled
+0x19a320 0x19a33c auto/auto_19a320
+0x0019A5E0 0x0019A670 battle/eft_q_19A5E0  # from BT3-Decompiled
+0x0019A878 0x0019A8D8 battle/eft_q_19A878  # from BT3-Decompiled
+0x0019A938 0x0019A9A8 battle/eft_q_19A938  # from BT3-Decompiled
+0x0019AAD8 0x0019AAF8 auto/m2c_19AAD8  # m2c
+0x0019AAF8 0x0019AB28 battle/eft_a_c19AAF8  # bt3 copy
+0x0019ADE0 0x0019AE44 auto/m2c_19ADE0  # m2c
+0x0019AE48 0x0019AE78 battle/xb_19AE48  # agent B
+0x19ae78 0x19ae80 auto/auto_19ae78
+0x0019B0E8 0x0019B14C battle/xb_19B0E8  # agent B
+0x0019B150 0x0019B198 battle/xb_19B150  # agent B
+0x0019B2D0 0x0019B304 auto/m2c_19B2D0  # m2c
+0x0019B328 0x0019B344 auto/m2c_19B328  # m2c
+0x0019B3B0 0x0019B448 battle/eft_x_19B3B0  # from BT3-Decompiled
+0x0019B780 0x0019B7A0 auto/m2c_19B780  # m2c
+0x0019B7A0 0x0019B7D0 battle/eft_a_c19B7A0  # bt3 copy
+0x0019BA88 0x0019BAEC auto/m2c_19BA88  # m2c
+0x0019BAF0 0x0019BB20 battle/xb_19BAF0  # agent B
+0x19bb20 0x19bb28 auto/auto_19bb20
+0x0019BDF0 0x0019BE74 battle/xb_19BDF0  # agent B
+0x0019C0C0 0x0019C124 battle/xb_19C0C0  # agent B
+0x0019C128 0x0019C170 battle/xb_19C128  # agent B
+0x0019C1D8 0x0019C270 battle/eft_x_c19C1D8  # bt3 copy
+0x0019C3F8 0x0019C4B4 auto/m2c_19C3F8  # m2c
+0x0019C4B8 0x0019C4C8 auto/m2c_19C4B8  # m2c
+0x0019C4C8 0x0019C4F8 battle/eft_a_c19C4C8  # bt3 copy
+0x0019D468 0x0019D4A8 battle/eft_b_19D468  # from BT3-Decompiled
+0x0019D680 0x0019D6B8 auto/m2c_19D680  # m2c
+0x0019D6B8 0x0019D6E8 auto/m2c_19D6B8  # m2c
+0x0019D6E8 0x0019D720 auto/m2c_19D6E8  # m2c
+0x0019D720 0x0019D758 auto/m2c_19D720  # m2c
+0x19d848 0x19d850 auto/auto_19d848
+0x0019F600 0x0019F688 auto/m2c_19F600  # m2c
+0x0019F7F0 0x0019F82C auto/m2c_19F7F0  # m2c
+0x0019F830 0x0019F874 auto/m2c_19F830  # m2c
+0x0019F878 0x0019F8AC auto/m2c_19F878  # m2c
+0x19f8b0 0x19f8b8 auto/auto_19f8b0
+0x0019F8B8 0x0019F8D0 sys/gfxm_d_c_c19F8B8  # bt3 copy
+0x0019F8D0 0x0019F8F8 battle/eft_q_c19F8D0  # bt3 copy
+0x0019F988 0x0019F9D8 auto/m2c_19F988  # m2c
+0x0019F9D8 0x0019FA08 battle/eft_a_c19F9D8  # bt3 copy
+0x19fa08 0x19fa10 auto/auto_19fa08
+0x19faa8 0x19fac4 auto/auto_19faa8
+0x0019FFA8 0x001A0024 auto/m2c_19FFA8  # m2c
+0x1a0028 0x1a003c auto/auto_1a0028
+0x1a0040 0x1a0048 auto/auto_1a0040
+0x001A0318 0x001A0348 battle/eft_a_c1A0318  # bt3 copy
+0x001A0348 0x001A0390 auto/m2c_1A0348  # m2c
+0x001A0B90 0x001A0BE8 auto/m2c_1A0B90  # m2c
+0x1a1078 0x1a1080 auto/auto_1a1078
+0x001A1080 0x001A10C8 auto/m2c_1A1080  # m2c
+0x1a10c8 0x1a10d0 auto/auto_1a10c8
+0x001A10D0 0x001A1128 auto/m2c_1A10D0  # m2c
+0x001A1128 0x001A1158 battle/eft_a_c1A1128  # bt3 copy
+0x1a1158 0x1a1168 auto/auto_1a1158
+0x1a1630 0x1a1644 auto/auto_1a1630
+0x1a1648 0x1a1658 auto/auto_1a1648
+0x001A1700 0x001A1730 battle/eft_a_c1A1700  # bt3 copy
+0x001A1730 0x001A1744 auto/m2c_1A1730  # m2c
+0x001A17B8 0x001A182C battle/xb_1A17B8  # agent B
+0x001A1830 0x001A1868 battle/eft_c_c1A1830  # bt3 copy
+0x001A1868 0x001A18A4 auto/m2c_1A1868  # m2c
+0x1a1990 0x1a1998 auto/auto_1a1990
+0x1a19f8 0x1a1a0c auto/auto_1a19f8
+0x1a1a10 0x1a1a28 auto/auto_1a1a10
+0x001A2890 0x001A28C0 battle/eft_b_c1A2890  # bt3 copy
+0x001A4508 0x001A458C auto/m2c_1A4508  # m2c
+0x001A4590 0x001A45AC auto/m2c_1A4590  # m2c
+0x001A45B0 0x001A464C auto/m2c_1A45B0  # m2c
+0x1a4650 0x1a466c auto/auto_1a4650
+0x001A4728 0x001A47C0 auto/m2c_1A4728  # m2c
+0x001A47C0 0x001A4808 battle/eft_o_c_c1A47C0  # bt3 copy
+0x1a4808 0x1a4818 auto/auto_1a4808
+0x001A4B58 0x001A4B80 auto/m2c_1A4B58  # m2c
+0x001A52A8 0x001A52E0 auto/m2c_1A52A8  # m2c
+0x001A52E0 0x001A5318 battle/eft_c_c1A52E0  # bt3 copy
+0x001A5318 0x001A5354 auto/m2c_1A5318  # m2c
+0x001A5358 0x001A5378 auto/m2c_1A5358  # m2c
+0x001A55B0 0x001A55E0 battle/eft_a_c1A55B0  # bt3 copy
+0x001A59A8 0x001A59FC auto/m2c_1A59A8  # m2c
+0x001A5A00 0x001A5A40 auto/m2c_1A5A00  # m2c
+0x1a5a40 0x1a5a48 auto/auto_1a5a40
+0x001A5A48 0x001A5A78 auto/m2c_1A5A48  # m2c
+0x1a5af8 0x1a5b14 auto/auto_1a5af8
+0x001A5B50 0x001A5B60 sys/spu_heap_1A5B50  # from BT3-Decompiled
+0x1a6118 0x1a6120 auto/auto_1a6118
+0x001A6120 0x001A612C auto/m2c_1A6120  # m2c
+0x001A6648 0x001A6684 auto/m2c_1A6648  # m2c
+0x001A66D0 0x001A671C auto/m2c_1A66D0  # m2c
+0x001A67A0 0x001A67FC auto/m2c_1A67A0  # m2c
+0x001A6800 0x001A6830 battle/eft_a_c1A6800  # bt3 copy
+0x001A6830 0x001A683C auto/m2c_1A6830  # m2c
+0x001A6840 0x001A6888 battle/eft_q_1A6840  # from BT3-Decompiled
+0x1a6888 0x1a68a4 auto/auto_1a6888
+0x001A7240 0x001A7390 battle/eft_q_1A7240  # from BT3-Decompiled
+0x001A7AA8 0x001A7AC8 battle/eft_r_1A7AA8  # from BT3-Decompiled
+0x001A7B88 0x001A7C04 auto/m2c_1A7B88  # m2c
+0x001A7C08 0x001A7C60 auto/m2c_1A7C08  # m2c
+0x001A7CC8 0x001A7D2C auto/m2c_1A7CC8  # m2c
+0x001A7DA8 0x001A7DD0 auto/m2c_1A7DA8  # m2c
+0x001A7DD0 0x001A7E2C auto/m2c_1A7DD0  # m2c
+0x001A7E30 0x001A7E68 battle/eft_c_c1A7E30  # bt3 copy
+0x1a7e68 0x1a7e7c auto/auto_1a7e68
+0x1a7f88 0x1a7f9c auto/auto_1a7f88
+0x001A7FA0 0x001A7FF8 auto/perm_1A7FA0  # perm
+0x1a7ff8 0x1a800c auto/auto_1a7ff8
+0x1a8010 0x1a8018 auto/auto_1a8010
+0x001A8018 0x001A8060 battle/eft_a_c1A8018  # bt3 copy
+0x001A9000 0x001A904C auto/m2c_1A9000  # m2c
+0x001A9050 0x001A909C auto/m2c_1A9050  # m2c
+0x001A96D0 0x001A9748 battle/xb_1A96D0  # agent B
+0x001A9DC8 0x001A9E10 auto/m2c_1A9DC8  # m2c
+0x1a9e10 0x1a9e20 auto/auto_1a9e10
+0x001AA070 0x001AA0A0 battle/eft_a_c1AA070  # bt3 copy
+0x001AA1C0 0x001AA1F0 auto/m2c_1AA1C0  # m2c
+0x001AA1F0 0x001AA220 auto/m2c_1AA1F0  # m2c
+0x001AA220 0x001AA25C auto/m2c_1AA220  # m2c
+0x1ab9d0 0x1ab9e4 auto/auto_1ab9d0
+0x001ABE50 0x001ABE80 battle/eft_a_c1ABE50  # bt3 copy
+0x001AC618 0x001AC64C auto/m2c_1AC618  # m2c
+0x1ac6e8 0x1ac6fc auto/auto_1ac6e8
+0x001AC790 0x001AC824 auto/m2c_1AC790  # m2c
+0x001AC828 0x001AC858 battle/eft_a_c1AC828  # bt3 copy
+0x001AC858 0x001AC894 auto/m2c_1AC858  # m2c
+0x001AC968 0x001AC9E8 auto/m2c_1AC968  # m2c
+0x001AC9E8 0x001ACA98 battle/eft_r_1AC9E8  # from BT3-Decompiled
+0x001ADC58 0x001ADC74 auto/m2c_1ADC58  # m2c
+0x1adde0 0x1addf4 auto/auto_1adde0
+0x1addf8 0x1ade08 auto/auto_1addf8
+0x001ADF58 0x001ADF88 battle/eft_a_c1ADF58  # bt3 copy
+0x1ae2e8 0x1ae2fc auto/auto_1ae2e8
+0x001AE508 0x001AE53C auto/m2c_1AE508  # m2c
+0x001AE540 0x001AE574 auto/m2c_1AE540  # m2c
+0x001AE578 0x001AE59C auto/m2c_1AE578  # m2c
+0x001AE5A0 0x001AE5C4 auto/m2c_1AE5A0  # m2c
+0x001AE5E8 0x001AE608 auto/m2c_1AE5E8  # m2c
+0x001AE8D0 0x001AE950 battle/xb_1AE8D0  # agent B
+0x001AEA68 0x001AEA90 auto/m2c_1AEA68  # m2c
+0x001AEA90 0x001AEAC4 auto/m2c_1AEA90  # m2c
+0x1aee38 0x1aee4c auto/auto_1aee38
+0x001AEE50 0x001AEE98 auto/m2c_1AEE50  # m2c
+0x001AF250 0x001AF27C auto/m2c_1AF250  # m2c
+0x001AF280 0x001AF28C auto/m2c_1AF280  # m2c
+0x001AFCA8 0x001AFCD4 auto/m2c_1AFCA8  # m2c
+0x1afcd8 0x1afd08 auto/auto_1afcd8
+0x001AFD48 0x001AFED8 battle/eft_t_c_c1AFD48  # bt3 copy
+0x001B0D88 0x001B0DBC auto/m2c_1B0D88  # m2c
+0x001B2930 0x001B2990 auto/m2c_1B2930  # m2c
+0x001B2F70 0x001B2FCC auto/m2c_1B2F70  # m2c
+0x1b31b8 0x1b31d4 auto/auto_1b31b8
+0x001B3268 0x001B3310 auto/m2c_1B3268  # m2c
+0x001B3310 0x001B3358 battle/eft_o_c_c1B3310  # bt3 copy
+0x001B3358 0x001B3370 auto/m2c_1B3358  # m2c
+0x1b3370 0x1b3378 auto/auto_1b3370
+0x001B3378 0x001B3538 battle/xc_1B3378  # agent C
+0x001B3630 0x001B3778 battle/xc_1B3630  # agent C
+0x001B37D0 0x001B3AC0 battle/xc_1B37D0  # agent C
+0x001B3C98 0x001B3E68 battle/xc_1B3C98  # agent C
+0x1b4228 0x1b423c auto/auto_1b4228
+0x1b4240 0x1b4258 auto/auto_1b4240
+0x001B4258 0x001B4278 auto/m2c_1B4258  # m2c
+0x001B53C8 0x001B53FC auto/m2c_1B53C8  # m2c
+0x001B5400 0x001B549C auto/m2c_1B5400  # m2c
+0x1b54a0 0x1b54b4 auto/auto_1b54a0
+0x1b54b8 0x1b54c8 auto/auto_1b54b8
+0x001B54C8 0x001B5518 auto/m2c_1B54C8  # m2c
+0x001B5518 0x001B5548 battle/eft_a_c1B5518  # bt3 copy
+0x1b5548 0x1b5550 auto/auto_1b5548
+0x001B5630 0x001B5684 auto/m2c_1B5630  # m2c
+0x1b5688 0x1b5698 auto/auto_1b5688
+0x001B58D0 0x001B5998 battle/eft_t_c_1B58D0  # from BT3-Decompiled
+0x001B5998 0x001B59B8 battle/eft_t_c_c1B5998  # bt3 copy
+0x1b59b8 0x1b59d4 auto/auto_1b59b8
+0x001B6098 0x001B60D8 battle/eft_t_c_1B6098  # from BT3-Decompiled
+0x001B75F8 0x001B7788 battle/eft_t_c_c1B75F8  # bt3 copy
+0x001B7890 0x001B78C0 auto/m2c_1B7890  # m2c
+0x001B78C0 0x001B78EC auto/m2c_1B78C0  # m2c
+0x001B78F0 0x001B78FC auto/m2c_1B78F0  # m2c
+0x001B7900 0x001B795C auto/m2c_1B7900  # m2c
+0x001B7960 0x001B7990 battle/eft_a_c1B7960  # bt3 copy
+0x1b7990 0x1b79ac auto/auto_1b7990
+0x1b79b0 0x1b79c8 auto/auto_1b79b0
+0x1b7a10 0x1b7a28 auto/auto_1b7a10
+0x1b7b78 0x1b7b90 auto/auto_1b7b78
+0x1b7d40 0x1b7d58 auto/auto_1b7d40
+0x001B7FC0 0x001B8028 auto/m2c_1B7FC0  # m2c
+0x001B8510 0x001B8584 auto/m2c_1B8510  # m2c
+0x001B8588 0x001B85B8 battle/eft_b_c1B8588  # bt3 copy
+0x001B8BC0 0x001B8C04 auto/perm_1B8BC0  # perm
+0x001BB8F8 0x001BB928 battle/eft_b_c1BB8F8  # bt3 copy
+0x001BC010 0x001BC210 battle/xc_1BC010  # agent C
+0x1bc210 0x1bc22c auto/auto_1bc210
+0x001BC230 0x001BC430 battle/xc_1BC230  # agent C
+0x1bc430 0x1bc440 auto/auto_1bc430
+0x001BC440 0x001BC688 battle/xc_1BC440  # agent C
+0x001BC840 0x001BC918 battle/xc_1BC840  # agent C
+0x001BC970 0x001BCB48 battle/xc_1BC970  # agent C
+0x001BCD10 0x001BCD58 auto/m2c_1BCD10  # m2c
+0x001BFBD0 0x001BFC00 battle/eft_b_c1BFBD0  # bt3 copy
+0x001C0488 0x001C0680 battle/xc_1C0488  # agent C
+0x1c0680 0x1c069c auto/auto_1c0680
+0x001C06A0 0x001C08A8 battle/xc_1C06A0  # agent C
+0x1c08a8 0x1c08b8 auto/auto_1c08a8
+0x001C08B8 0x001C0A68 battle/xc_1C08B8  # agent C
+0x001C0B30 0x001C0D18 battle/xc_1C0B30  # agent C
+0x001C0D18 0x001C0D68 auto/m2c_1C0D18  # m2c
+0x1c0d68 0x1c0d70 auto/auto_1c0d68
+0x001C0D70 0x001C0DA0 battle/eft_a_c1C0D70  # bt3 copy
+0x001C0DA0 0x001C0E5C auto/perm_1C0DA0  # perm
+0x1c0f18 0x1c0f2c auto/auto_1c0f18
+0x001C0F30 0x001C0F50 auto/m2c_1C0F30  # m2c
+0x001C1210 0x001C1238 auto/m2c_1C1210  # m2c
+0x001C1238 0x001C1258 auto/m2c_1C1238  # m2c
+0x001C1460 0x001C147C auto/m2c_1C1460  # m2c
+0x001C1480 0x001C149C auto/m2c_1C1480  # m2c
+0x001C1CB0 0x001C1D30 auto/m2c_1C1CB0  # m2c
+0x001C1D30 0x001C1D60 battle/eft_a_c1C1D30  # bt3 copy
+0x1c1d60 0x1c1d68 auto/auto_1c1d60
+0x001C1FC0 0x001C1FE8 auto/m2c_1C1FC0  # m2c
+0x001C2310 0x001C2434 auto/m2c_1C2310  # m2c
+0x001C2438 0x001C2470 auto/m2c_1C2438  # m2c
+0x001C2470 0x001C24A8 auto/m2c_1C2470  # m2c
+0x001C2848 0x001C2878 battle/eft_b_c1C2848  # bt3 copy
+0x001C6E20 0x001C6F70 battle/xc_1C6E20  # agent C
+0x1c6f70 0x1c6f8c auto/auto_1c6f70
+0x001C6F90 0x001C7148 battle/xc_1C6F90  # agent C
+0x1c7148 0x1c7150 auto/auto_1c7148
+0x001C7150 0x001C74A0 battle/xc_1C7150  # agent C
+0x001C74F8 0x001C7548 battle/xc_1C74F8  # agent C
+0x001C7548 0x001C7570 battle/eft_q_c1C7548  # bt3 copy
+0x1c7570 0x1c7578 auto/auto_1c7570
+0x001C7578 0x001C75A8 battle/eft_a_c1C7578  # bt3 copy
+0x001C75A8 0x001C75E4 auto/m2c_1C75A8  # m2c
+0x001C75E8 0x001C7650 auto/m2c_1C75E8  # m2c
+0x1c7650 0x1c7674 auto/auto_1c7650
+0x001C7760 0x001C7794 auto/m2c_1C7760  # m2c
+0x001C7798 0x001C77F8 auto/m2c_1C7798  # m2c
+0x001C77F8 0x001C7820 battle/eft_g_c1C77F8  # bt3 copy
+0x1c7820 0x1c7828 auto/auto_1c7820
+0x001C7828 0x001C7858 auto/m2c_1C7828  # m2c
+0x1c7858 0x1c7878 auto/auto_1c7858
+0x001C7878 0x001C78A0 auto/m2c_1C7878  # m2c
+0x001C88A0 0x001C88D8 battle/eft_x_b_1C88A0  # from BT3-Decompiled
+0x1c88d8 0x1c88e8 auto/auto_1c88d8
+0x001C88E8 0x001C8998 auto/m2c_1C88E8  # m2c
+0x001C8998 0x001C89A4 auto/m2c_1C8998  # m2c
+0x001C89A8 0x001C89C8 auto/m2c_1C89A8  # m2c
+0x001C89C8 0x001C89F8 battle/eft_a_c1C89C8  # bt3 copy
+0x1c8c68 0x1c8c70 auto/auto_1c8c68
+0x001C8C70 0x001C8CB0 auto/m2c_1C8C70  # m2c
+0x1c8cb0 0x1c8cb8 auto/auto_1c8cb0
+0x001C9358 0x001C93F0 battle/eft_x_c1C9358  # bt3 copy
+0x001CAD68 0x001CADB0 auto/m2c_1CAD68  # m2c
+0x001CAF98 0x001CB120 battle/xc_1CAF98  # agent C
+0x1cb120 0x1cb13c auto/auto_1cb120
+0x001CB140 0x001CB348 battle/xc_1CB140  # agent C
+0x1cb348 0x1cb350 auto/auto_1cb348
+0x001CB350 0x001CB5F0 battle/xc_1CB350  # agent C
+0x001CBA68 0x001CBA98 battle/eft_b_c1CBA68  # bt3 copy
+0x001CC760 0x001CC76C auto/m2c_1CC760  # m2c
+0x001CC770 0x001CC7E4 auto/m2c_1CC770  # m2c
+0x1cc7e8 0x1cc804 auto/auto_1cc7e8
+0x001CC8E8 0x001CC934 auto/m2c_1CC8E8  # m2c
+0x001CC938 0x001CC968 battle/eft_a_c1CC938  # bt3 copy
+0x1cc968 0x1cc978 auto/auto_1cc968
+0x001CCE20 0x001CCE2C auto/m2c_1CCE20  # m2c
+0x001CCEC0 0x001CCEF4 auto/m2c_1CCEC0  # m2c
+0x001CD220 0x001CD260 auto/m2c_1CD220  # m2c
+0x001CDBA8 0x001CDC40 battle/eft_x_c1CDBA8  # bt3 copy
+0x001D28A8 0x001D28DC auto/m2c_1D28A8  # m2c
+0x001D28E0 0x001D2900 auto/m2c_1D28E0  # m2c
+0x1d2ea0 0x1d2eb4 auto/auto_1d2ea0
+0x001D2EB8 0x001D2F24 auto/m2c_1D2EB8  # m2c
+0x001D2FB8 0x001D2FD8 battle/eft_t_c_c1D2FB8  # bt3 copy
+0x001D45B8 0x001D4608 auto/m2c_1D45B8  # m2c
+0x001D49C8 0x001D4A50 auto/m2c_1D49C8  # m2c
+0x001D5110 0x001D5184 auto/m2c_1D5110  # m2c
+0x001D5738 0x001D57AC auto/m2c_1D5738  # m2c
+0x001D5E30 0x001D5EA4 auto/m2c_1D5E30  # m2c
+0x001D6508 0x001D657C auto/m2c_1D6508  # m2c
+0x001D6BB8 0x001D6C2C auto/m2c_1D6BB8  # m2c
+0x001D7200 0x001D7288 auto/m2c_1D7200  # m2c
+0x001D7988 0x001D7A10 auto/m2c_1D7988  # m2c
+0x001DA240 0x001DA3E8 battle/eft_e_1DA240  # from BT3-Decompiled
+0x001DBF28 0x001DBF50 battle/eft_q_c1DBF28  # bt3 copy
+0x001DBF50 0x001DBFA0 auto/m2c_1DBF50  # m2c
+0x001DBFA0 0x001DBFD8 battle/eft_c_c1DBFA0  # bt3 copy
+0x1dbfd8 0x1dbfe0 auto/auto_1dbfd8
+0x001DBFE0 0x001DC04C auto/m2c_1DBFE0  # m2c
+0x1dc050 0x1dc058 auto/auto_1dc050
+0x1dc130 0x1dc144 auto/auto_1dc130
+0x001DC208 0x001DC214 auto/m2c_1DC208  # m2c
+0x001DC218 0x001DC238 auto/m2c_1DC218  # m2c
+0x001DC238 0x001DC268 battle/eft_a_c1DC238  # bt3 copy
+0x1dc570 0x1dc578 auto/auto_1dc570
+0x001DC578 0x001DC5B8 auto/m2c_1DC578  # m2c
+0x1dc5b8 0x1dc5c0 auto/auto_1dc5b8
+0x001DCF40 0x001DCFD8 battle/eft_x_c1DCF40  # bt3 copy
+0x001DD1E8 0x001DD21C auto/m2c_1DD1E8  # m2c
+0x001DDA00 0x001DDA0C auto/m2c_1DDA00  # m2c
+0x001DDA10 0x001DDA84 auto/m2c_1DDA10  # m2c
+0x1dda88 0x1ddaa4 auto/auto_1dda88
+0x001DDB98 0x001DDBC8 battle/eft_a_c1DDB98  # bt3 copy
+0x001DDBC8 0x001DDBD4 auto/m2c_1DDBC8  # m2c
+0x1ddbd8 0x1ddbe0 auto/auto_1ddbd8
+0x001DE288 0x001DE2B8 battle/eft_a_c1DE288  # bt3 copy
+0x001DE2B8 0x001DE2FC auto/m2c_1DE2B8  # m2c
+0x1de3f8 0x1de408 auto/auto_1de3f8
+0x001DF2E0 0x001DF2F8 auto/m2c_1DF2E0  # m2c
+0x001DF3F8 0x001DF410 sys/vu0_b_c_c1DF3F8  # bt3 copy
+0x001DF410 0x001DF458 battle/eft_g_c1DF410  # bt3 copy
+0x001DF458 0x001DF4A4 auto/m2c_1DF458  # m2c
+0x001DF4A8 0x001DF54C auto/m2c_1DF4A8  # m2c
+0x001DF5D0 0x001DF600 battle/eft_a_c1DF5D0  # bt3 copy
+0x1df810 0x1df818 auto/auto_1df810
+0x001DFC78 0x001DFCA0 auto/m2c_1DFC78  # m2c
+0x001DFD48 0x001DFDE0 auto/perm_1DFD48  # perm
+0x001DFEB8 0x001DFF50 auto/perm_1DFEB8  # perm
+0x001E01B0 0x001E01BC auto/m2c_1E01B0  # m2c
+0x1e01c0 0x1e01c8 auto/auto_1e01c0
+0x001E0558 0x001E05F4 auto/m2c_1E0558  # m2c
+0x001E0A00 0x001E0A6C auto/m2c_1E0A00  # m2c
+0x001E0C70 0x001E0C7C auto/m2c_1E0C70  # m2c
+0x001E1980 0x001E19EC auto/m2c_1E1980  # m2c
+0x001E19F0 0x001E1A5C auto/m2c_1E19F0  # m2c
+0x1e1bb0 0x1e1bc4 auto/auto_1e1bb0
+0x001E4C08 0x001E4C40 auto/m2c_1E4C08  # m2c
+0x001E4C40 0x001E4C70 battle/eft_a_c1E4C40  # bt3 copy
+0x001E4C70 0x001E4C7C auto/m2c_1E4C70  # m2c
+0x001E4C80 0x001E4CCC auto/perm_1E4C80  # perm
+0x001E5548 0x001E5564 auto/m2c_1E5548  # m2c
+0x1e5568 0x1e5570 auto/auto_1e5568
+0x001E6640 0x001E6670 auto/m2c_1E6640  # m2c
+0x001E6670 0x001E66A0 battle/eft_a_c1E6670  # bt3 copy
+0x001E6710 0x001E6728 auto/m2c_1E6710  # m2c
+0x001E67E0 0x001E6808 auto/m2c_1E67E0  # m2c
+0x001E6808 0x001E6874 auto/m2c_1E6808  # m2c
+0x001E6878 0x001E68E4 auto/m2c_1E6878  # m2c
+0x001E6920 0x001E695C auto/perm_1E6920  # perm
+0x001E6960 0x001E699C auto/m2c_1E6960  # m2c
+0x001E6AD0 0x001E6B2C auto/m2c_1E6AD0  # m2c
+0x001E6E38 0x001E6ED4 auto/m2c_1E6E38  # m2c
+0x001E6ED8 0x001E6EF4 auto/m2c_1E6ED8  # m2c
+0x001E6EF8 0x001E6F9C auto/m2c_1E6EF8  # m2c
+0x1e6fa0 0x1e6fb4 auto/auto_1e6fa0
+0x001E6FB8 0x001E7014 auto/m2c_1E6FB8  # m2c
+0x001E7018 0x001E7050 auto/m2c_1E7018  # m2c
+0x001E7050 0x001E7068 sys/gfxm_d_c_c1E7050  # bt3 copy
+0x1e7068 0x1e7070 auto/auto_1e7068
+0x001E7078 0x001E70B0 auto/m2c_1E7078  # m2c
+0x001E71D8 0x001E7204 auto/m2c_1E71D8  # m2c
+0x001E7208 0x001E7234 auto/m2c_1E7208  # m2c
+0x001E7238 0x001E7264 auto/m2c_1E7238  # m2c
+0x001E7268 0x001E7294 auto/m2c_1E7268  # m2c
+0x001E7298 0x001E72C4 auto/m2c_1E7298  # m2c
+0x001E72C8 0x001E72F4 auto/m2c_1E72C8  # m2c
+0x001E72F8 0x001E7324 auto/m2c_1E72F8  # m2c
+0x001E7328 0x001E7360 auto/m2c_1E7328  # m2c
+0x001E7360 0x001E7390 battle/eft_a_c1E7360  # bt3 copy
+0x001E74A0 0x001E74D4 auto/perm_1E74A0  # perm
+0x001E74D8 0x001E7594 auto/m2c_1E74D8  # m2c
+0x001E75E0 0x001E7618 auto/m2c_1E75E0  # m2c
+0x001E7618 0x001E7630 auto/m2c_1E7618  # m2c
+0x1e7630 0x1e7644 auto/auto_1e7630
+0x001E7648 0x001E7670 battle/btl_facade_1E7648  # from BT3-Decompiled
+0x001E76E8 0x001E7718 battle/eft_a_c1E76E8  # bt3 copy
+0x001E7718 0x001E7768 auto/m2c_1E7718  # m2c
+0x001E7768 0x001E77C8 auto/m2c_1E7768  # m2c
+0x1e78d8 0x1e78ec auto/auto_1e78d8
+0x1e7b88 0x1e7ba0 auto/auto_1e7b88
+0x001E8C38 0x001E8CB4 auto/m2c_1E8C38  # m2c
+0x001E8CB8 0x001E8CC4 auto/m2c_1E8CB8  # m2c
+0x1e8cc8 0x1e8cd0 auto/auto_1e8cc8
+0x001E8CD0 0x001E8CFC auto/m2c_1E8CD0  # m2c
+0x001E8D00 0x001E8D30 battle/eft_a_c1E8D00  # bt3 copy
+0x001E9548 0x001E9590 auto/m2c_1E9548  # m2c
+0x1e9590 0x1e95a4 auto/auto_1e9590
+0x001EAD80 0x001EADC8 auto/m2c_1EAD80  # m2c
+0x001EADC8 0x001EAE10 auto/m2c_1EADC8  # m2c
+0x001EAF20 0x001EAF68 auto/m2c_1EAF20  # m2c
+0x001EB0F0 0x001EB14C auto/m2c_1EB0F0  # m2c
+0x1eb150 0x1eb158 auto/auto_1eb150
+0x001EB158 0x001EB184 auto/m2c_1EB158  # m2c
+0x001EB188 0x001EB1B8 battle/eft_a_c1EB188  # bt3 copy
+0x1eb450 0x1eb464 auto/auto_1eb450
+0x001EB468 0x001EB4E0 auto/m2c_1EB468  # m2c
+0x001EB830 0x001EB880 auto/m2c_1EB830  # m2c
+0x001EB880 0x001EB8D0 auto/m2c_1EB880  # m2c
+0x001EBA68 0x001EBAB8 auto/perm_1EBA68  # perm
+0x001EBB48 0x001EBBC4 auto/m2c_1EBB48  # m2c
+0x001EBDC8 0x001EBE64 auto/m2c_1EBDC8  # m2c
+0x001EBFC8 0x001EBFD4 auto/m2c_1EBFC8  # m2c
+0x001EBFD8 0x001EBFE4 auto/m2c_1EBFD8  # m2c
+0x001EC248 0x001EC260 battle/btl_pool_1EC248  # from BT3-Decompiled
+0x001EC260 0x001EC288 sys/gfx_ot_1EC260  # from BT3-Decompiled
+0x1ec308 0x1ec324 auto/auto_1ec308
+0x1ec368 0x1ec378 auto/auto_1ec368
+0x001EC378 0x001EC3A0 auto/m2c_1EC378  # m2c
+0x001EC3A0 0x001EC3C8 auto/m2c_1EC3A0  # m2c
+0x001EC3C8 0x001EC3F0 auto/m2c_1EC3C8  # m2c
+0x001EC3F0 0x001EC418 auto/m2c_1EC3F0  # m2c
+0x1ec418 0x1ec420 auto/auto_1ec418
+0x001EC420 0x001EC440 battle/eft_ad_b_1EC420  # from BT3-Decompiled
+0x001EC448 0x001EC460 battle/eft_ad_b_1EC448  # from BT3-Decompiled
+0x001EC460 0x001EC488 auto/m2c_1EC460  # m2c
+0x001EDBD8 0x001EDC1C auto/m2c_1EDBD8  # m2c
+0x001EDC20 0x001EDC64 auto/m2c_1EDC20  # m2c
+0x001EDC68 0x001EDCB8 auto/m2c_1EDC68  # m2c
+0x001EDCB8 0x001EDCE4 auto/perm_1EDCB8  # perm
+0x001EDD40 0x001EDD94 auto/m2c_1EDD40  # m2c
+0x001EED70 0x001EEDB8 battle/eft_g_c1EED70  # bt3 copy
+0x001EEEB0 0x001EEEEC auto/m2c_1EEEB0  # m2c
+0x001EEEF0 0x001EEF18 auto/m2c_1EEEF0  # m2c
+0x001EEF18 0x001EEF28 battle/eft_det_a_1EEF18  # from BT3-Decompiled
+0x001F2A18 0x001F2A48 battle/eft_b_c1F2A18  # bt3 copy
+0x001F2BB0 0x001F2D18 battle/eft_a_c1F2BB0  # bt3 copy
+0x001F2D18 0x001F2D30 sys/gfxm_a_c1F2D18  # bt3 copy
+0x001F2D30 0x001F3230 battle/eft_ae_1F2D30  # from BT3-Decompiled
+0x001F3230 0x001F3258 sys/gfxm_a_c1F3230  # bt3 copy
+0x001F3258 0x001F34A0 battle/eft_ae_1F3258  # from BT3-Decompiled
+0x001F34A0 0x001F34C8 battle/eft_ae_c1F34A0  # bt3 copy
+0x001F34C8 0x001F3620 battle/eft_ae_1F34C8  # from BT3-Decompiled
+0x001F3620 0x001F3638 sys/gfxm_a_c1F3620  # bt3 copy
+0x001F3638 0x001F3648 battle/eft_ae_1F3638  # from BT3-Decompiled
+0x001F3648 0x001F3660 sys/gfxm_a_c1F3648  # bt3 copy
+0x001F3660 0x001F3720 battle/eft_ae_1F3660  # from BT3-Decompiled
+0x1f3720 0x1f3738 auto/auto_1f3720
+0x001F3738 0x001F3748 battle/eft_ae_c1F3738  # bt3 copy
+0x001F3758 0x001F3764 auto/m2c_1F3758  # m2c
+0x001F3768 0x001F37BC auto/m2c_1F3768  # m2c
+0x001F37C0 0x001F37F8 battle/eft_c_c1F37C0  # bt3 copy
+0x001F37F8 0x001F3830 battle/eft_ae_1F37F8  # from BT3-Decompiled
+0x001F3B10 0x001F3D10 battle/eft_ae_1F3B10  # from BT3-Decompiled
+0x001F3D98 0x001F3DC0 battle/eft_ae_1F3D98  # from BT3-Decompiled
+0x1f3dc0 0x1f3dc8 auto/auto_1f3dc0
+0x001F3DC8 0x001F3F28 battle/eft_ae_1F3DC8  # from BT3-Decompiled
+0x001F3F28 0x001F4158 battle/eft_det_a_1F3F28  # from BT3-Decompiled
+0x1f4158 0x1f4160 auto/auto_1f4158
+0x001F4160 0x001F4278 battle/eft_det_a_1F4160  # from BT3-Decompiled
+0x001F4288 0x001F429C auto/m2c_1F4288  # m2c
+0x001F42A0 0x001F42B8 auto/m2c_1F42A0  # m2c
+0x001F42B8 0x001F42D4 auto/m2c_1F42B8  # m2c
+0x001F45C0 0x001F45D4 auto/m2c_1F45C0  # m2c
+0x001F45D8 0x001F460C auto/m2c_1F45D8  # m2c
+0x001F46F8 0x001F4730 auto/m2c_1F46F8  # m2c
+0x1f49e0 0x1f49e8 auto/auto_1f49e0
+0x1f4b90 0x1f4ba0 auto/auto_1f4b90
+0x1f4be8 0x1f4c04 auto/auto_1f4be8
+0x1f4c08 0x1f4c10 auto/auto_1f4c08
+0x1f4cd0 0x1f4ce0 auto/auto_1f4cd0
+0x1f4d28 0x1f4d44 auto/auto_1f4d28
+0x1f4d48 0x1f4d50 auto/auto_1f4d48
+0x1f4e18 0x1f4e28 auto/auto_1f4e18
+0x1f4e80 0x1f4e9c auto/auto_1f4e80
+0x1f4ea0 0x1f4ea8 auto/auto_1f4ea0
+0x1f4f70 0x1f4f80 auto/auto_1f4f70
+0x1f4ff0 0x1f500c auto/auto_1f4ff0
+0x1f5010 0x1f5018 auto/auto_1f5010
+0x1f50b8 0x1f50c8 auto/auto_1f50b8
+0x1f5138 0x1f5154 auto/auto_1f5138
+0x1f5158 0x1f5160 auto/auto_1f5158
+0x1f5200 0x1f5210 auto/auto_1f5200
+0x1f5288 0x1f52a4 auto/auto_1f5288
+0x1f52a8 0x1f52b0 auto/auto_1f52a8
+0x1f5350 0x1f5360 auto/auto_1f5350
+0x1f53d0 0x1f53ec auto/auto_1f53d0
+0x1f53f0 0x1f53f8 auto/auto_1f53f0
+0x1f54b8 0x1f54c8 auto/auto_1f54b8
+0x1f5540 0x1f555c auto/auto_1f5540
+0x1f5560 0x1f5568 auto/auto_1f5560
+0x1f5608 0x1f5618 auto/auto_1f5608
+0x1f5690 0x1f56ac auto/auto_1f5690
+0x1f56b0 0x1f56b8 auto/auto_1f56b0
+0x1f5758 0x1f5768 auto/auto_1f5758
+0x1f57d8 0x1f57f4 auto/auto_1f57d8
+0x1f57f8 0x1f5800 auto/auto_1f57f8
+0x1f58b0 0x1f58c0 auto/auto_1f58b0
+0x1f5930 0x1f594c auto/auto_1f5930
+0x1f5950 0x1f5958 auto/auto_1f5950
+0x001F5958 0x001F5A94 auto/m2c_1F5958  # m2c
+0x001F9138 0x001F9164 auto/m2c_1F9138  # m2c
+0x001F9168 0x001F9194 auto/m2c_1F9168  # m2c
+0x001F9198 0x001F91C4 auto/m2c_1F9198  # m2c
+0x001F91C8 0x001F91F4 auto/m2c_1F91C8  # m2c
+0x001F9568 0x001F95C0 auto/m2c_1F9568  # m2c
+0x001F95C0 0x001F9618 auto/m2c_1F95C0  # m2c
+0x001F9618 0x001F9670 auto/m2c_1F9618  # m2c
+0x001F96A8 0x001F9700 auto/m2c_1F96A8  # m2c
+0x001F9700 0x001F9758 auto/m2c_1F9700  # m2c
+0x001F97A8 0x001F97F4 auto/m2c_1F97A8  # m2c
+0x001F97F8 0x001F9844 auto/m2c_1F97F8  # m2c
+0x001F9848 0x001F9894 auto/m2c_1F9848  # m2c
+0x001F9E78 0x001F9E90 battle/btl_char_status_anim_1F9E78  # from BT3-Decompiled
+0x1f9f90 0x1f9fb0 auto/auto_1f9f90
+0x001FA308 0x001FA314 auto/m2c_1FA308  # m2c
+0x001FA318 0x001FA33C auto/m2c_1FA318  # m2c
+0x001FA340 0x001FA34C auto/m2c_1FA340  # m2c
+0x001FA350 0x001FA35C auto/m2c_1FA350  # m2c
+0x001FA370 0x001FA37C auto/m2c_1FA370  # m2c
+0x1fa390 0x1fa3a8 auto/auto_1fa390
+0x001FB810 0x001FB82C auto/m2c_1FB810  # m2c
+0x001FBE80 0x001FBEAC auto/m2c_1FBE80  # m2c
+0x001FD138 0x001FD1A4 auto/jt_1FD138  # jtbl
+0x001FD1A8 0x001FD1F0 auto/jt_1FD1A8  # jtbl
+0x001FF478 0x001FF644 auto/m2c_1FF478  # m2c
+0x00202078 0x00202084 auto/m2c_202078  # m2c
+0x202bc0 0x202bc8 auto/auto_202bc0
+0x00202DA0 0x00202DC0 auto/m2c_202DA0  # m2c
+0x202dc0 0x202dd8 auto/auto_202dc0
+0x00202E60 0x00202E80 auto/m2c_202E60  # m2c
+0x00202E80 0x00202EA0 auto/m2c_202E80  # m2c
+0x203110 0x203118 auto/auto_203110
+0x00203118 0x00203184 auto/m2c_203118  # m2c
+0x002037C8 0x00203810 battle/btl_char_member_2037C8  # from BT3-Decompiled
+0x00203858 0x00203888 battle/btl_char_member_203858  # from BT3-Decompiled
+0x00203918 0x00203968 battle/btl_char_member_203918  # from BT3-Decompiled
+0x00203968 0x002039DC auto/m2c_203968  # m2c
+0x002039E0 0x00203C58 battle/btl_char_member_2039E0  # from BT3-Decompiled
+0x00203D70 0x00203DE0 battle/btl_char_fx_203D70  # from BT3-Decompiled
+0x002042F8 0x002043A4 auto/m2c_2042F8  # m2c
+0x00204C68 0x00204CD4 auto/m2c_204C68  # m2c
+0x00205800 0x00205860 auto/m2c_205800  # m2c
+0x00205860 0x002058C0 auto/m2c_205860  # m2c
+0x00205E68 0x00205EE0 auto/m2c_205E68  # m2c
+0x00206420 0x00206450 auto/m2c_206420  # m2c
+0x002067F8 0x00206954 auto/perm_2067F8  # perm
+0x00206958 0x00206968 auto/perm_206958  # perm
+0x00206968 0x00206A58 auto/m2c_206968  # m2c
+0x00206A58 0x00206A98 battle/btl_char_fx_c_206A58  # from BT3-Decompiled
+0x00207BF0 0x00207D40 battle/xd_207BF0  # agent D
+0x00207EA0 0x00207EBC auto/m2c_207EA0  # m2c
+0x00207EE8 0x00207F10 auto/m2c_207EE8  # m2c
+0x00207F10 0x00207F38 auto/m2c_207F10  # m2c
+0x00207F38 0x00207F60 auto/m2c_207F38  # m2c
+0x00207F60 0x00207F88 auto/m2c_207F60  # m2c
+0x00208670 0x002086AC auto/m2c_208670  # m2c
+0x00208798 0x00208860 auto/m2c_208798  # m2c
+0x00208860 0x002088F0 auto/m2c_208860  # m2c
+0x002088F0 0x00208980 auto/m2c_2088F0  # m2c
+0x00208980 0x00208A44 auto/m2c_208980  # m2c
+0x00208A48 0x00208AA0 auto/m2c_208A48  # m2c
+0x00208DC0 0x00208DE8 auto/m2c_208DC0  # m2c
+0x00209A78 0x00209AC0 auto/m2c_209A78  # m2c
+0x0020A138 0x0020A150 auto/m2c_20A138  # m2c
+0x0020A150 0x0020A168 auto/m2c_20A150  # m2c
+0x0020A258 0x0020A2F8 battle/xd_20A258  # agent D
+0x0020A2F8 0x0020A3B8 auto/m2c_20A2F8  # m2c
+0x0020A3B8 0x0020A3E0 auto/m2c_20A3B8  # m2c
+0x0020A3E0 0x0020A43C battle/xd_20A3E0  # agent D
+0x0020B158 0x0020B1C0 auto/m2c_20B158  # m2c
+0x0020B4E8 0x0020B550 auto/m2c_20B4E8  # m2c
+0x0020C870 0x0020C888 auto/m2c_20C870  # m2c
+0x0020C888 0x0020C8A0 auto/m2c_20C888  # m2c
+0x0020C8A0 0x0020C8B8 auto/m2c_20C8A0  # m2c
+0x0020C8B8 0x0020C8E8 auto/m2c_20C8B8  # m2c
+0x0020C8E8 0x0020C918 auto/m2c_20C8E8  # m2c
+0x0020C918 0x0020C950 auto/m2c_20C918  # m2c
+0x0020C950 0x0020C980 auto/m2c_20C950  # m2c
+0x0020C980 0x0020C9B0 auto/m2c_20C980  # m2c
+0x0020CB20 0x0020CB84 auto/perm_20CB20  # perm
+0x0020E478 0x0020E4AC battle/xd_20E478  # agent D
+0x0020EB10 0x0020EBCC battle/xd_20EB10  # agent D
+0x0020EBD0 0x0020EC08 battle/btl_facade_20EBD0  # from BT3-Decompiled
+0x0020EC08 0x0020EC60 auto/m2c_20EC08  # m2c
+0x0020EC60 0x0020EC98 battle/xd_20EC60  # agent D
+0x0020EC98 0x0020ECF0 auto/m2c_20EC98  # m2c
+0x0020F1C0 0x0020F214 auto/m2c_20F1C0  # m2c
+0x002107B0 0x00210804 auto/m2c_2107B0  # m2c
+0x00210808 0x00210868 auto/m2c_210808  # m2c
+0x00210868 0x002108BC auto/m2c_210868  # m2c
+0x002108C0 0x00210920 auto/m2c_2108C0  # m2c
+0x00210920 0x0021096C battle/xd_210920  # agent D
+0x00210970 0x002109C8 auto/m2c_210970  # m2c
+0x002109C8 0x00210A20 auto/m2c_2109C8  # m2c
+0x00210A20 0x00210A44 battle/xd_210A20  # agent D
+0x00210C40 0x00210CC4 auto/m2c_210C40  # m2c
+0x00210CC8 0x00210D0C auto/m2c_210CC8  # m2c
+0x00210D10 0x00210D50 auto/m2c_210D10  # m2c
+0x00210D50 0x00210D94 auto/m2c_210D50  # m2c
+0x00210D98 0x00210DD8 auto/m2c_210D98  # m2c
+0x00210DD8 0x00210E18 auto/m2c_210DD8  # m2c
+0x00210E18 0x00210E9C auto/m2c_210E18  # m2c
+0x00210EA0 0x00210EE0 auto/m2c_210EA0  # m2c
+0x00210EE0 0x00210F30 auto/m2c_210EE0  # m2c
+0x00210F30 0x00210FB8 auto/m2c_210F30  # m2c
+0x210fb8 0x210fd0 auto/auto_210fb8
+0x00210FD0 0x00211024 auto/m2c_210FD0  # m2c
+0x00211028 0x002111E4 auto/m2c_211028  # m2c
+0x002111E8 0x00211220 battle/xd_2111E8  # agent D
+0x00211220 0x00211270 auto/m2c_211220  # m2c
+0x00211270 0x00211288 auto/m2c_211270  # m2c
+0x00211288 0x002112A0 auto/m2c_211288  # m2c
+0x2112c8 0x2112d0 auto/auto_2112c8
+0x00211310 0x00211328 auto/m2c_211310  # m2c
+0x002115D0 0x00211688 auto/m2c_2115D0  # m2c
+0x2118f0 0x211908 auto/auto_2118f0
+0x002127F8 0x0021281C battle/xd_2127F8  # agent D
+0x00212878 0x0021288C auto/m2c_212878  # m2c
+0x00212890 0x002128D8 auto/m2c_212890  # m2c
+0x002128D8 0x002128EC auto/m2c_2128D8  # m2c
+0x002128F0 0x002128FC auto/m2c_2128F0  # m2c
+0x002129E0 0x002129EC auto/m2c_2129E0  # m2c
+0x00212AA0 0x00212AD8 battle/btl_char_get_212AA0  # from BT3-Decompiled
+0x00212D98 0x00212DAC auto/m2c_212D98  # m2c
+0x00212DB0 0x00212DD4 auto/m2c_212DB0  # m2c
+0x212dd8 0x212de0 auto/auto_212dd8
+0x00213B10 0x00213D94 auto/m2c_213B10  # m2c
+0x00216770 0x00216800 auto/m2c_216770  # m2c
+0x00217128 0x002171C0 auto/m2c_217128  # m2c
+0x00217330 0x00217360 auto/m2c_217330  # m2c
+0x002174D8 0x002174EC auto/m2c_2174D8  # m2c
+0x00218758 0x00218834 auto/m2c_218758  # m2c
+0x002188C8 0x00218948 auto/m2c_2188C8  # m2c
+0x002190D8 0x00219128 auto/m2c_2190D8  # m2c
+0x21a3e0 0x21a3e8 auto/auto_21a3e0
+0x21a880 0x21a888 auto/auto_21a880
+0x21ac60 0x21ac68 auto/auto_21ac60
+0x21ae30 0x21ae38 auto/auto_21ae30
+0x0021AE38 0x0021AEDC auto/jt_21AE38  # jtbl
+0x21b3c0 0x21b3c8 auto/auto_21b3c0
+0x21b600 0x21b608 auto/auto_21b600
+0x0021B608 0x0021B6A0 auto/jt_21B608  # jtbl
+0x21c2a0 0x21c2a8 auto/auto_21c2a0
+0x21c4a0 0x21c4a8 auto/auto_21c4a0
+0x21cae8 0x21cb08 auto/auto_21cae8
+0x21cd18 0x21cd20 auto/auto_21cd18
+0x21ce70 0x21ce78 auto/auto_21ce70
+0x21d338 0x21d340 auto/auto_21d338
+0x21d808 0x21d810 auto/auto_21d808
+0x21da48 0x21da50 auto/auto_21da48
+0x21dfc0 0x21dfc8 auto/auto_21dfc0
+0x21e5e8 0x21e608 auto/auto_21e5e8
+0x21ef78 0x21ef80 auto/auto_21ef78
+0x21f590 0x21f598 auto/auto_21f590
+0x21f9e0 0x21f9f0 auto/auto_21f9e0
+0x21faf8 0x21fb00 auto/auto_21faf8
+0x21fe78 0x21fe80 auto/auto_21fe78
+0x00220668 0x00220674 auto/m2c_220668  # m2c
+0x220b78 0x220b80 auto/auto_220b78
+0x221070 0x221078 auto/auto_221070
+0x221460 0x221468 auto/auto_221460
+0x222578 0x222598 auto/auto_222578
+0x2229e8 0x2229f0 auto/auto_2229e8
+0x222cd8 0x222ce0 auto/auto_222cd8
+0x222ef0 0x222f10 auto/auto_222ef0
+0x223038 0x223040 auto/auto_223038
+0x2231f0 0x2231f8 auto/auto_2231f0
+0x2237e8 0x223808 auto/auto_2237e8
+0x223930 0x223950 auto/auto_223930
+0x223a88 0x223aa8 auto/auto_223a88
+0x224000 0x224008 auto/auto_224000
+0x2248d8 0x2248e0 auto/auto_2248d8
+0x224aa8 0x224ac8 auto/auto_224aa8
+0x00224AC8 0x00224B2C auto/m2c_224AC8  # m2c
+0x00224DB0 0x00224DCC auto/m2c_224DB0  # m2c
+0x224dd0 0x224de8 auto/auto_224dd0
+0x224ed0 0x224ed8 auto/auto_224ed0
+0x2250c8 0x2250d0 auto/auto_2250c8
+0x225288 0x2252a8 auto/auto_225288
+0x2255b8 0x2255c0 auto/auto_2255b8
+0x225750 0x225758 auto/auto_225750
+0x225ab0 0x225ab8 auto/auto_225ab0
+0x225c70 0x225c78 auto/auto_225c70
+0x225e08 0x225e10 auto/auto_225e08
+0x225ff0 0x225ff8 auto/auto_225ff0
+0x226480 0x226488 auto/auto_226480
+0x226830 0x226838 auto/auto_226830
+0x226a20 0x226a28 auto/auto_226a20
+0x226d20 0x226d28 auto/auto_226d20
+0x227310 0x227318 auto/auto_227310
+0x227a70 0x227a90 auto/auto_227a70
+0x227d98 0x227da0 auto/auto_227d98
+0x00227E30 0x00227E60 battle/battle_load_227E30  # from BT3-Decompiled
+0x2282b0 0x2282b8 auto/auto_2282b0
+0x2289c8 0x2289d0 auto/auto_2289c8
+0x229460 0x229468 auto/auto_229460
+0x2298b0 0x2298b8 auto/auto_2298b0
+0x22a128 0x22a130 auto/auto_22a128
+0x22a380 0x22a388 auto/auto_22a380
+0x22a5c8 0x22a5d0 auto/auto_22a5c8
+0x22b210 0x22b218 auto/auto_22b210
+0x22bef8 0x22bf00 auto/auto_22bef8
+0x22c0e8 0x22c0f0 auto/auto_22c0e8
+0x22c528 0x22c530 auto/auto_22c528
+0x22c9b0 0x22c9b8 auto/auto_22c9b0
+0x22ce70 0x22ce78 auto/auto_22ce70
+0x22d8d8 0x22d8e0 auto/auto_22d8d8
+0x22dce0 0x22dce8 auto/auto_22dce0
+0x22df10 0x22df18 auto/auto_22df10
+0x22e6c0 0x22e6c8 auto/auto_22e6c0
+0x0022E6C8 0x0022E744 auto/m2c_22E6C8  # m2c
+0x22ebf0 0x22ebf8 auto/auto_22ebf0
+0x22f0c8 0x22f0d0 auto/auto_22f0c8
+0x22f420 0x22f428 auto/auto_22f420
+0x22f690 0x22f6b0 auto/auto_22f690
+0x22f9f0 0x22fa10 auto/auto_22f9f0
+0x22ff10 0x22ff18 auto/auto_22ff10
+0x2304a8 0x2304c0 auto/auto_2304a8
+0x2306f0 0x2306f8 auto/auto_2306f0
+0x230ba8 0x230bb0 auto/auto_230ba8
+0x230c48 0x230c60 auto/auto_230c48
+0x00231C90 0x00231D48 auto/m2c_231C90  # m2c
+0x00232770 0x002327E8 auto/m2c_232770  # m2c
+0x00232F90 0x00233008 auto/m2c_232F90  # m2c
+0x002339F0 0x00233A90 auto/m2c_2339F0  # m2c
+0x00233F70 0x00233FE8 auto/m2c_233F70  # m2c
+0x2344e8 0x2344f0 auto/auto_2344e8
+0x00234E90 0x00234F50 auto/m2c_234E90  # m2c
+0x00235530 0x00235568 auto/m2c_235530  # m2c
+0x2366e8 0x2366f0 auto/auto_2366e8
+0x00236E70 0x00236EE8 auto/m2c_236E70  # m2c
+0x237080 0x237088 auto/auto_237080
+0x2374d8 0x2374e0 auto/auto_2374d8
+0x237a28 0x237a48 auto/auto_237a28
+0x2381f8 0x238200 auto/auto_2381f8
+0x2386f8 0x238718 auto/auto_2386f8
+0x23a248 0x23a258 auto/auto_23a248
+0x0023B648 0x0023B6D0 auto/m2c_23B648  # m2c
+0x23bc28 0x23bc30 auto/auto_23bc28
+0x0023BC30 0x0023BC5C auto/m2c_23BC30  # m2c
+0x0023BCF8 0x0023BD24 auto/m2c_23BCF8  # m2c
+0x23bd28 0x23bd30 auto/auto_23bd28
+0x23d408 0x23d410 auto/auto_23d408
+0x0023EA20 0x0023EA80 auto/m2c_23EA20  # m2c
+0x0023EA80 0x0023EABC auto/m2c_23EA80  # m2c
+0x0023EAC0 0x0023EAE0 auto/m2c_23EAC0  # m2c
+0x0023ECD0 0x0023ED10 battle/battle_load_23ECD0  # from BT3-Decompiled
+0x0023ED70 0x0023EDC4 auto/m2c_23ED70  # m2c
+0x0023EE28 0x0023EE48 auto/m2c_23EE28  # m2c
+0x0023EF28 0x0023EF48 auto/m2c_23EF28  # m2c
+0x0023EFB8 0x0023EFD8 auto/m2c_23EFB8  # m2c
+0x0023EFD8 0x0023F00C auto/m2c_23EFD8  # m2c
+0x0023F010 0x0023F044 auto/m2c_23F010  # m2c
+0x0023F048 0x0023F07C auto/m2c_23F048  # m2c
+0x0023F080 0x0023F0E0 auto/m2c_23F080  # m2c
+0x0023F0E0 0x0023F140 auto/m2c_23F0E0  # m2c
+0x0023F140 0x0023F174 auto/m2c_23F140  # m2c
+0x0023F178 0x0023F1B4 auto/m2c_23F178  # m2c
+0x0023F1B8 0x0023F1F4 auto/m2c_23F1B8  # m2c
+0x0023F1F8 0x0023F218 auto/m2c_23F1F8  # m2c
+0x0023F218 0x0023F238 auto/m2c_23F218  # m2c
+0x0023F238 0x0023F258 auto/m2c_23F238  # m2c
+0x0023F258 0x0023F278 auto/m2c_23F258  # m2c
+0x0023F278 0x0023F298 auto/m2c_23F278  # m2c
+0x0023F298 0x0023F2B8 auto/m2c_23F298  # m2c
+0x0023F2B8 0x0023F2D8 auto/m2c_23F2B8  # m2c
+0x0023F2D8 0x0023F32C auto/jt_23F2D8  # jtbl
+0x0023F330 0x0023F350 auto/m2c_23F330  # m2c
+0x0023F350 0x0023F370 auto/m2c_23F350  # m2c
+0x0023F370 0x0023F390 auto/m2c_23F370  # m2c
+0x0023F390 0x0023F3B0 auto/m2c_23F390  # m2c
+0x0023F3B0 0x0023F3D0 auto/m2c_23F3B0  # m2c
+0x0023F3D0 0x0023F3F0 auto/m2c_23F3D0  # m2c
+0x0023F3F0 0x0023F410 auto/m2c_23F3F0  # m2c
+0x0023F410 0x0023F420 auto/m2c_23F410  # m2c
+0x0023F420 0x0023F430 auto/m2c_23F420  # m2c
+0x0023F430 0x0023F440 auto/m2c_23F430  # m2c
+0x0023F440 0x0023F450 auto/m2c_23F440  # m2c
+0x0023F450 0x0023F460 auto/m2c_23F450  # m2c
+0x0023F478 0x0023F498 auto/m2c_23F478  # m2c
+0x0023F498 0x0023F4A8 auto/m2c_23F498  # m2c
+0x0023F4A8 0x0023F4BC auto/m2c_23F4A8  # m2c
+0x0023F4C0 0x0023F4D4 auto/m2c_23F4C0  # m2c
+0x0023F500 0x0023F520 auto/m2c_23F500  # m2c
+0x0023F520 0x0023F530 auto/m2c_23F520  # m2c
+0x0023F530 0x0023F544 auto/m2c_23F530  # m2c
+0x0023F548 0x0023F558 auto/m2c_23F548  # m2c
+0x0023F770 0x0023F7F0 battle/btl_tech_a_23F770  # from BT3-Decompiled
+0x0023F7F0 0x0023F82C battle/xd_23F7F0  # agent D
+0x0023F830 0x0023F898 battle/xd_23F830  # agent D
+0x0023F898 0x0023F8F8 battle/xd_23F898  # agent D
+0x0023F8F8 0x0023F908 auto/m2c_23F8F8  # m2c
+0x0023F908 0x0023F918 auto/m2c_23F908  # m2c
+0x0023F918 0x0023F92C auto/m2c_23F918  # m2c
+0x0023F930 0x0023F944 auto/m2c_23F930  # m2c
+0x0023F948 0x0023F95C auto/m2c_23F948  # m2c
+0x0023F960 0x0023F970 auto/m2c_23F960  # m2c
+0x0023F970 0x0023F980 auto/m2c_23F970  # m2c
+0x0023F980 0x0023F990 auto/m2c_23F980  # m2c
+0x0023F990 0x0023F9A0 auto/m2c_23F990  # m2c
+0x0023F9A0 0x0023F9B0 auto/m2c_23F9A0  # m2c
+0x0023F9B0 0x0023F9C0 auto/m2c_23F9B0  # m2c
+0x0023FB58 0x0023FB68 auto/m2c_23FB58  # m2c
+0x0023FB68 0x0023FB8C auto/m2c_23FB68  # m2c
+0x0023FC58 0x0023FC68 auto/m2c_23FC58  # m2c
+0x0023FC68 0x0023FC78 auto/m2c_23FC68  # m2c
+0x0023FC78 0x0023FC88 auto/m2c_23FC78  # m2c
+0x0023FC88 0x0023FC98 auto/m2c_23FC88  # m2c
+0x0023FC98 0x0023FCA8 auto/m2c_23FC98  # m2c
+0x0023FCA8 0x0023FCB8 auto/m2c_23FCA8  # m2c
+0x0023FCB8 0x0023FCC8 auto/m2c_23FCB8  # m2c
+0x0023FCC8 0x0023FCD8 auto/m2c_23FCC8  # m2c
+0x0023FCD8 0x0023FCE8 auto/m2c_23FCD8  # m2c
+0x0023FF38 0x0023FF80 auto/m2c_23FF38  # m2c
+0x0023FF80 0x0023FFD4 auto/m2c_23FF80  # m2c
+0x0023FFD8 0x0023FFF4 auto/m2c_23FFD8  # m2c
+0x0023FFF8 0x0024003C auto/m2c_23FFF8  # m2c
+0x00240040 0x00240090 auto/m2c_240040  # m2c
+0x00240090 0x002400D4 auto/m2c_240090  # m2c
+0x00240148 0x002401C4 auto/m2c_240148  # m2c
+0x002402A8 0x00240324 auto/m2c_2402A8  # m2c
+0x002403E0 0x00240434 auto/m2c_2403E0  # m2c
+0x00240480 0x002404B4 auto/m2c_240480  # m2c
+0x002404B8 0x002404EC auto/m2c_2404B8  # m2c
+0x002404F0 0x00240524 auto/m2c_2404F0  # m2c
+0x00240528 0x00240578 auto/m2c_240528  # m2c
+0x00240578 0x002405C8 auto/m2c_240578  # m2c
+0x002405C8 0x00240618 auto/m2c_2405C8  # m2c
+0x00240618 0x00240644 auto/m2c_240618  # m2c
+0x00240648 0x00240674 auto/m2c_240648  # m2c
+0x00240678 0x002406A4 auto/m2c_240678  # m2c
+0x002406A8 0x002406C8 auto/m2c_2406A8  # m2c
+0x002406C8 0x002406E8 auto/m2c_2406C8  # m2c
+0x002406E8 0x00240708 auto/m2c_2406E8  # m2c
+0x00240708 0x00240728 auto/m2c_240708  # m2c
+0x00240728 0x00240748 auto/m2c_240728  # m2c
+0x00240748 0x00240768 auto/m2c_240748  # m2c
+0x00240810 0x00240848 battle/btl_tech_b_240810  # from BT3-Decompiled
+0x00240848 0x0024087C battle/xd_240848  # agent D
+0x00240880 0x002408B4 battle/xd_240880  # agent D
+0x002408B8 0x002408F0 battle/btl_tech_b_2408B8  # from BT3-Decompiled
+0x002408F0 0x00240924 battle/xd_2408F0  # agent D
+0x00240928 0x0024095C battle/xd_240928  # agent D
+0x00240960 0x00240980 battle/btl_tech_b_240960  # from BT3-Decompiled
+0x00240980 0x002409A0 battle/xd_240980  # agent D
+0x002409A0 0x002409C0 battle/xd_2409A0  # agent D
+0x002409C0 0x002409E0 battle/btl_tech_b_2409C0  # from BT3-Decompiled
+0x002409E0 0x00240A00 battle/xd_2409E0  # agent D
+0x00240A00 0x00240A20 battle/xd_240A00  # agent D
+0x00240A20 0x00240A40 auto/m2c_240A20  # m2c
+0x00240A40 0x00240A60 auto/m2c_240A40  # m2c
+0x00240A60 0x00240A80 auto/m2c_240A60  # m2c
+0x00240A80 0x00240AA0 battle/btl_tech_b_240A80  # from BT3-Decompiled
+0x00240AA0 0x00240AC0 battle/xd_240AA0  # agent D
+0x00240AC0 0x00240AE0 battle/xd_240AC0  # agent D
+0x00240AE0 0x00240B00 battle/btl_tech_b_240AE0  # from BT3-Decompiled
+0x00240B00 0x00240B20 battle/xd_240B00  # agent D
+0x00240B20 0x00240B40 battle/xd_240B20  # agent D
+0x00240B40 0x00240B94 auto/m2c_240B40  # m2c
+0x00240B98 0x00240BEC auto/m2c_240B98  # m2c
+0x00240BF0 0x00240C44 auto/m2c_240BF0  # m2c
+0x00240C48 0x00240C9C auto/m2c_240C48  # m2c
+0x00240CA0 0x00240CF4 auto/m2c_240CA0  # m2c
+0x00240CF8 0x00240D4C auto/m2c_240CF8  # m2c
+0x00240DD0 0x00240E1C auto/m2c_240DD0  # m2c
+0x00240E20 0x00240E4C auto/m2c_240E20  # m2c
+0x00240E80 0x00240EA4 auto/m2c_240E80  # m2c
+0x00240EA8 0x00240ED4 auto/m2c_240EA8  # m2c
+0x00240ED8 0x00240F14 auto/m2c_240ED8  # m2c
+0x00240F18 0x00240F4C auto/m2c_240F18  # m2c
+0x002411E0 0x00241218 auto/m2c_2411E0  # m2c
+0x00241218 0x00241250 auto/m2c_241218  # m2c
+0x002414E0 0x002415A0 auto/m2c_2414E0  # m2c
+0x002415A0 0x00241660 auto/m2c_2415A0  # m2c
+0x00241660 0x002416AC auto/m2c_241660  # m2c
+0x002416B0 0x00241718 auto/m2c_2416B0  # m2c
+0x00241778 0x002417B0 auto/m2c_241778  # m2c
+0x002417B0 0x002417E8 auto/m2c_2417B0  # m2c
+0x002417E8 0x0024181C auto/m2c_2417E8  # m2c
+0x00241868 0x0024189C auto/m2c_241868  # m2c
+0x002418E8 0x0024191C auto/m2c_2418E8  # m2c
+0x00241920 0x00241954 auto/m2c_241920  # m2c
+0x00241958 0x0024198C auto/m2c_241958  # m2c
+0x00241990 0x002419C4 auto/m2c_241990  # m2c
+0x002419C8 0x002419FC auto/m2c_2419C8  # m2c
+0x00241A00 0x00241A54 auto/m2c_241A00  # m2c
+0x00241A58 0x00241AAC auto/m2c_241A58  # m2c
+0x00241AB0 0x00241AE8 auto/m2c_241AB0  # m2c
+0x00241AE8 0x00241B20 auto/m2c_241AE8  # m2c
+0x00241B20 0x00241B58 auto/m2c_241B20  # m2c
+0x00241B58 0x00241B90 auto/m2c_241B58  # m2c
+0x00241B90 0x00241BDC auto/m2c_241B90  # m2c
+0x00241BE0 0x00241C18 auto/m2c_241BE0  # m2c
+0x00241C18 0x00241C50 auto/m2c_241C18  # m2c
+0x002423C8 0x002423F8 battle/xd_2423C8  # agent D
+0x00242878 0x00242948 battle/hud_e_e_242878  # from BT3-Decompiled
+0x00242948 0x002430C8 battle/xd_242948  # agent D
+0x002435E0 0x00243680 battle/stg_d_2435E0  # from BT3-Decompiled
+0x00243778 0x002437E8 battle/stg_d_243778  # from BT3-Decompiled
+0x00243AF8 0x00243B8C auto/m2c_243AF8  # m2c
+0x00243B90 0x00243BD8 sys/color_fade_243B90  # from BT3-Decompiled
+0x00248040 0x00248064 battle/xd_248040  # agent D
+0x00248640 0x00248690 auto/m2c_248640  # m2c
+0x00248690 0x002486E8 auto/m2c_248690  # m2c
+0x002494A0 0x002494BC battle/xd_2494A0  # agent D
+0x00249510 0x00249548 auto/m2c_249510  # m2c
+0x249548 0x24955c auto/auto_249548
+0x0024AF50 0x0024AFFC auto/jt_24AF50  # jtbl
+0x0024B000 0x0024B00C auto/m2c_24B000  # m2c
+0x0024B210 0x0024B244 auto/m2c_24B210  # m2c
+0x0024B3D8 0x0024B464 auto/jt_24B3D8  # jtbl
+0x0024B468 0x0024B4C4 auto/m2c_24B468  # m2c
+0x0024B7F0 0x0024B800 auto/m2c_24B7F0  # m2c
+0x0024BE80 0x0024BEA8 auto/m2c_24BE80  # m2c
+0x0024BEA8 0x0024BED8 auto/m2c_24BEA8  # m2c
+0x0024C120 0x0024C144 auto/m2c_24C120  # m2c
+0x24f768 0x24f788 auto/auto_24f768
+0x00251030 0x00251084 auto/m2c_251030  # m2c
+0x00251088 0x002510E0 auto/m2c_251088  # m2c
+0x252c10 0x252c18 auto/auto_252c10
+0x00253E50 0x00253EC4 auto/m2c_253E50  # m2c
+0x00256590 0x002565BC auto/m2c_256590  # m2c
+0x00259E48 0x00259E74 auto/m2c_259E48  # m2c
+0x00259E78 0x00259E9C auto/m2c_259E78  # m2c
+0x00259EA0 0x00259EDC auto/m2c_259EA0  # m2c
+0x00259EE0 0x00259F04 auto/m2c_259EE0  # m2c
+0x00259F08 0x00259F1C auto/m2c_259F08  # m2c
+0x00259F20 0x00259F3C auto/m2c_259F20  # m2c
+0x00259F40 0x00259F58 auto/m2c_259F40  # m2c
+0x00259F58 0x00259F64 auto/m2c_259F58  # m2c
+0x00259F68 0x00259F7C auto/m2c_259F68  # m2c
+0x00259F80 0x00259F98 auto/m2c_259F80  # m2c
+0x0025A038 0x0025A05C auto/m2c_25A038  # m2c
+0x0025A100 0x0025A188 battle/btl_demo_cam_25A100  # from BT3-Decompiled
+0x0025A400 0x0025A468 auto/m2c_25A400  # m2c
+0x0025A468 0x0025A490 sys/gfxm_a_c25A468  # bt3 copy
+0x0025AA98 0x0025AACC auto/m2c_25AA98  # m2c
+0x0025AAD0 0x0025AAEC auto/m2c_25AAD0  # m2c
+0x0025AAF0 0x0025AB0C auto/m2c_25AAF0  # m2c
+0x0025ABC8 0x0025ABF0 auto/m2c_25ABC8  # m2c
+0x0025ABF0 0x0025AC18 auto/m2c_25ABF0  # m2c
+0x0025AC18 0x0025AC40 auto/m2c_25AC18  # m2c
+0x0025AC40 0x0025AC64 auto/m2c_25AC40  # m2c
+0x0025AC68 0x0025AC8C auto/m2c_25AC68  # m2c
+0x0025AC90 0x0025ACB4 auto/m2c_25AC90  # m2c
+0x0025ACF8 0x0025AD74 auto/m2c_25ACF8  # m2c
+0x0025ADB0 0x0025ADBC auto/m2c_25ADB0  # m2c
+0x0025ADC0 0x0025ADCC auto/m2c_25ADC0  # m2c
+0x0025AF98 0x0025AFE0 battle/btl_demo_cam_25AF98  # from BT3-Decompiled
+0x0025B598 0x0025B5E4 auto/m2c_25B598  # m2c
+0x0025B5E8 0x0025B64C auto/m2c_25B5E8  # m2c
+0x0025B650 0x0025B684 auto/m2c_25B650  # m2c
+0x0025B738 0x0025B774 auto/m2c_25B738  # m2c
+0x0025B860 0x0025B890 auto/perm_25B860  # perm
+0x25b890 0x25b8a4 auto/auto_25b890
+0x25b8f8 0x25b90c auto/auto_25b8f8
+0x0025B910 0x0025B934 auto/m2c_25B910  # m2c
+0x25b938 0x25b94c auto/auto_25b938
+0x0025B950 0x0025B98C auto/m2c_25B950  # m2c
+0x0025B990 0x0025B9B0 battle/xd_25B990  # agent D
+0x25b9b0 0x25b9c4 auto/auto_25b9b0
+0x25b9c8 0x25b9dc auto/auto_25b9c8
+0x25b9e0 0x25b9f4 auto/auto_25b9e0
+0x0025B9F8 0x0025BA1C auto/m2c_25B9F8  # m2c
+0x25ba20 0x25ba28 auto/auto_25ba20
+0x0025BA28 0x0025BA90 auto/m2c_25BA28  # m2c
+0x0025BAD8 0x0025BAF0 battle/btl_obj_25BAD8  # from BT3-Decompiled
+0x0025BEB8 0x0025BEDC auto/m2c_25BEB8  # m2c
+0x0025BEE0 0x0025BF04 battle/xd_25BEE0  # agent D
+0x0025BF08 0x0025BF24 auto/m2c_25BF08  # m2c
+0x0025BF98 0x0025C014 auto/m2c_25BF98  # m2c
+0x0025C058 0x0025C094 auto/m2c_25C058  # m2c
+0x0025C228 0x0025C294 battle/xd_25C228  # agent D
+0x0025C298 0x0025C2D8 battle/btl_cam_25C298  # from BT3-Decompiled
+0x0025C740 0x0025C770 auto/m2c_25C740  # m2c
+0x0025C770 0x0025C798 sys/gfxm_a_c25C770  # bt3 copy
+0x0025CB90 0x0025CB9C auto/m2c_25CB90  # m2c
+0x0025CBA0 0x0025CBB4 auto/m2c_25CBA0  # m2c
+0x0025CBB8 0x0025CBC4 auto/m2c_25CBB8  # m2c
+0x0025CBC8 0x0025CBF0 auto/m2c_25CBC8  # m2c
+0x0025CBF0 0x0025CC0C battle/xd_25CBF0  # agent D
+0x0025CC28 0x0025CC34 auto/m2c_25CC28  # m2c
+0x0025CC38 0x0025CC54 auto/m2c_25CC38  # m2c
+0x0025CC58 0x0025CC64 auto/m2c_25CC58  # m2c
+0x0025CC68 0x0025CC7C auto/m2c_25CC68  # m2c
+0x0025CCC8 0x0025CD10 auto/m2c_25CCC8  # m2c
+0x0025CD70 0x0025CDA0 auto/m2c_25CD70  # m2c
+0x0025CFE0 0x0025D014 auto/m2c_25CFE0  # m2c
+0x0025DC38 0x0025DCC8 auto/m2c_25DC38  # m2c
+0x25e260 0x25e268 auto/auto_25e260
+0x0025E268 0x0025E2CC auto/m2c_25E268  # m2c
+0x0025F210 0x0025F2A0 battle/bobj_a_25F210  # from BT3-Decompiled
+0x0025FC68 0x0025FD60 battle/bobj_a_25FC68  # from BT3-Decompiled
+0x25ffb0 0x25ffb8 auto/auto_25ffb0
+0x00260138 0x00260248 auto/m2c_260138  # m2c
+0x260248 0x26025c auto/auto_260248
+0x260490 0x2604a4 auto/auto_260490
+0x260620 0x260638 auto/auto_260620
+0x002608E8 0x00260910 auto/m2c_2608E8  # m2c
+0x260910 0x260928 auto/auto_260910
+0x00260B58 0x00260B9C auto/m2c_260B58  # m2c
+0x00261060 0x0026107C auto/m2c_261060  # m2c
+0x002610D0 0x00261104 auto/m2c_2610D0  # m2c
+0x002612B8 0x00261310 auto/m2c_2612B8  # m2c
+0x00261310 0x00261378 auto/m2c_261310  # m2c
+0x00261378 0x002613F4 auto/m2c_261378  # m2c
+0x002613F8 0x00261464 auto/perm_2613F8  # perm
+0x00261558 0x002615B0 auto/m2c_261558  # m2c
+0x002615B0 0x002615EC auto/perm_2615B0  # perm
+0x00261970 0x002619C8 auto/m2c_261970  # m2c
+0x002619C8 0x00261A04 auto/m2c_2619C8  # m2c
+0x00261A08 0x00261A48 auto/perm_261A08  # perm
+0x00261A98 0x00261AE8 auto/m2c_261A98  # m2c
+0x00261B18 0x00261B3C auto/m2c_261B18  # m2c
+0x00261B40 0x00261BF0 auto/perm_261B40  # perm
+0x00261D10 0x00261D30 battle/eft_t_c_c261D10  # bt3 copy
+0x00262118 0x002621B8 auto/perm_262118  # perm
+0x262428 0x26243c auto/auto_262428
+0x00262440 0x00262460 auto/m2c_262440  # m2c
+0x00262460 0x002624FC auto/perm_262460  # perm
+0x002627D0 0x002628A8 sys/gfxm_d_c_2627D0  # from BT3-Decompiled
+0x00263E60 0x00263ED0 auto/m2c_263E60  # m2c
+0x002644F0 0x0026453C auto/m2c_2644F0  # m2c
+0x002667E8 0x002667F4 auto/m2c_2667E8  # m2c
+0x002668A8 0x002668CC auto/m2c_2668A8  # m2c
+0x002668D0 0x00266900 auto/m2c_2668D0  # m2c
+0x00266908 0x00266934 auto/m2c_266908  # m2c
+0x00266938 0x00266950 auto/m2c_266938  # m2c
+0x00266AA0 0x00266ACC auto/perm_266AA0  # perm
+0x002673C0 0x002673F0 auto/m2c_2673C0  # m2c
+0x267508 0x267514 auto/auto_267508
+0x00267818 0x00267C58 sys/gfxm_d_c_267818  # from BT3-Decompiled
+0x00267DB8 0x00268368 sys/gfxm_d_c_267DB8  # from BT3-Decompiled
+0x00268368 0x00268438 sys/gfxm_e_268368  # from BT3-Decompiled
+0x00268438 0x002684D0 sys/gfxm_d_c_268438  # from BT3-Decompiled
+0x002684D0 0x00268710 sys/gfxm_e_b_2684D0  # from BT3-Decompiled
+0x00268900 0x00268B28 sys/gfxm_e_268900  # from BT3-Decompiled
+0x00269778 0x00269798 sys/mem_read_c269778  # bt3 copy
+0x00269798 0x00269848 auto/m2c_269798  # m2c
+0x00269948 0x002699BC auto/m2c_269948  # m2c
+0x0026A1C0 0x0026A220 battle/bobj_a_26A1C0  # from BT3-Decompiled
+0x0026A220 0x0026A23C auto/m2c_26A220  # m2c
+0x0026A240 0x0026A26C auto/m2c_26A240  # m2c
+0x0026A270 0x0026A2B0 auto/m2c_26A270  # m2c
+0x26a360 0x26a378 auto/auto_26a360
+0x0026A378 0x0026A3AC auto/m2c_26A378  # m2c
+0x0026A3B0 0x0026A3E0 battle/btl_char_move_26A3B0  # from BT3-Decompiled
+0x0026A440 0x0026A478 battle/btl_char_get_c26A440  # bt3 copy
+0x0026B030 0x0026B068 battle/btl_char_get_c26B030  # bt3 copy
+0x26c010 0x26c018 auto/auto_26c010
+0x0026C578 0x0026C5EC auto/m2c_26C578  # m2c
+0x0026C680 0x0026C6F4 auto/m2c_26C680  # m2c
+0x0026C6F8 0x0026C770 auto/m2c_26C6F8  # m2c
+0x0026C9F0 0x0026C9FC auto/m2c_26C9F0  # m2c
+0x0026DEB8 0x0026DEF0 auto/m2c_26DEB8  # m2c
+0x0026E1F0 0x0026E234 auto/m2c_26E1F0  # m2c
+0x0026E238 0x0026E284 auto/perm_26E238  # perm
+0x0026E908 0x0026E9E4 auto/m2c_26E908  # m2c
+0x0026E9E8 0x0026EA54 auto/m2c_26E9E8  # m2c
+0x0026EA58 0x0026EA88 auto/m2c_26EA58  # m2c
+0x0026EA88 0x0026EADC auto/m2c_26EA88  # m2c
+0x0026EAE0 0x0026EB08 auto/m2c_26EAE0  # m2c
+0x0026EB08 0x0026EB1C auto/m2c_26EB08  # m2c
+0x26eb20 0x26eb2c auto/auto_26eb20
+0x0026EB30 0x0026EB60 auto/m2c_26EB30  # m2c
+0x0026EB60 0x0026EB70 auto/m2c_26EB60  # m2c
+0x26eb70 0x26ebc0 auto/auto_26eb70
+0x0026EBC0 0x0026EC14 auto/m2c_26EBC0  # m2c
+0x0026EC18 0x0026EC44 auto/m2c_26EC18  # m2c
+0x0026EC48 0x0026EC74 auto/m2c_26EC48  # m2c
+0x0026EEC8 0x0026EEF4 auto/m2c_26EEC8  # m2c
+0x0026EFC8 0x0026F0E4 auto/perm_26EFC8  # perm
+0x0026F0E8 0x0026F114 auto/m2c_26F0E8  # m2c
+0x0026F118 0x0026F144 auto/m2c_26F118  # m2c
+0x0026F6C0 0x0026F734 auto/m2c_26F6C0  # m2c
+0x0026F738 0x0026F770 sys/gfxm_c_c26F738  # bt3 copy
+0x0026F770 0x0026F79C auto/m2c_26F770  # m2c
+0x0026FBF8 0x0026FC38 sys/gfxm_c_26FBF8  # from BT3-Decompiled
+0x0026FFA0 0x0026FFDC auto/m2c_26FFA0  # m2c
+0x00271178 0x002711A0 sys/gfx_271178  # from BT3-Decompiled
+0x002711A0 0x002711E8 auto/m2c_2711A0  # m2c
+0x00271288 0x002712B0 sys/gfx_c271288  # bt3 copy
+0x00271370 0x002713F8 sys/dma_c271370  # bt3 copy
+0x002713F8 0x00271610 sys/dma_2713F8  # from BT3-Decompiled
+0x002716B8 0x002719E0 sys/dma_2716B8  # from BT3-Decompiled
+0x00271F30 0x00271FA8 battle/stg_a_271F30  # from BT3-Decompiled
+0x271fa8 0x271fb0 auto/auto_271fa8
+0x00271FD8 0x0027200C auto/m2c_271FD8  # m2c
+0x002720B8 0x002720D8 auto/m2c_2720B8  # m2c
+0x00272180 0x00272230 auto/m2c_272180  # m2c
+0x00272C60 0x00272C90 auto/m2c_272C60  # m2c
+0x00272C90 0x00272CAC auto/m2c_272C90  # m2c
+0x272cb0 0x272cc4 auto/auto_272cb0
+0x00272F60 0x00272FA8 auto/m2c_272F60  # m2c
+0x00272FA8 0x00272FFC auto/m2c_272FA8  # m2c
+0x00273000 0x00273048 auto/m2c_273000  # m2c
+0x00273048 0x00273090 auto/m2c_273048  # m2c
+0x00273248 0x00273268 auto/m2c_273248  # m2c
+0x00273268 0x002732AC auto/m2c_273268  # m2c
+0x00273868 0x002738B4 auto/m2c_273868  # m2c
+0x002738B8 0x002738EC auto/m2c_2738B8  # m2c
+0x273a48 0x273a5c auto/auto_273a48
+0x00273A60 0x00273B38 sys/gfxm_d_c_c273A60  # bt3 copy
+0x00273B38 0x00273B80 battle/stg_a_273B38  # from BT3-Decompiled
+0x00273C08 0x00273C38 auto/m2c_273C08  # m2c
+0x00273FC0 0x00274050 battle/stg_a_b_273FC0  # from BT3-Decompiled
+0x00274E48 0x00274E68 battle/eft_ad_b_c274E48  # bt3 copy
+0x00274E68 0x00274ED0 battle/stgm_a_274E68  # from BT3-Decompiled
+0x00275D28 0x00275FB8 battle/stgm_a_275D28  # from BT3-Decompiled
+0x002764E8 0x002765A8 battle/stg_a_b_2764E8  # from BT3-Decompiled
+0x002767A8 0x00276828 auto/perm_2767A8  # perm
+0x00276828 0x002768A8 auto/perm_276828  # perm
+0x00276F80 0x00276FD0 battle/stg_b_276F80  # from BT3-Decompiled
+0x00277078 0x00277090 auto/m2c_277078  # m2c
+0x00277400 0x00277418 auto/m2c_277400  # m2c
+0x00277418 0x00277430 auto/m2c_277418  # m2c
+0x00277430 0x00277448 auto/m2c_277430  # m2c
+0x00277448 0x00277460 auto/m2c_277448  # m2c
+0x00277DE0 0x00277E08 battle/stg_b_277DE0  # from BT3-Decompiled
+0x00277E08 0x00277E24 auto/m2c_277E08  # m2c
+0x00277E28 0x00277E4C auto/m2c_277E28  # m2c
+0x277e50 0x277e64 auto/auto_277e50
+0x277e68 0x277e70 auto/auto_277e68
+0x00278C80 0x00278D3C auto/m2c_278C80  # m2c
+0x00278D40 0x00278D74 auto/perm_278D40  # perm
+0x00278D78 0x00278D94 auto/m2c_278D78  # m2c
+0x00278D98 0x00278DA8 auto/m2c_278D98  # m2c
+0x00278E08 0x00278F38 sys/gfx_ot_278E08  # from BT3-Decompiled
+0x279180 0x279190 auto/auto_279180
+0x002791C8 0x00279220 auto/m2c_2791C8  # m2c
+0x002793C8 0x002793F0 sys/gfx_ot_c2793C8  # bt3 copy
+0x279668 0x279670 auto/auto_279668
+0x00279670 0x002796E8 sys/gfxm_a_279670  # from BT3-Decompiled
+0x002799F8 0x00279C60 sys/gfxm_a_2799F8  # from BT3-Decompiled
+0x0027A368 0x0027A448 sys/gfxm_a_27A368  # from BT3-Decompiled
+0x0027AAB0 0x0027AAF4 auto/m2c_27AAB0  # m2c
+0x0027B988 0x0027B9B8 battle/stg_b_c27B988  # bt3 copy
+0x0027B9B8 0x0027BA08 auto/m2c_27B9B8  # m2c
+0x27c2d8 0x27c2e0 auto/auto_27c2d8
+0x0027D9C0 0x0027DC10 sys/gfxm_a_27D9C0  # from BT3-Decompiled
+0x0027DCB8 0x0027DE68 sys/gfxm_a_27DCB8  # from BT3-Decompiled
+0x0027E110 0x0027E6B0 sys/gfxm_a_27E110  # from BT3-Decompiled
+0x0027E6B0 0x0027E6E0 auto/m2c_27E6B0  # m2c
+0x27e9e8 0x27e9f0 auto/auto_27e9e8
+0x0027EBA8 0x0027EBCC auto/m2c_27EBA8  # m2c
+0x27f6d0 0x27f6e4 auto/auto_27f6d0
+0x0027F968 0x0027F9E8 auto/m2c_27F968  # m2c
+0x0027F9E8 0x0027FA24 auto/m2c_27F9E8  # m2c
+0x0027FCA8 0x0027FD28 auto/m2c_27FCA8  # m2c
+0x002805A8 0x002805EC auto/m2c_2805A8  # m2c
+0x002805F0 0x00280634 auto/m2c_2805F0  # m2c
+0x280938 0x280940 auto/auto_280938
+0x00280BA0 0x00280BB0 auto/m2c_280BA0  # m2c
+0x00280BB0 0x00280BBC auto/m2c_280BB0  # m2c
+0x00280BC0 0x00280CD4 auto/m2c_280BC0  # m2c
+0x00280CD8 0x00280DE4 auto/m2c_280CD8  # m2c
+0x00280DE8 0x00280E30 auto/m2c_280DE8  # m2c
+0x002810B0 0x002810E4 auto/m2c_2810B0  # m2c
+0x00281360 0x002813BC auto/m2c_281360  # m2c
+0x002813F0 0x002814D0 sys/gfxm_a_2813F0  # from BT3-Decompiled
+0x00281758 0x00281A38 sys/gfxm_b_281758  # from BT3-Decompiled
+0x00281CA0 0x00281CF8 battle/stg_c_281CA0  # from BT3-Decompiled
+0x00281F00 0x00281F4C auto/perm_281F00  # perm
+0x00281F88 0x00282054 auto/m2c_281F88  # m2c
+0x282260 0x282268 auto/auto_282260
+0x00282268 0x002822C8 auto/perm_282268  # perm
+0x00282468 0x00282498 battle/stg_c_282468  # from BT3-Decompiled
+0x002825E0 0x00282610 auto/m2c_2825E0  # m2c
+0x00282610 0x00282640 sys/gfxm_b_c282610  # bt3 copy
+0x2838e0 0x2838e8 auto/auto_2838e0
+0x002838E8 0x0028390C auto/m2c_2838E8  # m2c
+0x00284818 0x00284888 auto/m2c_284818  # m2c
+0x00284B18 0x00284B40 auto/m2c_284B18  # m2c
+0x00284FC8 0x00284FF8 auto/m2c_284FC8  # m2c
+0x00284FF8 0x00285028 sys/gfxm_b_c284FF8  # bt3 copy
+0x00285A18 0x00285A74 auto/perm_285A18  # perm
+0x00285E78 0x00286568 sys/gfxm_b_b_285E78  # from BT3-Decompiled
+0x00286568 0x002865EC auto/m2c_286568  # m2c
+0x00286FD0 0x00287110 sys/gfxm_b_b_286FD0  # from BT3-Decompiled
+0x00287110 0x002874C0 sys/misc_a_287110  # from BT3-Decompiled
+0x287ee8 0x287ef4 auto/auto_287ee8
+0x287ef8 0x287f00 auto/auto_287ef8
+0x00288350 0x00288384 auto/m2c_288350  # m2c
+0x0028B010 0x0028B054 auto/m2c_28B010  # m2c
+0x0028B1A8 0x0028B1C0 sys/dma_28B1A8  # from BT3-Decompiled
+0x0028B290 0x0028BA70 sys/dma_28B290  # from BT3-Decompiled
+0x0028BCE8 0x0028BCF8 auto/m2c_28BCE8  # m2c
+0x0028C598 0x0028C610 sys/pad_28C598  # from BT3-Decompiled
+0x0028C718 0x0028C734 auto/m2c_28C718  # m2c
+0x0028C778 0x0028C790 auto/m2c_28C778  # m2c
+0x0028C948 0x0028C9C8 sys/rand_28C948  # from BT3-Decompiled
+0x0028CD08 0x0028CD28 auto/m2c_28CD08  # m2c
+0x0028CEE8 0x0028CF10 battle/stg_d_28CEE8  # from BT3-Decompiled
+0x0028CF10 0x0028CF74 auto/m2c_28CF10  # m2c
+0x0028CF78 0x0028D00C auto/m2c_28CF78  # m2c
+0x0028D010 0x0028D09C auto/m2c_28D010  # m2c
+0x0028D190 0x0028D1E8 auto/m2c_28D190  # m2c
+0x0028D1E8 0x0028D25C auto/m2c_28D1E8  # m2c
+0x0028D260 0x0028D270 auto/m2c_28D260  # m2c
+0x0028D270 0x0028D298 auto/m2c_28D270  # m2c
+0x0028D320 0x0028D33C auto/m2c_28D320  # m2c
+0x0028D348 0x0028D410 battle/col_a_28D348  # from BT3-Decompiled
+0x0028D410 0x0028D520 battle/col_a_c28D410  # bt3 copy
+0x0028D520 0x0028D5A0 battle/col_a_28D520  # from BT3-Decompiled
+0x0028D968 0x0028D990 auto/m2c_28D968  # m2c
+0x00292750 0x002927E4 battle/xe_292750  # agent E
+0x00292E88 0x002939B0 battle/xe_292E88  # agent E
+0x002939B0 0x00293BE0 battle/col_b_2939B0  # from BT3-Decompiled
+0x00293BE0 0x002940F0 battle/xe_293BE0  # agent E
+0x00294788 0x0029488C auto/m2c_294788  # m2c
+0x00294A98 0x00294ADC auto/m2c_294A98  # m2c
+0x00294BE0 0x00294CFC auto/m2c_294BE0  # m2c
+0x00294D00 0x00294D5C auto/m2c_294D00  # m2c
+0x00295988 0x00295F80 battle/xe_295988  # agent E
+0x00295F80 0x00296518 sys/rigid_295F80  # from BT3-Decompiled
+0x296518 0x296520 auto/auto_296518
+0x00296768 0x002967F8 auto/m2c_296768  # m2c
+0x296c08 0x296c10 auto/auto_296c08
+0x296de8 0x296dfc auto/auto_296de8
+0x002971E8 0x00297228 auto/m2c_2971E8  # m2c
+0x00297348 0x00297420 sys/math3d_297348  # from BT3-Decompiled
+0x00297560 0x0029757C sys/xe_297560  # agent E
+0x00297640 0x00297660 auto/m2c_297640  # m2c
+0x00297660 0x00297680 auto/m2c_297660  # m2c
+0x00297680 0x002976A0 auto/m2c_297680  # m2c
+0x00297828 0x00297854 auto/m2c_297828  # m2c
+0x00297858 0x0029787C auto/m2c_297858  # m2c
+0x00297880 0x002978A4 auto/m2c_297880  # m2c
+0x002978A8 0x002978DC auto/m2c_2978A8  # m2c
+0x002979F0 0x00297A30 auto/m2c_2979F0  # m2c
+0x297a60 0x297a78 auto/auto_297a60
+0x00297D50 0x00297D74 sys/xe_297D50  # agent E
+0x00297EC8 0x00297F54 auto/m2c_297EC8  # m2c
+0x002980A8 0x002980BC auto/m2c_2980A8  # m2c
+0x00298130 0x00298158 sys/vu0_a_c_c_298130  # from BT3-Decompiled
+0x298158 0x298170 auto/auto_298158
+0x00298170 0x002981B8 sys/snd_298170  # from BT3-Decompiled
+0x00298438 0x0029845C auto/m2c_298438  # m2c
+0x00298460 0x002984E0 auto/perm_298460  # perm
+0x002984E0 0x00298528 auto/m2c_2984E0  # m2c
+0x002998B0 0x002998D4 auto/perm_2998B0  # perm
+0x00299A58 0x00299A94 auto/m2c_299A58  # m2c
+0x00299D70 0x00299DA0 auto/m2c_299D70  # m2c
+0x00299DA0 0x00299DE8 battle/col_b_c299DA0  # bt3 copy
+0x00299DE8 0x0029A0A8 sys/math3d_299DE8  # from BT3-Decompiled
+0x0029B550 0x0029B710 sys/math3d_29B550  # from BT3-Decompiled
+0x0029B7C0 0x0029BAB0 sys/math3d_29B7C0  # from BT3-Decompiled
+0x0029BAB0 0x0029BABC auto/m2c_29BAB0  # m2c
+0x0029BAC0 0x0029BB88 sys/ramp_29BAC0  # from BT3-Decompiled
+0x29c638 0x29c640 auto/auto_29c638
+0x0029C7C0 0x0029C7CC auto/m2c_29C7C0  # m2c
+0x0029C7D0 0x0029C7DC auto/m2c_29C7D0  # m2c
+0x0029C7E0 0x0029C7EC auto/m2c_29C7E0  # m2c
+0x0029C7F0 0x0029C7FC auto/m2c_29C7F0  # m2c
+0x0029C800 0x0029C80C auto/m2c_29C800  # m2c
+0x0029C810 0x0029C81C auto/m2c_29C810  # m2c
+0x0029C830 0x0029C844 auto/m2c_29C830  # m2c
+0x0029DC78 0x0029DD78 auto/m2c_29DC78  # m2c
+0x0029DE18 0x0029DEB4 auto/m2c_29DE18  # m2c
+0x0029DEB8 0x0029DFCC auto/perm_29DEB8  # perm
+0x0029E318 0x0029E5D8 sys/vu1_packet_29E318  # from BT3-Decompiled
+0x0029E5D8 0x0029E650 sys/vu1_packet_c29E5D8  # bt3 copy
+0x0029E650 0x0029E6D0 sys/vu1_packet_29E650  # from BT3-Decompiled
+0x0029E9F0 0x0029EA78 sys/vu1_packet_29E9F0  # from BT3-Decompiled
+0x0029F1C0 0x0029F1E0 sys/gsc_29F1C0  # from BT3-Decompiled
+0x0029F1E0 0x0029F240 auto/m2c_29F1E0  # m2c
+0x29f240 0x29f248 auto/auto_29f240
+0x0029F2B0 0x0029F348 auto/m2c_29F2B0  # m2c
+0x0029F5B0 0x0029F5E4 auto/m2c_29F5B0  # m2c
+0x0029F5E8 0x0029F650 sys/gsc_29F5E8  # from BT3-Decompiled
+0x0029F650 0x0029F670 sys/vu0_a_c_c_c29F650  # bt3 copy
+0x0029F670 0x0029F68C auto/m2c_29F670  # m2c
+0x0029F6F8 0x0029F718 auto/m2c_29F6F8  # m2c
+0x0029F718 0x0029F738 sys/fade_c29F718  # bt3 copy
+0x0029F738 0x0029F780 sys/gsc_29F738  # from BT3-Decompiled
+0x0029F780 0x0029F824 auto/m2c_29F780  # m2c
+0x0029F828 0x0029F860 battle/btl_char_mgr_c29F828  # bt3 copy
+0x0029F860 0x0029F898 sys/gsc_29F860  # from BT3-Decompiled
+0x0029F8A0 0x0029F920 sys/gsc_29F8A0  # from BT3-Decompiled
+0x0029F920 0x0029F940 battle/eft_ad_b_c29F920  # bt3 copy
+0x0029F940 0x0029F968 auto/m2c_29F940  # m2c
+0x0029FC58 0x0029FC68 sys/spu_heap_c29FC58  # bt3 copy
+0x0029FC68 0x0029FE80 sys/list_29FC68  # from BT3-Decompiled
+0x0029FE80 0x0029FE94 auto/m2c_29FE80  # m2c
+0x0029FE98 0x0029FEAC auto/m2c_29FE98  # m2c
+0x0029FEB0 0x002A0010 sys/gsc_29FEB0  # from BT3-Decompiled
+0x002A0038 0x002A02B8 sys/gsc_2A0038  # from BT3-Decompiled
+0x002A02C0 0x002A02CC auto/m2c_2A02C0  # m2c
+0x002A02D0 0x002A02DC auto/m2c_2A02D0  # m2c
+0x002A02E0 0x002A03F0 sys/gsc_2A02E0  # from BT3-Decompiled
+0x002A03F0 0x002A0410 sys/fade_c2A03F0  # bt3 copy
+0x002A0410 0x002A04E8 sys/gsc_2A0410  # from BT3-Decompiled
+0x2a04e8 0x2a0504 auto/auto_2a04e8
+0x002A0508 0x002A0548 sys/gsc_c2A0508  # bt3 copy
+0x002A0548 0x002A0584 auto/m2c_2A0548  # m2c
+0x002A0588 0x002A0610 sys/gsc_2A0588  # from BT3-Decompiled
+0x2a0610 0x2a0618 auto/auto_2a0610
+0x002A0618 0x002A0630 battle/col_c_2A0618  # from BT3-Decompiled
+0x002A0780 0x002A07FC auto/m2c_2A0780  # m2c
+0x002A0800 0x002A0818 battle/battle_load_2A0800  # from BT3-Decompiled
+0x2a0d58 0x2a0d70 auto/auto_2a0d58
+0x002A0D70 0x002A0D88 battle/btl_facade_2A0D70  # from BT3-Decompiled
+0x002A0D88 0x002A0E08 battle/col_c_2A0D88  # from BT3-Decompiled
+0x002A0E78 0x002A0EA8 battle/col_c_2A0E78  # from BT3-Decompiled
+0x2a0ea8 0x2a0ed8 auto/auto_2a0ea8
+0x002A0ED8 0x002A1218 battle/col_c_2A0ED8  # from BT3-Decompiled
+0x002A1238 0x002A1258 battle/col_c_2A1238  # from BT3-Decompiled
+0x2a1490 0x2a149c auto/auto_2a1490
+0x2a14a0 0x2a14ac auto/auto_2a14a0
+0x002A14B0 0x002A14BC auto/m2c_2A14B0  # m2c
+0x002A14C0 0x002A14CC auto/m2c_2A14C0  # m2c
+0x002A14D0 0x002A1508 battle/col_c_2A14D0  # from BT3-Decompiled
+0x2a1590 0x2a159c auto/auto_2a1590
+0x2a15a0 0x2a15ac auto/auto_2a15a0
+0x2a15b0 0x2a15bc auto/auto_2a15b0
+0x2a15c0 0x2a15cc auto/auto_2a15c0
+0x2a15d0 0x2a15dc auto/auto_2a15d0
+0x2a15e0 0x2a15ec auto/auto_2a15e0
+0x2a15f0 0x2a15fc auto/auto_2a15f0
+0x2a1600 0x2a160c auto/auto_2a1600
+0x002A1648 0x002A1678 battle/col_c_2A1648  # from BT3-Decompiled
+0x002A1678 0x002A16A8 battle/col_c_c2A1678  # bt3 copy
+0x2a16a8 0x2a16b4 auto/auto_2a16a8
+0x2a16b8 0x2a16c4 auto/auto_2a16b8
+0x2a16e8 0x2a16f4 auto/auto_2a16e8
+0x002A1A88 0x002A1DF8 battle/col_c_2A1A88  # from BT3-Decompiled
+0x002A1F08 0x002A1F68 battle/col_c_2A1F08  # from BT3-Decompiled
+0x002A1F68 0x002A1F90 battle/hud_0_c_c2A1F68  # bt3 copy
+0x002A1F90 0x002A2018 battle/col_c_2A1F90  # from BT3-Decompiled
+0x2a2ac8 0x2a2ad0 auto/auto_2a2ac8
+0x2a2ad8 0x2a2af0 auto/auto_2a2ad8
+0x002A2E10 0x002A2E3C auto/m2c_2A2E10  # m2c
+0x2a3310 0x2a3324 auto/auto_2a3310
+0x2a3a80 0x2a3a94 auto/auto_2a3a80
+0x002A3AD0 0x002A3AF8 battle/btl_script_2A3AD0  # from BT3-Decompiled
+0x002A3BB8 0x002A3C08 auto/perm_2A3BB8  # perm
+0x002A3C08 0x002A3C2C auto/perm_2A3C08  # perm
+0x002A3C68 0x002A3C84 auto/m2c_2A3C68  # m2c
+0x002A3CC0 0x002A3CDC auto/m2c_2A3CC0  # m2c
+0x002A3D18 0x002A3D34 auto/m2c_2A3D18  # m2c
+0x002A3D70 0x002A3D8C auto/m2c_2A3D70  # m2c
+0x2a3e28 0x2a3e34 auto/auto_2a3e28
+0x2a3e38 0x2a3e44 auto/auto_2a3e38
+0x2a40f8 0x2a4104 auto/auto_2a40f8
+0x2a4108 0x2a4114 auto/auto_2a4108
+0x002A4118 0x002A4130 auto/perm_2A4118  # perm
+0x002A4130 0x002A4148 battle/btl_obj_c2A4130  # bt3 copy
+0x002A47F8 0x002A4804 auto/m2c_2A47F8  # m2c
+0x002A4ED8 0x002A4EF4 auto/m2c_2A4ED8  # m2c
+0x002A4EF8 0x002A4F24 auto/m2c_2A4EF8  # m2c
+0x002A4F28 0x002A4F4C auto/m2c_2A4F28  # m2c
+0x002A5978 0x002A599C auto/m2c_2A5978  # m2c
+0x002A5E88 0x002A5EB4 auto/m2c_2A5E88  # m2c
+0x002A5EB8 0x002A5EE4 auto/m2c_2A5EB8  # m2c
+0x002A5EE8 0x002A5F0C auto/m2c_2A5EE8  # m2c
+0x002A5F10 0x002A5F34 auto/m2c_2A5F10  # m2c
+0x002A5F38 0x002A5FA0 auto/m2c_2A5F38  # m2c
+0x002A5FA0 0x002A5FC4 auto/m2c_2A5FA0  # m2c
+0x002A6360 0x002A63AC auto/m2c_2A6360  # m2c
+0x002A64D8 0x002A6518 auto/m2c_2A64D8  # m2c
+0x002A6518 0x002A6558 auto/m2c_2A6518  # m2c
+0x002A6558 0x002A6598 auto/m2c_2A6558  # m2c
+0x002A6598 0x002A65CC auto/m2c_2A6598  # m2c
+0x002A66B8 0x002A6704 auto/m2c_2A66B8  # m2c
+0x002A6708 0x002A6768 auto/m2c_2A6708  # m2c
+0x002A6858 0x002A6888 auto/m2c_2A6858  # m2c
+0x002A6918 0x002A6944 auto/m2c_2A6918  # m2c
+0x2a6948 0x2a6950 auto/auto_2a6948
+0x002A6950 0x002A6990 auto/m2c_2A6950  # m2c
+0x2a6990 0x2a6998 auto/auto_2a6990
+0x002A6AA0 0x002A6B4C auto/m2c_2A6AA0  # m2c
+0x002A6CB0 0x002A6CD8 auto/m2c_2A6CB0  # m2c
+0x002A6E40 0x002A6E68 auto/m2c_2A6E40  # m2c
+0x002A6ED0 0x002A6F04 auto/m2c_2A6ED0  # m2c
+0x002A70F8 0x002A7124 auto/m2c_2A70F8  # m2c
+0x002A7128 0x002A72C4 auto/m2c_2A7128  # m2c
+0x002A72C8 0x002A7304 auto/perm_2A72C8  # perm
+0x2a7830 0x2a7838 auto/auto_2a7830
+0x002A78F0 0x002A793C auto/m2c_2A78F0  # m2c
+0x002A7940 0x002A7974 auto/m2c_2A7940  # m2c
+0x002A7978 0x002A79C0 auto/m2c_2A7978  # m2c
+0x002A79C0 0x002A79E4 auto/m2c_2A79C0  # m2c
+0x002A79E8 0x002A7A20 auto/m2c_2A79E8  # m2c
+0x002A7AD8 0x002A7B08 auto/m2c_2A7AD8  # m2c
+0x2a7ba0 0x2a7bb0 auto/auto_2a7ba0
+0x002A80B0 0x002A80E4 auto/m2c_2A80B0  # m2c
+0x002A80E8 0x002A810C auto/m2c_2A80E8  # m2c
+0x002A8110 0x002A8158 auto/m2c_2A8110  # m2c
+0x002A8158 0x002A818C auto/m2c_2A8158  # m2c
+0x002A83C0 0x002A8408 auto/m2c_2A83C0  # m2c
+0x002A85B0 0x002A85CC auto/m2c_2A85B0  # m2c
+0x002A85D0 0x002A8644 auto/m2c_2A85D0  # m2c
+0x002A8648 0x002A8674 auto/m2c_2A8648  # m2c
+0x002A87B8 0x002A8858 sys/queue_2A87B8  # from BT3-Decompiled
+0x002A88B0 0x002A88E8 auto/m2c_2A88B0  # m2c
+0x002A8960 0x002A8978 auto/m2c_2A8960  # m2c
+0x002A89B0 0x002A89E4 auto/m2c_2A89B0  # m2c
+0x002A89E8 0x002A8A20 auto/m2c_2A89E8  # m2c
+0x002A8A20 0x002A8A38 sys/gfxm_d_c_c2A8A20  # bt3 copy
+0x002A9740 0x002A974C auto/m2c_2A9740  # m2c
+0x002A9938 0x002A9980 auto/m2c_2A9938  # m2c
+0x2a9cd8 0x2a9cec auto/auto_2a9cd8
+0x2a9e28 0x2a9e30 auto/auto_2a9e28
+0x002AA098 0x002AA0D0 auto/perm_2AA098  # perm
+0x2aa0d0 0x2aa0e4 auto/auto_2aa0d0
+0x2aa0e8 0x2aa0fc auto/auto_2aa0e8
+0x002AB130 0x002AB16C auto/m2c_2AB130  # m2c
+0x2ab170 0x2ab184 auto/auto_2ab170
+0x2ab188 0x2ab19c auto/auto_2ab188
+0x2ab860 0x2ab874 auto/auto_2ab860
+0x002ABA48 0x002ABB3C auto/m2c_2ABA48  # m2c
+0x002AC450 0x002AC480 auto/m2c_2AC450  # m2c
+0x002AC520 0x002AC57C auto/m2c_2AC520  # m2c
+0x002AC9A8 0x002AC9C0 auto/m2c_2AC9A8  # m2c
+0x002AC9C0 0x002AC9E0 auto/m2c_2AC9C0  # m2c
+0x002ACE38 0x002ACE44 auto/m2c_2ACE38  # m2c
+0x002ACE48 0x002ACE54 auto/m2c_2ACE48  # m2c
+0x002ACEE0 0x002ACEF8 battle/battle_load_c2ACEE0  # bt3 copy
+0x2acef8 0x2acf0c auto/auto_2acef8
+0x002ACF10 0x002ACF68 auto/m2c_2ACF10  # m2c
+0x002ACF68 0x002ACF90 auto/m2c_2ACF68  # m2c
+0x2ad368 0x2ad37c auto/auto_2ad368
+0x002AD640 0x002AD668 auto/m2c_2AD640  # m2c
+0x002AD668 0x002AD6CC auto/perm_2AD668  # perm
+0x2ad6d0 0x2ad6e4 auto/auto_2ad6d0
+0x002AD9F0 0x002ADA10 battle/eft_t_c_c2AD9F0  # bt3 copy
+0x002ADBD0 0x002ADC7C auto/m2c_2ADBD0  # m2c
+0x002ADC80 0x002ADCB0 battle/stg_b_c2ADC80  # bt3 copy
+0x2adfc8 0x2adfd8 auto/auto_2adfc8
+0x002AE060 0x002AE0A4 auto/m2c_2AE060  # m2c
+0x2ae2a8 0x2ae2b0 auto/auto_2ae2a8
+0x002AE2B0 0x002AE2F4 auto/m2c_2AE2B0  # m2c
+0x2ae578 0x2ae580 auto/auto_2ae578
+0x2ae888 0x2ae890 auto/auto_2ae888
+0x002AE890 0x002AE8F0 auto/m2c_2AE890  # m2c
+0x2ae9e8 0x2ae9f0 auto/auto_2ae9e8
+0x002AE9F0 0x002AEA50 auto/m2c_2AE9F0  # m2c
+0x2aeb48 0x2aeb68 auto/auto_2aeb48
+0x2aec70 0x2aec78 auto/auto_2aec70
+0x002AEC78 0x002AECD0 auto/m2c_2AEC78  # m2c
+0x2aee78 0x2aeea0 auto/auto_2aee78
+0x2aef58 0x2aef78 auto/auto_2aef58
+0x2af068 0x2af088 auto/auto_2af068
+0x2af170 0x2af178 auto/auto_2af170
+0x002AF178 0x002AF1BC auto/m2c_2AF178  # m2c
+0x2af368 0x2af370 auto/auto_2af368
+0x002AF370 0x002AF3D0 auto/m2c_2AF370  # m2c
+0x2af480 0x2af490 auto/auto_2af480
+0x2af560 0x2af568 auto/auto_2af560
+0x002AF578 0x002AF5E4 auto/m2c_2AF578  # m2c
+0x002AF5E8 0x002AF648 auto/m2c_2AF5E8  # m2c
+0x002AF648 0x002AF69C auto/m2c_2AF648  # m2c
+0x002AF6A0 0x002AF704 auto/m2c_2AF6A0  # m2c
+0x2af708 0x2af720 auto/auto_2af708
+0x2afbf8 0x2afc14 auto/auto_2afbf8
+0x002AFC18 0x002AFC28 auto/m2c_2AFC18  # m2c
+0x002B0DA0 0x002B0DB0 auto/m2c_2B0DA0  # m2c
+0x002B0DB0 0x002B0DC0 auto/m2c_2B0DB0  # m2c
+0x002B1CA8 0x002B1CB8 auto/m2c_2B1CA8  # m2c
+0x002B1DD0 0x002B1DF4 auto/m2c_2B1DD0  # m2c
+0x002B2388 0x002B2398 auto/m2c_2B2388  # m2c
+0x002B26C0 0x002B26E4 auto/m2c_2B26C0  # m2c
+0x002B26E8 0x002B2718 auto/m2c_2B26E8  # m2c
+0x2b2718 0x2b2720 auto/auto_2b2718
+0x002B2720 0x002B2738 auto/m2c_2B2720  # m2c
+0x002B2770 0x002B278C auto/m2c_2B2770  # m2c
+0x002B2790 0x002B27AC auto/m2c_2B2790  # m2c
+0x002B29D8 0x002B29F8 auto/m2c_2B29D8  # m2c
+0x002B2B20 0x002B2B7C auto/m2c_2B2B20  # m2c
+0x2b2b80 0x2b2b94 auto/auto_2b2b80
+0x002B2C70 0x002B2CCC auto/m2c_2B2C70  # m2c
+0x2b2fc8 0x2b2fd0 auto/auto_2b2fc8
+0x002B30E0 0x002B313C auto/m2c_2B30E0  # m2c
+0x002B3C30 0x002B3C68 auto/jt_2B3C30  # jtbl
+0x002B3DE0 0x002B3E24 auto/m2c_2B3DE0  # m2c
+0x002B4010 0x002B4034 auto/m2c_2B4010  # m2c
+0x002B4488 0x002B450C auto/m2c_2B4488  # m2c
+0x2b45d8 0x2b45ec auto/auto_2b45d8
+0x002B45F0 0x002B4718 auto/m2c_2B45F0  # m2c
+0x2b4718 0x2b4724 auto/auto_2b4718
+0x002B4BB0 0x002B4BE4 auto/m2c_2B4BB0  # m2c
+0x002B4BE8 0x002B4C1C auto/m2c_2B4BE8  # m2c
+0x2b4c70 0x2b4c78 auto/auto_2b4c70
+0x002B4CB0 0x002B4D0C auto/m2c_2B4CB0  # m2c
+0x002B4D10 0x002B4D20 auto/m2c_2B4D10  # m2c
+0x002B4D20 0x002B4D30 auto/m2c_2B4D20  # m2c
+0x2b4d30 0x2b4d38 auto/auto_2b4d30
+0x002B4DC0 0x002B4E00 battle/eft_ad_b_2B4DC0  # from BT3-Decompiled
+0x2b4e00 0x2b4e18 auto/auto_2b4e00
+0x002B4E70 0x002B4EC0 auto/m2c_2B4E70  # m2c
+0x2b4ec0 0x2b4ec8 auto/auto_2b4ec0
+0x002B5878 0x002B58EC auto/m2c_2B5878  # m2c
+0x002B58F0 0x002B59A4 auto/perm_2B58F0  # perm
+0x002B59A8 0x002B5A18 auto/m2c_2B59A8  # m2c
+0x002B5AF8 0x002B5B44 auto/m2c_2B5AF8  # m2c
+0x2b5b48 0x2b5b5c auto/auto_2b5b48
+0x002B5E30 0x002B5E7C auto/m2c_2B5E30  # m2c
+0x2b6098 0x2b60a0 auto/auto_2b6098
+0x002B60A0 0x002B6110 auto/m2c_2B60A0  # m2c
+0x2b61d0 0x2b61dc auto/auto_2b61d0
+0x2b61e0 0x2b61ec auto/auto_2b61e0
+0x002B61F0 0x002B6208 battle/btl_ai_seq_2B61F0  # from BT3-Decompiled
+0x002B63C0 0x002B6420 auto/m2c_2B63C0  # m2c
+0x002B64C8 0x002B64F0 auto/m2c_2B64C8  # m2c
+0x002B64F0 0x002B6510 auto/m2c_2B64F0  # m2c
+0x002B6510 0x002B6538 auto/m2c_2B6510  # m2c
+0x002B6538 0x002B6558 auto/m2c_2B6538  # m2c
+0x002B6590 0x002B65C0 auto/m2c_2B6590  # m2c
+0x002B6700 0x002B672C auto/m2c_2B6700  # m2c
+0x002B6730 0x002B6750 auto/m2c_2B6730  # m2c
+0x2b67f8 0x2b6818 auto/auto_2b67f8
+0x2b6ab0 0x2b6abc auto/auto_2b6ab0
+0x002B6AC0 0x002B6AE8 auto/m2c_2B6AC0  # m2c
+0x002B6AE8 0x002B6B08 auto/m2c_2B6AE8  # m2c
+0x002B6B58 0x002B6B8C auto/m2c_2B6B58  # m2c
+0x002B6B90 0x002B6BCC auto/m2c_2B6B90  # m2c
+0x002B6BD0 0x002B6C0C auto/m2c_2B6BD0  # m2c
+0x002B6C70 0x002B6C9C auto/perm_2B6C70  # perm
+0x2b6cf8 0x2b6d10 auto/auto_2b6cf8
+0x2b6e50 0x2b6e64 auto/auto_2b6e50
+0x002B6E68 0x002B6EF0 auto/m2c_2B6E68  # m2c
+0x2b6f88 0x2b6f9c auto/auto_2b6f88
+0x2b7088 0x2b709c auto/auto_2b7088
+0x002B70A0 0x002B7138 auto/m2c_2B70A0  # m2c
+0x002B7138 0x002B7210 auto/perm_2B7138  # perm
+0x2b7210 0x2b7224 auto/auto_2b7210
+0x002B7228 0x002B728C auto/m2c_2B7228  # m2c
+0x002B73C0 0x002B7448 auto/m2c_2B73C0  # m2c
+0x002B74A0 0x002B74F8 auto/m2c_2B74A0  # m2c
+0x002B7658 0x002B76A4 auto/m2c_2B7658  # m2c
+0x002B76A8 0x002B7768 auto/m2c_2B76A8  # m2c
+0x2b7768 0x2b777c auto/auto_2b7768
+0x2b7780 0x2b7794 auto/auto_2b7780
+0x002B7798 0x002B7828 auto/m2c_2B7798  # m2c
+0x002B7828 0x002B78AC auto/m2c_2B7828  # m2c
+0x002B78B0 0x002B78D4 auto/m2c_2B78B0  # m2c
+0x2b78d8 0x2b78e4 auto/auto_2b78d8
+0x2b78e8 0x2b78f4 auto/auto_2b78e8
+0x002B7938 0x002B7960 auto/m2c_2B7938  # m2c
+0x002B7960 0x002B7980 auto/m2c_2B7960  # m2c
+0x002B79C0 0x002B79F4 auto/m2c_2B79C0  # m2c
+0x002B79F8 0x002B7A5C auto/m2c_2B79F8  # m2c
+0x002B7AA0 0x002B7AD0 auto/m2c_2B7AA0  # m2c
+0x002B7AD0 0x002B7B34 auto/m2c_2B7AD0  # m2c
+0x2b7b38 0x2b7b44 auto/auto_2b7b38
+0x2b7b48 0x2b7b54 auto/auto_2b7b48
+0x002B7B58 0x002B7BD8 cri/xf_2B7B58  # agent F
+0x2b7bd8 0x2b7bec auto/auto_2b7bd8
+0x2b7bf0 0x2b7c04 auto/auto_2b7bf0
+0x2b7c08 0x2b7c1c auto/auto_2b7c08
+0x2b7c20 0x2b7c38 auto/auto_2b7c20
+0x002B7C38 0x002B7C98 cri/xf_2B7C38  # agent F
+0x2b7c98 0x2b7cb8 auto/auto_2b7c98
+0x002B7CB8 0x002B7E38 cri/xf_2B7CB8  # agent F
+0x2b7e38 0x2b7e68 auto/auto_2b7e38
+0x002B7E68 0x002B81C8 cri/xf_2B7E68  # agent F
+0x2b81c8 0x2b81d8 auto/auto_2b81c8
+0x002B81D8 0x002B8230 cri/xf_2B81D8  # agent F
+0x2b8230 0x2b8248 auto/auto_2b8230
+0x002B8248 0x002B8260 cri/xf_2B8248  # agent F
+0x2b8260 0x2b8280 auto/auto_2b8260
+0x002B8280 0x002B8298 cri/xf_2B8280  # agent F
+0x2b8298 0x2b82b0 auto/auto_2b8298
+0x002B82B0 0x002B8938 cri/xf_2B82B0  # agent F
+0x002B89D8 0x002B90D8 cri/xf_2B89D8  # agent F
+0x2b90d8 0x2b9178 auto/auto_2b90d8
+0x002B9178 0x002B9298 cri/xf_2B9178  # agent F
+0x2b9298 0x2b92b0 auto/auto_2b9298
+0x002B92B0 0x002B93B8 cri/xf_2B92B0  # agent F
+0x2b93b8 0x2b93cc auto/auto_2b93b8
+0x2b93d0 0x2b93ec auto/auto_2b93d0
+0x2b93f0 0x2b9404 auto/auto_2b93f0
+0x2b9408 0x2b942c auto/auto_2b9408
+0x002B9778 0x002B9784 auto/m2c_2B9778  # m2c
+0x002B9788 0x002B9798 sys/vu0_a_c_2B9788  # from BT3-Decompiled
+0x2b9988 0x2b99b8 auto/auto_2b9988
+0x002B9C20 0x002B9C50 battle/eft_ad_b_2B9C20  # from BT3-Decompiled
+0x2b9ca8 0x2b9cc0 auto/auto_2b9ca8
+0x2b9d40 0x2b9d6c auto/auto_2b9d40
+0x002B9FB0 0x002B9FC0 auto/m2c_2B9FB0  # m2c
+0x002BA180 0x002BA1C4 auto/m2c_2BA180  # m2c
+0x002BA480 0x002BA4B0 battle/xf_2BA480  # agent F
+0x002BA6F0 0x002BA790 auto/m2c_2BA6F0  # m2c
+0x002BA790 0x002BA830 auto/m2c_2BA790  # m2c
+0x002BA830 0x002BA8BC sys/xf_2BA830  # agent F
+0x002BA990 0x002BA9C0 battle/eft_ad_b_c2BA990  # bt3 copy
+0x002BAA90 0x002BAAA4 battle/xf_2BAA90  # agent F
+0x002BAB90 0x002BABA8 battle/xf_2BAB90  # agent F
+0x2baba8 0x2babf0 auto/auto_2baba8
+0x002BABF0 0x002BAC08 battle/xf_2BABF0  # agent F
+0x2baf58 0x2baf70 auto/auto_2baf58
+0x2bb318 0x2bb390 auto/auto_2bb318
+0x002BB390 0x002BB3B4 auto/m2c_2BB390  # m2c
+0x002BB3B8 0x002BB3E4 auto/m2c_2BB3B8  # m2c
+0x002BB3E8 0x002BB414 auto/m2c_2BB3E8  # m2c
+0x002BB4D8 0x002BB524 auto/m2c_2BB4D8  # m2c
+0x2bb528 0x2bb530 auto/auto_2bb528
+0x2bb5f0 0x2bb5f8 auto/auto_2bb5f0
+0x002BB7F0 0x002BB814 auto/m2c_2BB7F0  # m2c
+0x002BB818 0x002BB83C auto/m2c_2BB818  # m2c
+0x002BB840 0x002BB864 auto/m2c_2BB840  # m2c
+0x2bb8d0 0x2bb8ec auto/auto_2bb8d0
+0x2bb978 0x2bb9a8 auto/auto_2bb978
+0x002BB9A8 0x002BB9B8 auto/m2c_2BB9A8  # m2c
+0x002BB9B8 0x002BB9C8 auto/m2c_2BB9B8  # m2c
+0x002BB9C8 0x002BBA38 auto/m2c_2BB9C8  # m2c
+0x002BBA38 0x002BBAA4 auto/m2c_2BBA38  # m2c
+0x002BBB68 0x002BBBB0 battle/xf_2BBB68  # agent F
+0x002BBC08 0x002BBC60 auto/m2c_2BBC08  # m2c
+0x002BC0A8 0x002BC154 auto/m2c_2BC0A8  # m2c
+0x2bc228 0x2bc23c auto/auto_2bc228
+0x002BC418 0x002BC440 auto/m2c_2BC418  # m2c
+0x2bc440 0x2bc454 auto/auto_2bc440
+0x2bc458 0x2bc46c auto/auto_2bc458
+0x002BC470 0x002BC54C battle/xf_2BC470  # agent F
+0x2bc550 0x2bc564 auto/auto_2bc550
+0x2bc600 0x2bc618 auto/auto_2bc600
+0x002BC618 0x002BC62C battle/xf_2BC618  # agent F
+0x2bc630 0x2bc644 auto/auto_2bc630
+0x002BC648 0x002BC66C auto/m2c_2BC648  # m2c
+0x002BC670 0x002BC698 auto/m2c_2BC670  # m2c
+0x002BC710 0x002BC790 auto/m2c_2BC710  # m2c
+0x002BCB10 0x002BCB84 auto/jt_2BCB10  # jtbl
+0x002BCB88 0x002BCBF0 auto/m2c_2BCB88  # m2c
+0x002BCBF0 0x002BCC04 battle/xf_2BCBF0  # agent F
+0x002BCCA0 0x002BCCC0 auto/m2c_2BCCA0  # m2c
+0x002BCCC0 0x002BCCE0 auto/m2c_2BCCC0  # m2c
+0x2bcd88 0x2bcd9c auto/auto_2bcd88
+0x2bcec0 0x2bced4 auto/auto_2bcec0
+0x2bcfd0 0x2bcfe4 auto/auto_2bcfd0
+0x2bd148 0x2bd168 auto/auto_2bd148
+0x002BD168 0x002BD180 battle/xf_2BD168  # agent F
+0x002BD180 0x002BD1A8 auto/m2c_2BD180  # m2c
+0x002BD1A8 0x002BD1C8 auto/m2c_2BD1A8  # m2c
+0x2bd1c8 0x2bd1e8 auto/auto_2bd1c8
+0x002BD250 0x002BD28C auto/m2c_2BD250  # m2c
+0x2bd290 0x2bd298 auto/auto_2bd290
+0x002BD298 0x002BD2B8 auto/m2c_2BD298  # m2c
+0x002BD2B8 0x002BD2DC auto/m2c_2BD2B8  # m2c
+0x002BD2E0 0x002BD330 auto/m2c_2BD2E0  # m2c
+0x002BD330 0x002BD350 battle/eft_ad_b_c2BD330  # bt3 copy
+0x002BD350 0x002BD37C auto/m2c_2BD350  # m2c
+0x002BD380 0x002BD3A8 auto/m2c_2BD380  # m2c
+0x002BD3A8 0x002BD3C8 auto/m2c_2BD3A8  # m2c
+0x002BD3C8 0x002BD470 auto/perm_2BD3C8  # perm
+0x2bd470 0x2bd490 auto/auto_2bd470
+0x2bd560 0x2bd580 auto/auto_2bd560
+0x002BD580 0x002BD5A4 auto/m2c_2BD580  # m2c
+0x2bd5a8 0x2bd5b0 auto/auto_2bd5a8
+0x002BD5B0 0x002BD5D4 auto/m2c_2BD5B0  # m2c
+0x002BD5D8 0x002BD5EC battle/xf_2BD5D8  # agent F
+0x2bd618 0x2bd62c auto/auto_2bd618
+0x2bd630 0x2bd65c auto/auto_2bd630
+0x2bd730 0x2bd744 auto/auto_2bd730
+0x002BD748 0x002BD798 battle/xf_2BD748  # agent F
+0x2bd798 0x2bd7ac auto/auto_2bd798
+0x002BD850 0x002BD86C auto/m2c_2BD850  # m2c
+0x002BD870 0x002BD88C auto/m2c_2BD870  # m2c
+0x002BD890 0x002BD8AC auto/m2c_2BD890  # m2c
+0x002BD8B0 0x002BD8CC auto/m2c_2BD8B0  # m2c
+0x002BDA20 0x002BDA48 auto/m2c_2BDA20  # m2c
+0x2bdad8 0x2bdaec auto/auto_2bdad8
+0x2bdb90 0x2bdb98 auto/auto_2bdb90
+0x002BE088 0x002BE0A4 auto/m2c_2BE088  # m2c
+0x002BE498 0x002BE4C0 auto/m2c_2BE498  # m2c
+0x2be770 0x2be7bc auto/auto_2be770
+0x002BE878 0x002BE89C auto/perm_2BE878  # perm
+0x002BEC18 0x002BEC84 auto/m2c_2BEC18  # m2c
+0x2bec88 0x2bec94 auto/auto_2bec88
+0x2bef18 0x2bef38 auto/auto_2bef18
+0x2bef48 0x2bef70 auto/auto_2bef48
+0x002BEF70 0x002BEF94 auto/m2c_2BEF70  # m2c
+0x2bf540 0x2bf550 auto/auto_2bf540
+0x002BF590 0x002BF5C0 auto/m2c_2BF590  # m2c
+0x2bf6e0 0x2bf710 auto/auto_2bf6e0
+0x2bf878 0x2bf894 auto/auto_2bf878
+0x2bf898 0x2bf8a0 auto/auto_2bf898
+0x002BFAD8 0x002BFB6C auto/m2c_2BFAD8  # m2c
+0x002BFE68 0x002BFE94 auto/m2c_2BFE68  # m2c
+0x2c0160 0x2c0190 auto/auto_2c0160
+0x2c0238 0x2c0250 auto/auto_2c0238
+0x002C0598 0x002C0608 auto/m2c_2C0598  # m2c
+0x002C07B0 0x002C07E4 auto/m2c_2C07B0  # m2c
+0x2c0d28 0x2c0d30 auto/auto_2c0d28
+0x002C0E78 0x002C0EA4 auto/perm_2C0E78  # perm
+0x002C1078 0x002C10AC auto/m2c_2C1078  # m2c
+0x002C10B0 0x002C10E4 auto/m2c_2C10B0  # m2c
+0x002C1120 0x002C117C auto/m2c_2C1120  # m2c
+0x2c1748 0x2c1750 auto/auto_2c1748
+0x002C1A78 0x002C1AC4 auto/m2c_2C1A78  # m2c
+0x002C22B8 0x002C22D8 auto/m2c_2C22B8  # m2c
+0x2c22d8 0x2c22ec auto/auto_2c22d8
+0x002C23D0 0x002C23F4 auto/m2c_2C23D0  # m2c
+0x002C23F8 0x002C2424 auto/m2c_2C23F8  # m2c
+0x002C2548 0x002C2588 auto/m2c_2C2548  # m2c
+0x002C2658 0x002C26BC auto/m2c_2C2658  # m2c
+0x002C2710 0x002C2774 auto/m2c_2C2710  # m2c
+0x002C2D30 0x002C2D54 auto/m2c_2C2D30  # m2c
+0x2c2d58 0x2c2d60 auto/auto_2c2d58
+0x2c2dc0 0x2c2dcc auto/auto_2c2dc0
+0x2c2fc0 0x2c2fd4 auto/auto_2c2fc0
+0x2c3138 0x2c3144 auto/auto_2c3138
+0x2c3238 0x2c324c auto/auto_2c3238
+0x2c3250 0x2c3264 auto/auto_2c3250
+0x002C3268 0x002C3288 battle/eft_t_c_c2C3268  # bt3 copy
+0x2c3288 0x2c329c auto/auto_2c3288
+0x2c32a0 0x2c32c4 auto/auto_2c32a0
+0x2c32c8 0x2c32dc auto/auto_2c32c8
+0x2c32e0 0x2c32f0 auto/auto_2c32e0
+0x2c3318 0x2c3364 auto/auto_2c3318
+0x2c33d0 0x2c33d8 auto/auto_2c33d0
+0x2c3528 0x2c3564 auto/auto_2c3528
+0x002C3568 0x002C35DC auto/m2c_2C3568  # m2c
+0x002C3D18 0x002C3D40 auto/m2c_2C3D18  # m2c
+0x2c4588 0x2c4590 auto/auto_2c4588
+0x002C4838 0x002C484C auto/m2c_2C4838  # m2c
+0x002C4AA8 0x002C4B30 auto/m2c_2C4AA8  # m2c
+0x2c4fb0 0x2c4fb8 auto/auto_2c4fb0
+0x2c5208 0x2c521c auto/auto_2c5208
+0x002C5220 0x002C5270 auto/m2c_2C5220  # m2c
+0x2c5270 0x2c5284 auto/auto_2c5270
+0x2c5288 0x2c52a8 auto/auto_2c5288
+0x2c53d0 0x2c53d8 auto/auto_2c53d0
+0x002C54C8 0x002C54D4 auto/m2c_2C54C8  # m2c
+0x002C58E8 0x002C595C battle/xf_2C58E8  # agent F
+0x002C5BD0 0x002C5CAC auto/perm_2C5BD0  # perm
+0x2c5cb0 0x2c5cec auto/auto_2c5cb0
+0x2c5e98 0x2c5eb0 auto/auto_2c5e98
+0x002C5F60 0x002C5FBC auto/m2c_2C5F60  # m2c
+0x2c6230 0x2c624c auto/auto_2c6230
+0x002C6748 0x002C67D0 battle/xf_2C6748  # agent F
+0x2c71d8 0x2c71f0 auto/auto_2c71d8
+0x002C8398 0x002C83E8 auto/perm_2C8398  # perm
+0x002C9A08 0x002C9A4C auto/m2c_2C9A08  # m2c
+0x2ca0f8 0x2ca114 auto/auto_2ca0f8
+0x2ca340 0x2ca354 auto/auto_2ca340
+0x2ca388 0x2ca3a0 auto/auto_2ca388
+0x002CA6A8 0x002CA708 auto/m2c_2CA6A8  # m2c
+0x002CA9D0 0x002CAA6C auto/m2c_2CA9D0  # m2c
+0x002CABA0 0x002CABE8 battle/xf_2CABA0  # agent F
+0x002CABE8 0x002CABF8 auto/m2c_2CABE8  # m2c
+0x002CABF8 0x002CAC04 auto/m2c_2CABF8  # m2c
+0x002CAC08 0x002CAC14 auto/m2c_2CAC08  # m2c
+0x002CAD40 0x002CAD50 auto/m2c_2CAD40  # m2c
+0x002CAD50 0x002CAD64 auto/m2c_2CAD50  # m2c
+0x002CAD68 0x002CAD7C auto/m2c_2CAD68  # m2c
+0x002CB0A8 0x002CB140 auto/m2c_2CB0A8  # m2c
+0x002CB3A8 0x002CB3CC auto/m2c_2CB3A8  # m2c
+0x002CB678 0x002CB6C8 auto/m2c_2CB678  # m2c
+0x2cbe08 0x2cbe14 auto/auto_2cbe08
+0x002CBE18 0x002CBE28 auto/m2c_2CBE18  # m2c
+0x002CBE28 0x002CBE6C auto/m2c_2CBE28  # m2c
+0x002CC0F0 0x002CC0FC auto/m2c_2CC0F0  # m2c
+0x002CC388 0x002CC3B0 auto/m2c_2CC388  # m2c
+0x002CC3B0 0x002CC3D8 auto/m2c_2CC3B0  # m2c
+0x002CC3D8 0x002CC448 auto/m2c_2CC3D8  # m2c
+0x002CC448 0x002CC4A4 auto/m2c_2CC448  # m2c
+0x002CC4A8 0x002CC500 auto/perm_2CC4A8  # perm
+0x002CC778 0x002CC784 auto/m2c_2CC778  # m2c
+0x002CC9A0 0x002CC9B8 auto/m2c_2CC9A0  # m2c
+0x002CCA10 0x002CCA1C auto/m2c_2CCA10  # m2c
+0x2cca20 0x2cca28 auto/auto_2cca20
+0x002CCA28 0x002CCA74 auto/m2c_2CCA28  # m2c
+0x002CCC70 0x002CCC80 auto/m2c_2CCC70  # m2c
+0x002CCC80 0x002CCCF0 auto/m2c_2CCC80  # m2c
+0x002CCCF0 0x002CCD5C auto/m2c_2CCCF0  # m2c
+0x002CCD60 0x002CCDCC auto/m2c_2CCD60  # m2c
+0x002CCDF8 0x002CCE3C auto/m2c_2CCDF8  # m2c
+0x2cce40 0x2cce54 auto/auto_2cce40
+0x2cce58 0x2cce60 auto/auto_2cce58
+0x002CCF58 0x002CCFB0 auto/perm_2CCF58  # perm
+0x002CD0C8 0x002CD0F0 battle/btl_facade_c2CD0C8  # bt3 copy
+0x2cd0f0 0x2cd108 auto/auto_2cd0f0
+0x002CD108 0x002CD138 auto/m2c_2CD108  # m2c
+0x002CD2A8 0x002CD2D8 battle/btl_char_move_c2CD2A8  # bt3 copy
+0x2cd5e0 0x2cd5e8 auto/auto_2cd5e0
+0x002CD650 0x002CD6FC auto/perm_2CD650  # perm
+0x002CDAB8 0x002CDB38 battle/xf_2CDAB8  # agent F
+0x002CDFD8 0x002CE03C auto/m2c_2CDFD8  # m2c
+0x002CE318 0x002CE390 battle/xf_2CE318  # agent F
+0x2ce4e8 0x2ce500 auto/auto_2ce4e8
+0x002CE5C8 0x002CE648 auto/perm_2CE5C8  # perm
+0x002CE648 0x002CE658 auto/m2c_2CE648  # m2c
+0x2ce740 0x2ce74c auto/auto_2ce740
+0x2ce750 0x2ce75c auto/auto_2ce750
+0x002CF1C8 0x002CF224 auto/m2c_2CF1C8  # m2c
+0x002CF2C8 0x002CF344 auto/perm_2CF2C8  # perm
+0x002CF8D0 0x002CF92C auto/m2c_2CF8D0  # m2c
+0x002CF930 0x002CF99C auto/m2c_2CF930  # m2c
+0x002CF9A0 0x002CF9B4 auto/m2c_2CF9A0  # m2c
+0x002CF9B8 0x002CF9E4 auto/m2c_2CF9B8  # m2c
+0x002CF9E8 0x002CFA2C auto/m2c_2CF9E8  # m2c
+0x002CFCB8 0x002CFD24 auto/m2c_2CFCB8  # m2c
+0x002CFE38 0x002CFE84 battle/xf_2CFE38  # agent F
+0x002D0230 0x002D0290 auto/m2c_2D0230  # m2c
+0x2d0450 0x2d0464 auto/auto_2d0450
+0x002D0468 0x002D04A8 auto/m2c_2D0468  # m2c
+0x002D05E8 0x002D0634 auto/m2c_2D05E8  # m2c
+0x002D0638 0x002D0684 auto/m2c_2D0638  # m2c
+0x002D07B0 0x002D07C0 auto/m2c_2D07B0  # m2c
+0x002D0A58 0x002D0AD4 auto/m2c_2D0A58  # m2c
+0x002D0B08 0x002D0B9C battle/xf_2D0B08  # agent F
+0x2d0bb0 0x2d0bb8 auto/auto_2d0bb0
+0x002D0DD8 0x002D0E1C auto/m2c_2D0DD8  # m2c
+0x002D0FB0 0x002D1000 auto/m2c_2D0FB0  # m2c
+0x2d1348 0x2d1354 auto/auto_2d1348
+0x2d14f8 0x2d150c auto/auto_2d14f8
+0x002D1510 0x002D152C auto/m2c_2D1510  # m2c
+0x2d16e8 0x2d1708 auto/auto_2d16e8
+0x002D1800 0x002D1850 auto/m2c_2D1800  # m2c
+0x2d1908 0x2d191c auto/auto_2d1908
+0x002D1920 0x002D19A4 auto/m2c_2D1920  # m2c
+0x002D19A8 0x002D1A98 auto/perm_2D19A8  # perm
+0x002D1B20 0x002D1B88 battle/xf_2D1B20  # agent F
+0x2d2740 0x2d2750 auto/auto_2d2740
+0x2d2930 0x2d2948 auto/auto_2d2930
+0x002D2A80 0x002D2AC8 battle/xf_2D2A80  # agent F
+0x2d2e18 0x2d2e34 auto/auto_2d2e18
+0x2d2e38 0x2d2e54 auto/auto_2d2e38
+0x2d2e58 0x2d2e74 auto/auto_2d2e58
+0x2d2e78 0x2d2e94 auto/auto_2d2e78
+0x2d2e98 0x2d2eb4 auto/auto_2d2e98
+0x002D3178 0x002D31B8 auto/m2c_2D3178  # m2c
+0x2d31b8 0x2d31c0 auto/auto_2d31b8
+0x002D31C0 0x002D31D4 auto/m2c_2D31C0  # m2c
+0x002D31D8 0x002D31EC auto/m2c_2D31D8  # m2c
+0x002D31F0 0x002D3204 auto/m2c_2D31F0  # m2c
+0x002D3208 0x002D321C auto/m2c_2D3208  # m2c
+0x002D3220 0x002D3230 auto/m2c_2D3220  # m2c
+0x2d3230 0x2d3240 auto/auto_2d3230
+0x002D3760 0x002D37BC battle/xf_2D3760  # agent F
+0x002D37C0 0x002D380C battle/xf_2D37C0  # agent F
+0x002D3810 0x002D3824 auto/m2c_2D3810  # m2c
+0x2d3d98 0x2d3da8 auto/auto_2d3d98
+0x002D3DA8 0x002D3DEC auto/m2c_2D3DA8  # m2c
+0x2d3e70 0x2d3e78 auto/auto_2d3e70
+0x2d3ef8 0x2d3f08 auto/auto_2d3ef8
+0x002D3FD8 0x002D3FF0 sys/gfxm_a_c2D3FD8  # bt3 copy
+0x2d3ff0 0x2d4018 auto/auto_2d3ff0
+0x2d4098 0x2d40b0 auto/auto_2d4098
+0x2d4250 0x2d4290 auto/auto_2d4250
+0x2d4340 0x2d4354 auto/auto_2d4340
+0x002D4358 0x002D4364 auto/m2c_2D4358  # m2c
+0x002D43F8 0x002D443C auto/m2c_2D43F8  # m2c
+0x002D4508 0x002D4538 auto/perm_2D4508  # perm
+0x002D4538 0x002D4548 sys/spu_heap_c2D4538  # bt3 copy
+0x002D4548 0x002D4558 auto/m2c_2D4548  # m2c
+0x002D4558 0x002D4570 sys/vu0_a_c_2D4558  # from BT3-Decompiled
+0x002D45D8 0x002D45E4 auto/m2c_2D45D8  # m2c
+0x002D45E8 0x002D462C auto/m2c_2D45E8  # m2c
+0x002D5210 0x002D5264 auto/m2c_2D5210  # m2c
+0x002D5A18 0x002D5A88 auto/jt_2D5A18  # jtbl
+0x002D5B80 0x002D5BA8 auto/m2c_2D5B80  # m2c
+0x002D5BA8 0x002D5BD0 auto/m2c_2D5BA8  # m2c
+0x002D5BD0 0x002D5BF8 auto/m2c_2D5BD0  # m2c
+0x2d5d08 0x2d5d1c auto/auto_2d5d08
+0x2d5f18 0x2d5f50 auto/auto_2d5f18
+0x2d6008 0x2d6068 auto/auto_2d6008
+0x2d6180 0x2d6188 auto/auto_2d6180
+0x002D6190 0x002D619C auto/m2c_2D6190  # m2c
+0x002D61A0 0x002D61AC auto/m2c_2D61A0  # m2c
+0x002D61B0 0x002D61BC auto/m2c_2D61B0  # m2c
+0x2d68e8 0x2d68f0 auto/auto_2d68e8
+0x2d6960 0x2d696c auto/auto_2d6960
+0x002D6970 0x002D69B4 auto/m2c_2D6970  # m2c
+0x002D69B8 0x002D6A10 auto/perm_2D69B8  # perm
+0x002D6C30 0x002D6C3C auto/m2c_2D6C30  # m2c
+0x002D6C40 0x002D6C90 auto/m2c_2D6C40  # m2c
+0x002D6CD0 0x002D6CDC auto/m2c_2D6CD0  # m2c
+0x002D6CE0 0x002D6CEC auto/m2c_2D6CE0  # m2c
+0x2d6cf0 0x2d6cfc auto/auto_2d6cf0
+0x2d6d00 0x2d6d0c auto/auto_2d6d00
+0x002D6D10 0x002D6D1C auto/m2c_2D6D10  # m2c
+0x002D6D20 0x002D6D2C auto/m2c_2D6D20  # m2c
+0x2d6d30 0x2d6d4c auto/auto_2d6d30
+0x002D6D50 0x002D6D64 auto/m2c_2D6D50  # m2c
+0x2d6d68 0x2d6d70 auto/auto_2d6d68
+0x002D6DC0 0x002D6DD0 auto/m2c_2D6DC0  # m2c
+0x2d6dd0 0x2d6de0 auto/auto_2d6dd0
+0x2d6ea8 0x2d6ec8 auto/auto_2d6ea8
+0x002D6EC8 0x002D6EF8 battle/xf_2D6EC8  # agent F
+0x2d6ef8 0x2d6f14 auto/auto_2d6ef8
+0x2d6f18 0x2d6f48 auto/auto_2d6f18
+0x002D6F48 0x002D6F84 auto/m2c_2D6F48  # m2c
+0x2d6f88 0x2d6fa0 auto/auto_2d6f88
+0x2d6fc0 0x2d6fd0 auto/auto_2d6fc0
+0x002D7108 0x002D7130 auto/m2c_2D7108  # m2c
+0x002D7130 0x002D7184 auto/m2c_2D7130  # m2c
+0x002D7188 0x002D719C battle/xf_2D7188  # agent F
+0x002D71A0 0x002D71B4 battle/xf_2D71A0  # agent F
+0x2d71b8 0x2d71cc auto/auto_2d71b8
+0x2d71d0 0x2d71e4 auto/auto_2d71d0
+0x2d71e8 0x2d71fc auto/auto_2d71e8
+0x002D7200 0x002D7240 auto/m2c_2D7200  # m2c
+0x2d7240 0x2d7248 auto/auto_2d7240
+0x2d7608 0x2d761c auto/auto_2d7608
+0x002D7AE8 0x002D7B18 auto/m2c_2D7AE8  # m2c
+0x002D7B18 0x002D7B2C auto/m2c_2D7B18  # m2c
+0x2d7b60 0x2d7b6c auto/auto_2d7b60
+0x2d7b70 0x2d7b7c auto/auto_2d7b70
+0x002D8008 0x002D8068 auto/m2c_2D8008  # m2c
+0x002D8068 0x002D8074 auto/m2c_2D8068  # m2c
+0x002D8078 0x002D8084 auto/m2c_2D8078  # m2c
+0x2d80d8 0x2d80e4 auto/auto_2d80d8
+0x002D80E8 0x002D8108 auto/m2c_2D80E8  # m2c
+0x002D82C0 0x002D8300 auto/m2c_2D82C0  # m2c
+0x002D8300 0x002D8340 auto/m2c_2D8300  # m2c
+0x002D8498 0x002D8514 auto/m2c_2D8498  # m2c
+0x002D8518 0x002D8594 auto/m2c_2D8518  # m2c
+0x002D8598 0x002D8614 auto/m2c_2D8598  # m2c
+0x002D8618 0x002D8694 auto/m2c_2D8618  # m2c
+0x2d86f8 0x2d870c auto/auto_2d86f8
+0x002D87D8 0x002D87E4 auto/m2c_2D87D8  # m2c
+0x002D8AD8 0x002D8AE8 auto/m2c_2D8AD8  # m2c
+0x2d8ae8 0x2d8afc auto/auto_2d8ae8
+0x002D8B00 0x002D8B0C auto/m2c_2D8B00  # m2c
+0x002D8C60 0x002D8C6C auto/m2c_2D8C60  # m2c
+0x2d8cf8 0x2d8d0c auto/auto_2d8cf8
+0x2d8d10 0x2d8d1c auto/auto_2d8d10
+0x002D8D20 0x002D8D2C auto/m2c_2D8D20  # m2c
+0x2d8d30 0x2d8d3c auto/auto_2d8d30
+0x002D8D40 0x002D8D64 auto/m2c_2D8D40  # m2c
+0x2d8d68 0x2d8d74 auto/auto_2d8d68
+0x002D8D78 0x002D8DA0 auto/m2c_2D8D78  # m2c
+0x002D8DA0 0x002D8DC0 battle/battle_load_c2D8DA0  # bt3 copy
+0x2d8dc0 0x2d8de8 auto/auto_2d8dc0
+0x002DA3A8 0x002DA3C0 sys/gfxm_d_c_c2DA3A8  # bt3 copy
+0x002DA3C0 0x002DA3D8 sys/gfxm_d_c_c2DA3C0  # bt3 copy
+0x002DA3D8 0x002DA3F0 sys/gfxm_d_c_c2DA3D8  # bt3 copy
+0x002DA3F0 0x002DA408 sys/gfxm_d_c_c2DA3F0  # bt3 copy
+0x2da408 0x2da41c auto/auto_2da408
+0x2da420 0x2da434 auto/auto_2da420
+0x2da438 0x2da44c auto/auto_2da438
+0x2da450 0x2da464 auto/auto_2da450
+0x2da7d0 0x2da7e0 auto/auto_2da7d0
+0x2dc670 0x2dc680 auto/auto_2dc670
+0x2dc8b0 0x2dc8bc auto/auto_2dc8b0
+0x2dca40 0x2dca54 auto/auto_2dca40
+0x002DCA58 0x002DCA68 sys/spu_heap_c2DCA58  # bt3 copy
+0x002DCA68 0x002DCAB4 auto/m2c_2DCA68  # m2c
+0x2dcb88 0x2dcb94 auto/auto_2dcb88
+0x002DCC60 0x002DCC98 battle/btl_capi_a_2DCC60  # from BT3-Decompiled
+0x2ddbe8 0x2ddc04 auto/auto_2ddbe8
+0x002DDD70 0x002DDDBC auto/m2c_2DDD70  # m2c
+0x2ddf58 0x2ddf68 auto/auto_2ddf58
+0x2de328 0x2de330 auto/auto_2de328
+0x002DE358 0x002DE36C auto/m2c_2DE358  # m2c
+0x2dfe48 0x2dfe64 auto/auto_2dfe48
+0x2e0050 0x2e0060 auto/auto_2e0050
+0x002E0060 0x002E0080 auto/m2c_2E0060  # m2c
+0x002E0080 0x002E00A0 auto/m2c_2E0080  # m2c
+0x002E00A0 0x002E00B8 auto/m2c_2E00A0  # m2c
+0x002E00B8 0x002E0104 auto/m2c_2E00B8  # m2c
+0x2e0200 0x2e0208 auto/auto_2e0200
+0x002E0510 0x002E0528 auto/m2c_2E0510  # m2c
+0x2e0590 0x2e05a8 auto/auto_2e0590
+0x002E0778 0x002E078C battle/xf_2E0778  # agent F
+0x002E0790 0x002E07BC auto/m2c_2E0790  # m2c
+0x2e07c0 0x2e07d4 auto/auto_2e07c0
+0x2e07d8 0x2e07ec auto/auto_2e07d8
+0x002E07F0 0x002E0808 auto/m2c_2E07F0  # m2c
+0x002E0808 0x002E082C auto/m2c_2E0808  # m2c
+0x002E0A38 0x002E0A80 auto/m2c_2E0A38  # m2c
+0x2e0a80 0x2e0a94 auto/auto_2e0a80
+0x2e0c60 0x2e0cd4 auto/auto_2e0c60
+0x002E0CD8 0x002E0D14 auto/m2c_2E0CD8  # m2c
+0x2e0d18 0x2e0d20 auto/auto_2e0d18
+0x2e0ee8 0x2e0ef0 auto/auto_2e0ee8
+0x002E0F10 0x002E0F30 auto/m2c_2E0F10  # m2c
+0x002E0F48 0x002E0F68 auto/m2c_2E0F48  # m2c
+0x002E0F68 0x002E0F74 auto/m2c_2E0F68  # m2c
+0x002E0FD8 0x002E1028 battle/xf_2E0FD8  # agent F
+0x002E1058 0x002E11E8 battle/xf_2E1058  # agent F
+0x002E1218 0x002E12E0 battle/xf_2E1218  # agent F
+0x2e1498 0x2e14a4 auto/auto_2e1498
+0x2e1780 0x2e1788 auto/auto_2e1780
+0x002E1788 0x002E17C0 battle/btl_capi_a_c2E1788  # bt3 copy
+0x002E18D8 0x002E1928 auto/m2c_2E18D8  # m2c
+0x2e1928 0x2e1930 auto/auto_2e1928
+0x2e1b70 0x2e1b8c auto/auto_2e1b70
+0x002E1C98 0x002E1CE4 auto/m2c_2E1C98  # m2c
+0x2e1dd8 0x2e1de0 auto/auto_2e1dd8
+0x002E1DE0 0x002E1E30 auto/m2c_2E1DE0  # m2c
+0x002E1F30 0x002E1F8C auto/m2c_2E1F30  # m2c
+0x002E1F90 0x002E2020 auto/m2c_2E1F90  # m2c
+0x002E2020 0x002E2098 auto/m2c_2E2020  # m2c
+0x002E21B0 0x002E222C auto/m2c_2E21B0  # m2c
+0x2e25b0 0x2e25b8 auto/auto_2e25b0
+0x2e2728 0x2e2730 auto/auto_2e2728
+0x2e7018 0x2e7020 auto/auto_2e7018
+0x002E7020 0x002E7038 auto/m2c_2E7020  # m2c
+0x002E7070 0x002E708C auto/m2c_2E7070  # m2c
+0x002E7090 0x002E70AC auto/m2c_2E7090  # m2c
+0x002E72D8 0x002E72F8 auto/m2c_2E72D8  # m2c
+0x2e72f8 0x2e7304 auto/auto_2e72f8
+0x2e7308 0x2e7314 auto/auto_2e7308
+0x002E7318 0x002E7354 auto/m2c_2E7318  # m2c
+0x002E7358 0x002E738C auto/m2c_2E7358  # m2c
+0x002E7538 0x002E757C auto/m2c_2E7538  # m2c
+0x2e7a90 0x2e7a9c auto/auto_2e7a90
+0x2e7aa0 0x2e7aac auto/auto_2e7aa0
+0x2e7ab0 0x2e7ac8 auto/auto_2e7ab0
+0x2e7b18 0x2e7b20 auto/auto_2e7b18
+0x2e7b80 0x2e7bb8 auto/auto_2e7b80
+0x002E7BB8 0x002E7BCC auto/m2c_2E7BB8  # m2c
+0x2e7bd0 0x2e7bf0 auto/auto_2e7bd0
+0x002E7BF0 0x002E7C00 auto/m2c_2E7BF0  # m2c
+0x2e7c00 0x2e7c08 auto/auto_2e7c00
+0x002E7C08 0x002E7C48 auto/m2c_2E7C08  # m2c
+0x002E7C48 0x002E7C88 auto/m2c_2E7C48  # m2c
+0x002E7D38 0x002E7D54 auto/m2c_2E7D38  # m2c
+0x2e7e68 0x2e7e70 auto/auto_2e7e68
+0x002E7EF0 0x002E7F08 auto/m2c_2E7EF0  # m2c
+0x002E7F50 0x002E7F90 auto/m2c_2E7F50  # m2c
+0x2e7f90 0x2e7fac auto/auto_2e7f90
+0x2e7fb0 0x2e7fb8 auto/auto_2e7fb0
+0x002E81C0 0x002E81EC auto/m2c_2E81C0  # m2c
+0x002E86A8 0x002E8708 auto/m2c_2E86A8  # m2c
+0x2e93c0 0x2e93d4 auto/auto_2e93c0
+0x2e93d8 0x2e93ec auto/auto_2e93d8
+0x2e93f0 0x2e9400 auto/auto_2e93f0
+0x002E9FB8 0x002E9FF0 auto/m2c_2E9FB8  # m2c
+0x002E9FF0 0x002EA028 auto/m2c_2E9FF0  # m2c
+0x002EA028 0x002EA04C auto/m2c_2EA028  # m2c
+0x002EA418 0x002EA480 auto/m2c_2EA418  # m2c
+0x2ea480 0x2ea49c auto/auto_2ea480
+0x002EA4A0 0x002EA508 auto/m2c_2EA4A0  # m2c
+0x002EA588 0x002EA5F0 auto/m2c_2EA588  # m2c
+0x002EA720 0x002EA788 auto/m2c_2EA720  # m2c
+0x002EA7B0 0x002EA818 auto/m2c_2EA7B0  # m2c
+0x002EA840 0x002EA8A8 auto/m2c_2EA840  # m2c
+0x002EAEC0 0x002EAF00 auto/m2c_2EAEC0  # m2c
+0x002EAF00 0x002EAF28 sys/gfx_c2EAF00  # bt3 copy
+0x002EAF28 0x002EAFA4 auto/m2c_2EAF28  # m2c
+0x002EAFA8 0x002EAFE0 auto/m2c_2EAFA8  # m2c
+0x2eafe0 0x2eaff4 auto/auto_2eafe0
+0x002EAFF8 0x002EB030 auto/m2c_2EAFF8  # m2c
+0x002EB458 0x002EB490 auto/m2c_2EB458  # m2c
+0x002EB490 0x002EB4A8 auto/perm_2EB490  # perm
+0x002EB4A8 0x002EB500 auto/m2c_2EB4A8  # m2c
+0x002EB648 0x002EB690 auto/m2c_2EB648  # m2c
+0x002EB7B0 0x002EB818 auto/m2c_2EB7B0  # m2c
+0x002EB9B0 0x002EB9F8 auto/m2c_2EB9B0  # m2c
+0x002EBB08 0x002EBB34 auto/m2c_2EBB08  # m2c
+0x002EBBF0 0x002EBC18 sys/gfx_c2EBBF0  # bt3 copy
+0x002EBC18 0x002EBC78 auto/m2c_2EBC18  # m2c
+0x002EBD78 0x002EBDD0 auto/m2c_2EBD78  # m2c
+0x002EBE60 0x002EBEB8 auto/m2c_2EBE60  # m2c
+0x2ebeb8 0x2ebecc auto/auto_2ebeb8
+0x002EBED0 0x002EBF28 auto/m2c_2EBED0  # m2c
+0x002EC0C8 0x002EC120 auto/m2c_2EC0C8  # m2c
+0x002EC160 0x002EC198 auto/m2c_2EC160  # m2c
+0x002EC288 0x002EC2C0 auto/m2c_2EC288  # m2c
+0x002EC450 0x002EC478 sys/gfx_c2EC450  # bt3 copy
+0x002EC4D8 0x002EC530 auto/m2c_2EC4D8  # m2c
+0x002EC648 0x002EC680 auto/m2c_2EC648  # m2c
+0x002EC680 0x002EC6B0 auto/m2c_2EC680  # m2c
+0x002EC6B0 0x002EC6E8 auto/m2c_2EC6B0  # m2c
+0x002EC760 0x002EC798 auto/m2c_2EC760  # m2c
+0x002EC820 0x002EC858 auto/m2c_2EC820  # m2c
+0x002EC858 0x002EC890 auto/m2c_2EC858  # m2c
+0x002EC890 0x002EC8D8 auto/m2c_2EC890  # m2c
+0x002EC8D8 0x002EC924 auto/m2c_2EC8D8  # m2c
+0x002EC928 0x002EC960 auto/m2c_2EC928  # m2c
+0x002EC960 0x002EC990 auto/m2c_2EC960  # m2c
+0x002EC990 0x002EC9C8 auto/m2c_2EC990  # m2c
+0x002EC9C8 0x002EC9F8 auto/m2c_2EC9C8  # m2c
+0x002ECD38 0x002ECD70 auto/m2c_2ECD38  # m2c
+0x002ECD70 0x002ECD88 auto/perm_2ECD70  # perm
+0x002ECD88 0x002ECDC0 auto/m2c_2ECD88  # m2c
+0x002ECDC0 0x002ECDD8 auto/perm_2ECDC0  # perm
+0x002ECDD8 0x002ECE20 auto/m2c_2ECDD8  # m2c
+0x002ECE50 0x002ECE88 auto/m2c_2ECE50  # m2c
+0x2ecee8 0x2ecef4 auto/auto_2ecee8
+0x002ECEF8 0x002ECF34 auto/m2c_2ECEF8  # m2c
+0x002ECF38 0x002ECF6C auto/m2c_2ECF38  # m2c
+0x002ECF70 0x002ECFA8 auto/m2c_2ECF70  # m2c
+0x002ECFE0 0x002ED018 auto/m2c_2ECFE0  # m2c
+0x002ED018 0x002ED04C auto/m2c_2ED018  # m2c
+0x002ED050 0x002ED088 auto/m2c_2ED050  # m2c
+0x2ed088 0x2ed09c auto/auto_2ed088
+0x002ED0A0 0x002ED0D8 auto/m2c_2ED0A0  # m2c
+0x2ed0d8 0x2ed0ec auto/auto_2ed0d8
+0x002ED118 0x002ED12C battle/xf_2ED118  # agent F
+0x002ED130 0x002ED144 battle/xf_2ED130  # agent F
+0x2ed148 0x2ed154 auto/auto_2ed148
+0x2ed158 0x2ed164 auto/auto_2ed158
+0x002ED168 0x002ED180 battle/btl_ai_seq_c2ED168  # bt3 copy
+0x002ED180 0x002ED198 battle/btl_ai_seq_c2ED180  # bt3 copy
+0x002ED198 0x002ED1C0 auto/m2c_2ED198  # m2c
+0x2ed1c0 0x2ed220 auto/auto_2ed1c0
+0x002ED390 0x002ED3AC auto/m2c_2ED390  # m2c
+0x2ed4d8 0x2ed4e0 auto/auto_2ed4d8
+0x002ED4E0 0x002ED51C auto/m2c_2ED4E0  # m2c
+0x002ED540 0x002ED59C auto/m2c_2ED540  # m2c
+0x002ED610 0x002ED65C auto/m2c_2ED610  # m2c
+0x002ED728 0x002ED754 auto/m2c_2ED728  # m2c
+0x002ED758 0x002ED804 auto/perm_2ED758  # perm
+0x002ED808 0x002ED844 auto/m2c_2ED808  # m2c
+0x002ED848 0x002ED878 auto/m2c_2ED848  # m2c
+0x002ED878 0x002ED8B4 auto/m2c_2ED878  # m2c
+0x002ED8D8 0x002ED934 auto/m2c_2ED8D8  # m2c
+0x002ED9E8 0x002EDA34 auto/m2c_2ED9E8  # m2c
+0x2edae8 0x2edaf0 auto/auto_2edae8
+0x002EDAF0 0x002EDB28 auto/m2c_2EDAF0  # m2c
+0x002EDB28 0x002EDB60 auto/m2c_2EDB28  # m2c
+0x002EDB60 0x002EDB8C auto/m2c_2EDB60  # m2c
+0x002EDBD0 0x002EDBF8 sys/gfx_c2EDBD0  # bt3 copy
+0x2edbf8 0x2edc0c auto/auto_2edbf8
+0x002EDE40 0x002EDE58 auto/m2c_2EDE40  # m2c
+0x002EE3F0 0x002EE404 battle/xf_2EE3F0  # agent F
+0x2ee8a8 0x2ee8b4 auto/auto_2ee8a8
+0x002EE8B8 0x002EE8C8 sys/file_2EE8B8  # from BT3-Decompiled
+0x002EE8C8 0x002EE8DC battle/xf_2EE8C8  # agent F
+0x2ef098 0x2ef0ac auto/auto_2ef098
+0x2ef0b0 0x2ef0c4 auto/auto_2ef0b0
+0x2ef0c8 0x2ef0d4 auto/auto_2ef0c8
+0x002EF200 0x002EF214 battle/xf_2EF200  # agent F
+0x2ef218 0x2ef22c auto/auto_2ef218
+0x002EF360 0x002EF398 battle/battle_load_2EF360  # from BT3-Decompiled
+0x2ef398 0x2ef3ac auto/auto_2ef398
+0x002EF3B0 0x002EF3F8 auto/m2c_2EF3B0  # m2c
+0x2ef458 0x2ef46c auto/auto_2ef458
+0x2ef4d8 0x2ef4ec auto/auto_2ef4d8
+0x2ef4f0 0x2ef504 auto/auto_2ef4f0
+0x2ef7a8 0x2ef7cc auto/auto_2ef7a8
+0x2ef7d0 0x2ef7f4 auto/auto_2ef7d0
+0x2ef7f8 0x2ef810 auto/auto_2ef7f8
+0x002EF838 0x002EF868 auto/m2c_2EF838  # m2c
+0x002EF868 0x002EF898 auto/m2c_2EF868  # m2c
+0x2ef980 0x2ef98c auto/auto_2ef980
+0x002EF990 0x002EF9C0 auto/m2c_2EF990  # m2c
+0x2efb38 0x2efb4c auto/auto_2efb38
+0x2efc40 0x2efc54 auto/auto_2efc40
+0x2efc58 0x2efc6c auto/auto_2efc58
+0x2efc70 0x2efc84 auto/auto_2efc70
+0x2efc88 0x2efcb8 auto/auto_2efc88
+0x002EFCB8 0x002EFCD0 battle/xf_2EFCB8  # agent F
+0x2efcd0 0x2efcfc auto/auto_2efcd0
+0x2efd00 0x2efd14 auto/auto_2efd00
+0x2efd18 0x2efd2c auto/auto_2efd18
+0x002EFD30 0x002EFD4C auto/m2c_2EFD30  # m2c
+0x2efd50 0x2efd64 auto/auto_2efd50
+0x2efd68 0x2efd7c auto/auto_2efd68
+0x2efd80 0x2efd9c auto/auto_2efd80
+0x2efdd8 0x2efdec auto/auto_2efdd8
+0x2efdf0 0x2efe04 auto/auto_2efdf0
+0x2efe08 0x2efe1c auto/auto_2efe08
+0x2efe20 0x2efe34 auto/auto_2efe20
+0x2efe38 0x2efe4c auto/auto_2efe38
+0x2efe50 0x2efe64 auto/auto_2efe50
+0x2efe68 0x2efe7c auto/auto_2efe68
+0x002EFE80 0x002EFEB4 auto/perm_2EFE80  # perm
+0x002EFEB8 0x002EFED0 sys/gfxm_d_c_c2EFEB8  # bt3 copy
+0x2efed0 0x2efee4 auto/auto_2efed0
+0x2efee8 0x2efefc auto/auto_2efee8
+0x2eff00 0x2eff14 auto/auto_2eff00
+0x2eff18 0x2eff2c auto/auto_2eff18
+0x2eff30 0x2eff44 auto/auto_2eff30
+0x2eff48 0x2eff5c auto/auto_2eff48
+0x2eff60 0x2eff74 auto/auto_2eff60
+0x2eff78 0x2eff8c auto/auto_2eff78
+0x2eff90 0x2effa4 auto/auto_2eff90
+0x2effa8 0x2effbc auto/auto_2effa8
+0x2effc0 0x2effd4 auto/auto_2effc0
+0x2effd8 0x2effec auto/auto_2effd8
+0x2efff0 0x2f0004 auto/auto_2efff0
+0x2f0008 0x2f002c auto/auto_2f0008
+0x2f0030 0x2f0044 auto/auto_2f0030
+0x2f0048 0x2f0078 auto/auto_2f0048
+0x002F0078 0x002F0090 auto/m2c_2F0078  # m2c
+0x002F0090 0x002F00A8 auto/m2c_2F0090  # m2c
+0x002F00A8 0x002F00BC battle/xf_2F00A8  # agent F
+0x2f00c0 0x2f00d4 auto/auto_2f00c0
+0x002F00D8 0x002F012C auto/perm_2F00D8  # perm
+0x002F0328 0x002F0388 auto/m2c_2F0328  # m2c
+0x2f0388 0x2f0390 auto/auto_2f0388
+0x002F0390 0x002F03D0 auto/m2c_2F0390  # m2c
+0x002F03E0 0x002F0420 auto/m2c_2F03E0  # m2c
+0x002F0420 0x002F044C auto/m2c_2F0420  # m2c
+0x002F0480 0x002F04AC auto/m2c_2F0480  # m2c
+0x002F0EE0 0x002F0F90 auto/m2c_2F0EE0  # m2c
+0x002F12C8 0x002F1328 auto/m2c_2F12C8  # m2c
+0x2f1328 0x2f1338 auto/auto_2f1328
+0x002F1338 0x002F1350 battle/xf_2F1338  # agent F
+0x2f1350 0x2f139c auto/auto_2f1350
+0x2f13a0 0x2f13b8 auto/auto_2f13a0
+0x002F13B8 0x002F13E8 auto/m2c_2F13B8  # m2c
+0x2f13e8 0x2f1400 auto/auto_2f13e8
+0x2f1460 0x2f146c auto/auto_2f1460
+0x2f1470 0x2f147c auto/auto_2f1470
+0x2f1480 0x2f14b0 auto/auto_2f1480
+0x002F14B0 0x002F14E0 battle/xf_2F14B0  # agent F
+0x2f14e0 0x2f1510 auto/auto_2f14e0
+0x002F1510 0x002F15B8 battle/xf_2F1510  # agent F
+0x002F15E8 0x002F1630 battle/xf_2F15E8  # agent F
+0x2f1748 0x2f1750 auto/auto_2f1748
+0x002F1750 0x002F1768 battle/xf_2F1750  # agent F
+0x2f1768 0x2f17bc auto/auto_2f1768
+0x002F17C0 0x002F17DC auto/m2c_2F17C0  # m2c
+0x002F17E0 0x002F1828 auto/m2c_2F17E0  # m2c
+0x2f1828 0x2f1830 auto/auto_2f1828
+0x002F1830 0x002F187C auto/m2c_2F1830  # m2c
+0x002F1B30 0x002F1B78 auto/m2c_2F1B30  # m2c
+0x002F1BC0 0x002F1BEC auto/m2c_2F1BC0  # m2c
+0x002F1BF0 0x002F1C48 auto/m2c_2F1BF0  # m2c
+0x002F1DD8 0x002F1E04 auto/m2c_2F1DD8  # m2c
+0x002F1E08 0x002F1E48 auto/m2c_2F1E08  # m2c
+0x002F1E48 0x002F1E74 auto/m2c_2F1E48  # m2c
+0x2f1ec8 0x2f1ed0 auto/auto_2f1ec8
+0x002F1ED0 0x002F1F08 auto/m2c_2F1ED0  # m2c
+0x2f1f08 0x2f1f10 auto/auto_2f1f08
+0x002F1F10 0x002F1F58 auto/m2c_2F1F10  # m2c
+0x002F1F58 0x002F1F74 auto/m2c_2F1F58  # m2c
+0x002F1F78 0x002F1FB0 auto/m2c_2F1F78  # m2c
+0x002F2000 0x002F2038 auto/m2c_2F2000  # m2c
+0x002F2078 0x002F20C0 auto/m2c_2F2078  # m2c
+0x002F20C0 0x002F2104 auto/m2c_2F20C0  # m2c
+0x002F2108 0x002F2134 auto/m2c_2F2108  # m2c
+0x002F21A0 0x002F21CC auto/m2c_2F21A0  # m2c
+0x002F21D0 0x002F2220 auto/perm_2F21D0  # perm
+0x002F2220 0x002F226C auto/m2c_2F2220  # m2c
+0x2f2270 0x2f227c auto/auto_2f2270
+0x002F2280 0x002F22BC auto/m2c_2F2280  # m2c
+0x002F22D8 0x002F22F0 auto/m2c_2F22D8  # m2c
+0x002F29C0 0x002F29E8 sys/gfx_c2F29C0  # bt3 copy
+0x002F2A68 0x002F2A90 sys/gfx_c2F2A68  # bt3 copy
+0x2f2a90 0x2f2aa4 auto/auto_2f2a90
+0x2f2aa8 0x2f2ab0 auto/auto_2f2aa8
+0x002F2AB0 0x002F2AF8 auto/m2c_2F2AB0  # m2c
+0x002F2B28 0x002F2B80 auto/m2c_2F2B28  # m2c
+0x002F2B80 0x002F2B98 auto/m2c_2F2B80  # m2c
+0x002F2B98 0x002F2BD0 auto/m2c_2F2B98  # m2c
+0x2f2bd0 0x2f2bd8 auto/auto_2f2bd0
+0x002F2BD8 0x002F2C30 auto/m2c_2F2BD8  # m2c
+0x002F2C40 0x002F2C88 auto/m2c_2F2C40  # m2c
+0x002F2C88 0x002F2C94 auto/m2c_2F2C88  # m2c
+0x2f2c98 0x2f2ca0 auto/auto_2f2c98
+0x002F2CA0 0x002F2CD8 auto/m2c_2F2CA0  # m2c
+0x2f2cd8 0x2f2ce0 auto/auto_2f2cd8
+0x002F2CE0 0x002F2D18 auto/m2c_2F2CE0  # m2c
+0x002F2D18 0x002F2D30 battle/eft_ae_2F2D18  # from BT3-Decompiled
+0x002F2D30 0x002F2D68 auto/m2c_2F2D30  # m2c
+0x2f2d68 0x2f2d70 auto/auto_2f2d68
+0x002F2D70 0x002F2DA8 auto/m2c_2F2D70  # m2c
+0x2f2da8 0x2f2dbc auto/auto_2f2da8
+0x002F2DC0 0x002F2DF8 auto/m2c_2F2DC0  # m2c
+0x2f2df8 0x2f2e0c auto/auto_2f2df8
+0x002F2E10 0x002F2E48 auto/m2c_2F2E10  # m2c
+0x2f2e48 0x2f2e5c auto/auto_2f2e48
+0x002F2E60 0x002F2E9C auto/m2c_2F2E60  # m2c
+0x2f2ea0 0x2f2ea8 auto/auto_2f2ea0
+0x002F2EA8 0x002F2EE0 auto/m2c_2F2EA8  # m2c
+0x2f2ee0 0x2f2ee8 auto/auto_2f2ee0
+0x002F2EE8 0x002F2F14 auto/m2c_2F2EE8  # m2c
+0x002F2F28 0x002F2F70 auto/m2c_2F2F28  # m2c
+0x002F2FC8 0x002F3010 auto/m2c_2F2FC8  # m2c
+0x002F3040 0x002F307C auto/m2c_2F3040  # m2c
+0x002F3100 0x002F313C auto/m2c_2F3100  # m2c
+0x002F3140 0x002F3150 auto/m2c_2F3140  # m2c
+0x002F3150 0x002F318C auto/m2c_2F3150  # m2c
+0x002F31B0 0x002F31DC auto/m2c_2F31B0  # m2c
+0x2f31e0 0x2f31ec auto/auto_2f31e0
+0x002F31F0 0x002F3228 auto/m2c_2F31F0  # m2c
+0x2f3228 0x2f3234 auto/auto_2f3228
+0x002F3238 0x002F3270 auto/m2c_2F3238  # m2c
+0x002F3270 0x002F327C auto/m2c_2F3270  # m2c
+0x002F3280 0x002F32B8 auto/m2c_2F3280  # m2c
+0x2f32b8 0x2f32c0 auto/auto_2f32b8
+0x002F32C0 0x002F32EC auto/m2c_2F32C0  # m2c
+0x002F32F0 0x002F3378 auto/m2c_2F32F0  # m2c
+0x2f3378 0x2f338c auto/auto_2f3378
+0x2f3390 0x2f33a4 auto/auto_2f3390
+0x2f33a8 0x2f33bc auto/auto_2f33a8
+0x002F33C0 0x002F33D4 battle/xf_2F33C0  # agent F
+0x002F33D8 0x002F33EC battle/xf_2F33D8  # agent F
+0x002F33F0 0x002F3408 battle/btl_ai_seq_c2F33F0  # bt3 copy
+0x2f3638 0x2f364c auto/auto_2f3638
+0x2f3650 0x2f3664 auto/auto_2f3650
+0x002F3668 0x002F367C battle/xf_2F3668  # agent F
+0x002F3680 0x002F3694 battle/xf_2F3680  # agent F
+0x002F3698 0x002F36E4 auto/m2c_2F3698  # m2c
+0x002F36E8 0x002F3734 auto/m2c_2F36E8  # m2c
+0x002F3738 0x002F3784 auto/m2c_2F3738  # m2c
+0x2f3788 0x2f3794 auto/auto_2f3788
+0x2f3798 0x2f37a4 auto/auto_2f3798
+0x2f37a8 0x2f37bc auto/auto_2f37a8
+0x2f37c0 0x2f37d4 auto/auto_2f37c0
+0x2f37d8 0x2f37ec auto/auto_2f37d8
+0x2f37f0 0x2f3804 auto/auto_2f37f0
+0x2f3808 0x2f381c auto/auto_2f3808
+0x2f3820 0x2f382c auto/auto_2f3820
+0x2f3830 0x2f383c auto/auto_2f3830
+0x002F3840 0x002F386C auto/m2c_2F3840  # m2c
+0x2f3870 0x2f3884 auto/auto_2f3870
+0x002F3888 0x002F38C0 auto/m2c_2F3888  # m2c
+0x2f38c0 0x2f38d4 auto/auto_2f38c0
+0x002F39D8 0x002F3A30 auto/m2c_2F39D8  # m2c
+0x002F3D48 0x002F3D90 auto/m2c_2F3D48  # m2c
+0x002F3DE8 0x002F3E10 battle/stg_b_c2F3DE8  # bt3 copy
+0x002F3E10 0x002F3E38 battle/stg_b_c2F3E10  # bt3 copy
+0x002F3E38 0x002F3E60 battle/stg_b_c2F3E38  # bt3 copy
+0x002F3E60 0x002F3E8C auto/m2c_2F3E60  # m2c
+0x002F4068 0x002F4090 sys/gfx_c2F4068  # bt3 copy
+0x002F4090 0x002F40F0 auto/m2c_2F4090  # m2c
+0x002F40F0 0x002F4118 sys/gfx_c2F40F0  # bt3 copy
+0x2f4118 0x2f412c auto/auto_2f4118
+0x002F4308 0x002F4344 auto/m2c_2F4308  # m2c
+0x002F4348 0x002F43CC auto/perm_2F4348  # perm
+0x002F43D0 0x002F43FC auto/m2c_2F43D0  # m2c
+0x002F44A0 0x002F44CC auto/m2c_2F44A0  # m2c
+0x002F4590 0x002F45C8 auto/m2c_2F4590  # m2c
+0x002F45C8 0x002F45F8 auto/m2c_2F45C8  # m2c
+0x002F45F8 0x002F4624 auto/m2c_2F45F8  # m2c
+0x002F4660 0x002F46AC auto/m2c_2F4660  # m2c
+0x002F4778 0x002F47C4 auto/m2c_2F4778  # m2c
+0x002F48F8 0x002F4910 auto/m2c_2F48F8  # m2c
+0x002F4910 0x002F495C auto/m2c_2F4910  # m2c
+0x002F4C58 0x002F4C90 auto/m2c_2F4C58  # m2c
+0x002F4CE0 0x002F4D18 auto/m2c_2F4CE0  # m2c
+0x002F4D68 0x002F4DA0 auto/m2c_2F4D68  # m2c
+0x002F4DF0 0x002F4E28 auto/m2c_2F4DF0  # m2c
+0x002F4E78 0x002F4EB0 auto/m2c_2F4E78  # m2c
+0x002F4F00 0x002F4F38 auto/m2c_2F4F00  # m2c
+0x002F4F88 0x002F4FD4 auto/m2c_2F4F88  # m2c
+0x002F50F0 0x002F5138 auto/m2c_2F50F0  # m2c
+0x002F5138 0x002F5174 auto/m2c_2F5138  # m2c
+0x002F5178 0x002F51B4 auto/m2c_2F5178  # m2c
+0x002F5240 0x002F5278 auto/m2c_2F5240  # m2c
+0x002F5278 0x002F52A8 auto/m2c_2F5278  # m2c
+0x002F52A8 0x002F52E4 auto/m2c_2F52A8  # m2c
+0x002F5358 0x002F5390 auto/m2c_2F5358  # m2c
+0x002F5390 0x002F53C0 auto/m2c_2F5390  # m2c
+0x002F53C0 0x002F53F8 auto/m2c_2F53C0  # m2c
+0x002F5418 0x002F5460 auto/m2c_2F5418  # m2c
+0x002F5480 0x002F54B8 auto/m2c_2F5480  # m2c
+0x2f54b8 0x2f54d0 auto/auto_2f54b8
+0x002F54D0 0x002F5508 auto/m2c_2F54D0  # m2c
+0x002F5550 0x002F558C auto/m2c_2F5550  # m2c
+0x002F5590 0x002F55C8 auto/m2c_2F5590  # m2c
+0x2f55c8 0x2f55d8 auto/auto_2f55c8
+0x002F55D8 0x002F5604 auto/m2c_2F55D8  # m2c
+0x002F5608 0x002F561C auto/m2c_2F5608  # m2c
+0x002F5620 0x002F565C auto/m2c_2F5620  # m2c
+0x002F5660 0x002F5698 auto/m2c_2F5660  # m2c
+0x002F57A8 0x002F57D4 auto/m2c_2F57A8  # m2c
+0x002F5858 0x002F5894 auto/m2c_2F5858  # m2c
+0x2f58f0 0x2f58f8 auto/auto_2f58f0
+0x002F58F8 0x002F5930 auto/m2c_2F58F8  # m2c
+0x002F5990 0x002F59D8 auto/m2c_2F5990  # m2c
+0x002F59D8 0x002F5A40 auto/m2c_2F59D8  # m2c
+0x002F5A40 0x002F5A80 auto/m2c_2F5A40  # m2c
+0x002F5B68 0x002F5BA0 auto/m2c_2F5B68  # m2c
+0x002F5C10 0x002F5C4C auto/m2c_2F5C10  # m2c
+0x2f5c50 0x2f5c58 auto/auto_2f5c50
+0x002F5C58 0x002F5C90 auto/m2c_2F5C58  # m2c
+0x002F5C90 0x002F5CE4 auto/m2c_2F5C90  # m2c
+0x002F5CE8 0x002F5D10 sys/gfx_c2F5CE8  # bt3 copy
+0x002F5E00 0x002F5E28 sys/gfx_c2F5E00  # bt3 copy
+0x2f5e28 0x2f5e3c auto/auto_2f5e28
+0x002F5E40 0x002F5E78 auto/m2c_2F5E40  # m2c
+0x002F5E78 0x002F5EA8 auto/m2c_2F5E78  # m2c
+0x002F5EA8 0x002F5ED4 auto/m2c_2F5EA8  # m2c
+0x002F5F18 0x002F5F50 auto/m2c_2F5F18  # m2c
+0x002F5F50 0x002F5F80 auto/m2c_2F5F50  # m2c
+0x002F5F80 0x002F5FBC auto/m2c_2F5F80  # m2c
+0x002F60F0 0x002F6128 auto/m2c_2F60F0  # m2c
+0x002F6128 0x002F6158 auto/m2c_2F6128  # m2c
+0x002F6158 0x002F6194 auto/m2c_2F6158  # m2c
+0x002F61C8 0x002F6200 auto/m2c_2F61C8  # m2c
+0x002F6200 0x002F6230 auto/m2c_2F6200  # m2c
+0x002F6230 0x002F626C auto/m2c_2F6230  # m2c
+0x002F63A0 0x002F63D8 auto/m2c_2F63A0  # m2c
+0x002F63D8 0x002F6408 auto/m2c_2F63D8  # m2c
+0x002F6408 0x002F6434 auto/m2c_2F6408  # m2c
+0x2f6438 0x2f644c auto/auto_2f6438
+0x002F6450 0x002F6488 auto/m2c_2F6450  # m2c
+0x2f6488 0x2f649c auto/auto_2f6488
+0x002F64A0 0x002F64EC auto/m2c_2F64A0  # m2c
+0x002F64F0 0x002F653C auto/m2c_2F64F0  # m2c
+0x2f6540 0x2f6550 auto/auto_2f6540
+0x002F6550 0x002F6588 auto/m2c_2F6550  # m2c
+0x2f6588 0x2f6590 auto/auto_2f6588
+0x002F6590 0x002F65BC auto/m2c_2F6590  # m2c
+0x2f65c0 0x2f661c auto/auto_2f65c0
+0x002F6620 0x002F6668 auto/m2c_2F6620  # m2c
+0x002F6750 0x002F6788 auto/m2c_2F6750  # m2c
+0x2f6788 0x2f6790 auto/auto_2f6788
+0x002F6790 0x002F67CC auto/m2c_2F6790  # m2c
+0x2f67d0 0x2f67d8 auto/auto_2f67d0
+0x002F67D8 0x002F6820 auto/m2c_2F67D8  # m2c
+0x2f6820 0x2f6838 auto/auto_2f6820
+0x002F6838 0x002F6874 auto/m2c_2F6838  # m2c
+0x002F6878 0x002F68AC auto/m2c_2F6878  # m2c
+0x002F68B0 0x002F68E8 auto/m2c_2F68B0  # m2c
+0x2f68e8 0x2f68f0 auto/auto_2f68e8
+0x002F68F0 0x002F693C auto/m2c_2F68F0  # m2c
+0x002F6940 0x002F6958 battle/xf_2F6940  # agent F
+0x002F6958 0x002F6990 auto/m2c_2F6958  # m2c
+0x002F6990 0x002F69C8 auto/m2c_2F6990  # m2c
+0x002F69C8 0x002F6A00 auto/m2c_2F69C8  # m2c
+0x002F6A00 0x002F6A38 auto/m2c_2F6A00  # m2c
+0x002F6A38 0x002F6A84 auto/m2c_2F6A38  # m2c
+0x002F6A88 0x002F6AB8 auto/m2c_2F6A88  # m2c
+0x002F6B90 0x002F6BE8 auto/m2c_2F6B90  # m2c
+0x002F6E48 0x002F6E84 auto/m2c_2F6E48  # m2c
+0x002F6E88 0x002F6EB8 auto/m2c_2F6E88  # m2c
+0x002F6EB8 0x002F6EE4 auto/m2c_2F6EB8  # m2c
+0x2f6ee8 0x2f6efc auto/auto_2f6ee8
+0x002F6F00 0x002F6F38 auto/m2c_2F6F00  # m2c
+0x2f6f38 0x2f6f40 auto/auto_2f6f38
+0x002F6F40 0x002F6F7C auto/m2c_2F6F40  # m2c
+0x2f6f80 0x2f6f98 auto/auto_2f6f80
+0x002F6F98 0x002F6FD4 auto/m2c_2F6F98  # m2c
+0x002F6FD8 0x002F6FF0 battle/xf_2F6FD8  # agent F
+0x002F6FF0 0x002F7028 auto/m2c_2F6FF0  # m2c
+0x002F7028 0x002F7040 battle/xf_2F7028  # agent F
+0x002F7040 0x002F708C auto/m2c_2F7040  # m2c
+0x002F7188 0x002F71E4 auto/m2c_2F7188  # m2c
+0x002F72A0 0x002F72DC auto/m2c_2F72A0  # m2c
+0x002F7300 0x002F733C auto/m2c_2F7300  # m2c
+0x002F7358 0x002F73A4 auto/m2c_2F7358  # m2c
+0x002F7480 0x002F74CC auto/m2c_2F7480  # m2c
+0x002F7640 0x002F767C auto/m2c_2F7640  # m2c
+0x002F7700 0x002F77B8 auto/m2c_2F7700  # m2c
+0x002F7A18 0x002F7A80 auto/m2c_2F7A18  # m2c
+0x002F8178 0x002F818C auto/m2c_2F8178  # m2c
+0x2f8618 0x2f8620 auto/auto_2f8618
+0x002F8960 0x002F89E0 auto/perm_2F8960  # perm
+0x002F8A78 0x002F8AA4 auto/m2c_2F8A78  # m2c
+0x002F8B70 0x002F8BA8 auto/m2c_2F8B70  # m2c
+0x002F8C18 0x002F8C3C auto/m2c_2F8C18  # m2c
+0x002F8C40 0x002F8C64 auto/m2c_2F8C40  # m2c
+0x002F8D60 0x002F8D84 auto/m2c_2F8D60  # m2c
+0x002F8D88 0x002F8DAC auto/m2c_2F8D88  # m2c
+0x002F8DC0 0x002F8DDC auto/m2c_2F8DC0  # m2c
+0x2f8e18 0x2f8e28 auto/auto_2f8e18
+0x002F8EB8 0x002F8ED4 auto/m2c_2F8EB8  # m2c
+0x002F8ED8 0x002F8EFC auto/m2c_2F8ED8  # m2c
+0x002F8F00 0x002F8F18 auto/m2c_2F8F00  # m2c
+0x2f8f18 0x2f8f20 auto/auto_2f8f18
+0x002F8F20 0x002F8F30 auto/m2c_2F8F20  # m2c
+0x002F9028 0x002F9088 auto/m2c_2F9028  # m2c
+0x002F9108 0x002F911C auto/m2c_2F9108  # m2c
+0x002F9208 0x002F927C auto/perm_2F9208  # perm
+0x2f9300 0x2f9324 auto/auto_2f9300
+0x002F93B0 0x002F9464 auto/m2c_2F93B0  # m2c
+0x2f98e0 0x2f98ec auto/auto_2f98e0
+0x002F9FB8 0x002FA01C auto/m2c_2F9FB8  # m2c
+0x002FA218 0x002FA274 auto/m2c_2FA218  # m2c
+0x002FA278 0x002FA2D0 auto/m2c_2FA278  # m2c
+0x002FA2D0 0x002FA318 auto/m2c_2FA2D0  # m2c
+0x002FABF0 0x002FAC18 auto/m2c_2FABF0  # m2c
+0x2fada8 0x2fadb0 auto/auto_2fada8
+0x002FB158 0x002FB1F0 auto/m2c_2FB158  # m2c
+0x002FB1F0 0x002FB210 sys/vu0_a_c_c_c2FB1F0  # bt3 copy
+0x002FB4C0 0x002FB51C auto/m2c_2FB4C0  # m2c
+0x2fb818 0x2fb820 auto/auto_2fb818
+0x002FB850 0x002FB878 auto/m2c_2FB850  # m2c
+0x2fbb00 0x2fbb1c auto/auto_2fbb00
+0x002FBCA8 0x002FBCB4 auto/m2c_2FBCA8  # m2c
+0x2fbcb8 0x2fbcc4 auto/auto_2fbcb8
+0x002FBCC8 0x002FBCD4 auto/m2c_2FBCC8  # m2c
+0x2fbcd8 0x2fbce4 auto/auto_2fbcd8
+0x2fc0a0 0x2fc0ac auto/auto_2fc0a0
+0x002FC1B8 0x002FC1C4 auto/m2c_2FC1B8  # m2c
+0x2fc1c8 0x2fc1d4 auto/auto_2fc1c8
+0x002FC320 0x002FC330 auto/m2c_2FC320  # m2c
+0x002FC330 0x002FC36C auto/m2c_2FC330  # m2c
+0x002FC580 0x002FC5BC auto/m2c_2FC580  # m2c
+0x2fc5c0 0x2fc5cc auto/auto_2fc5c0
+0x2fc628 0x2fc634 auto/auto_2fc628
+0x002FC638 0x002FC66C auto/m2c_2FC638  # m2c
+0x002FC670 0x002FC6A4 auto/m2c_2FC670  # m2c
+0x002FC6A8 0x002FC72C auto/m2c_2FC6A8  # m2c
+0x002FC7E8 0x002FC85C auto/m2c_2FC7E8  # m2c
+0x002FC860 0x002FC8C4 auto/m2c_2FC860  # m2c
+0x002FC8C8 0x002FC91C auto/m2c_2FC8C8  # m2c
+0x002FC920 0x002FC994 auto/m2c_2FC920  # m2c
+0x002FCB88 0x002FCBA0 auto/m2c_2FCB88  # m2c
+0x2fce58 0x2fce64 auto/auto_2fce58
+0x2fce68 0x2fce74 auto/auto_2fce68
+0x002FD0D8 0x002FD150 auto/perm_2FD0D8  # perm
+0x002FD488 0x002FD500 auto/perm_2FD488  # perm
+0x002FD500 0x002FD514 auto/m2c_2FD500  # m2c
+0x002FD8A8 0x002FD900 auto/m2c_2FD8A8  # m2c
+0x2fdc98 0x2fdca0 auto/auto_2fdc98
+0x2fdcf0 0x2fdcfc auto/auto_2fdcf0
+0x2fdd00 0x2fdd0c auto/auto_2fdd00
+0x002FDD10 0x002FDD30 auto/m2c_2FDD10  # m2c
+0x002FDD30 0x002FDD3C auto/m2c_2FDD30  # m2c
+0x2fde08 0x2fde24 auto/auto_2fde08
+0x2fde28 0x2fde38 auto/auto_2fde28
+0x002FDF58 0x002FDFFC auto/m2c_2FDF58  # m2c
+0x002FE000 0x002FE034 auto/m2c_2FE000  # m2c
+0x002FE038 0x002FE08C auto/m2c_2FE038  # m2c
+0x002FE6A0 0x002FE6C4 auto/m2c_2FE6A0  # m2c
+0x2fec80 0x2fec8c auto/auto_2fec80
+0x002FEC90 0x002FECA4 battle/xf_2FEC90  # agent F
+0x002FEE88 0x002FEEA0 auto/m2c_2FEE88  # m2c
+0x002FEEA0 0x002FEEF4 auto/m2c_2FEEA0  # m2c
+0x002FF640 0x002FF664 auto/m2c_2FF640  # m2c
+0x002FF668 0x002FF6B4 auto/m2c_2FF668  # m2c
+0x002FF838 0x002FF868 auto/m2c_2FF838  # m2c
+0x2ff8e8 0x2ff8f4 auto/auto_2ff8e8
+0x2ff960 0x2ff96c auto/auto_2ff960
+0x2ff970 0x2ff97c auto/auto_2ff970
+0x2ff980 0x2ff98c auto/auto_2ff980
+0x2ff990 0x2ff99c auto/auto_2ff990
+0x002FF9A0 0x002FFA00 auto/m2c_2FF9A0  # m2c
+0x002FFA00 0x002FFA38 auto/m2c_2FFA00  # m2c
+0x002FFB40 0x002FFB6C auto/m2c_2FFB40  # m2c
+0x002FFB70 0x002FFBC0 auto/m2c_2FFB70  # m2c
+0x002FFBC0 0x002FFBFC auto/m2c_2FFBC0  # m2c
+0x2ffc00 0x2ffc08 auto/auto_2ffc00
+0x002FFC08 0x002FFC50 auto/m2c_2FFC08  # m2c
+0x002FFE88 0x002FFEB4 auto/m2c_2FFE88  # m2c
+0x002FFEF8 0x002FFF24 auto/m2c_2FFEF8  # m2c
+0x002FFF90 0x002FFFBC auto/m2c_2FFF90  # m2c
+0x002FFFC0 0x00300044 auto/m2c_2FFFC0  # m2c
+0x00300048 0x00300084 auto/m2c_300048  # m2c
+0x003000C8 0x003000F0 sys/gfx_c3000C8  # bt3 copy
+0x003000F0 0x00300150 auto/m2c_3000F0  # m2c
+0x00300150 0x00300188 auto/m2c_300150  # m2c
+0x00300188 0x003001B8 auto/m2c_300188  # m2c
+0x003001B8 0x003001F0 auto/m2c_3001B8  # m2c
+0x003001F0 0x00300220 auto/m2c_3001F0  # m2c
+0x00300220 0x00300268 auto/m2c_300220  # m2c
+0x003002F8 0x00300340 auto/m2c_3002F8  # m2c
+0x003003D8 0x00300420 auto/m2c_3003D8  # m2c
+0x003004B8 0x00300500 auto/m2c_3004B8  # m2c
+0x00300598 0x003005D4 auto/m2c_300598  # m2c
+0x00300640 0x00300678 auto/m2c_300640  # m2c
+0x00300678 0x003006A8 auto/m2c_300678  # m2c
+0x003006A8 0x003006E8 auto/m2c_3006A8  # m2c
+0x00300720 0x0030075C auto/m2c_300720  # m2c
+0x300790 0x3007b4 auto/auto_300790
+0x3007b8 0x3007cc auto/auto_3007b8
+0x003007D0 0x003007F8 auto/m2c_3007D0  # m2c
+0x300888 0x300898 auto/auto_300888
+0x00300918 0x003009D4 auto/perm_300918  # perm
+0x300da0 0x300db4 auto/auto_300da0
+0x300db8 0x300dcc auto/auto_300db8
+0x300e18 0x300e2c auto/auto_300e18
+0x300f50 0x300f58 auto/auto_300f50
+0x00300F58 0x00300FAC auto/m2c_300F58  # m2c
+0x00300FB0 0x00300FC4 auto/m2c_300FB0  # m2c
+0x00300FE8 0x00301040 auto/m2c_300FE8  # m2c
+0x00301818 0x00301840 battle/stg_b_c301818  # bt3 copy
+0x00301840 0x003018E8 auto/perm_301840  # perm
+0x003018E8 0x00301958 auto/m2c_3018E8  # m2c
+0x301958 0x301970 auto/auto_301958
+0x00301970 0x00301990 auto/m2c_301970  # m2c
+0x301990 0x3019c0 auto/auto_301990
+0x003019C0 0x003019D8 battle/btl_ai_seq_c3019C0  # bt3 copy
+0x00302720 0x00302768 auto/perm_302720  # perm
+0x00302770 0x003027A4 auto/m2c_302770  # m2c
+0x003029C8 0x003029EC auto/perm_3029C8  # perm
+0x003029F0 0x00302A04 auto/m2c_3029F0  # m2c
+0x00302F80 0x00302FC8 auto/m2c_302F80  # m2c
+0x003031D8 0x00303220 auto/m2c_3031D8  # m2c
+0x00303220 0x00303268 auto/m2c_303220  # m2c
+0x003035D0 0x00303618 auto/m2c_3035D0  # m2c
+0x00303750 0x0030377C auto/m2c_303750  # m2c
+0x00303950 0x00303998 auto/m2c_303950  # m2c
+0x303998 0x3039a0 auto/auto_303998
+0x003039E8 0x00303A30 auto/m2c_3039E8  # m2c
+0x00303AF8 0x00303B04 auto/m2c_303AF8  # m2c
+0x00303B08 0x00303B14 auto/m2c_303B08  # m2c
+0x00303B18 0x00303B30 auto/m2c_303B18  # m2c
+0x00303B30 0x00303B48 auto/m2c_303B30  # m2c
+0x303bb0 0x303bc4 auto/auto_303bb0
+0x00303BC8 0x00303BE0 sys/gfxm_d_c_c303BC8  # bt3 copy
+0x303be0 0x303bfc auto/auto_303be0
+0x00303C00 0x00303C44 auto/m2c_303C00  # m2c
+0x00303C48 0x00303C78 battle/btl_tech_b_303C48  # from BT3-Decompiled
+0x00303CC8 0x00303CF4 auto/m2c_303CC8  # m2c
+0x00303CF8 0x00303D44 auto/m2c_303CF8  # m2c
+0x00303D48 0x00303D90 auto/m2c_303D48  # m2c
+0x00303E58 0x00303E84 auto/m2c_303E58  # m2c
+0x00303F10 0x00303F48 auto/m2c_303F10  # m2c
+0x00303FA0 0x00303FEC auto/m2c_303FA0  # m2c
+0x00303FF0 0x00304050 auto/perm_303FF0  # perm
+0x00304050 0x0030407C auto/m2c_304050  # m2c
+0x003040E8 0x00304130 auto/m2c_3040E8  # m2c
+0x00304130 0x0030418C auto/m2c_304130  # m2c
+0x00304270 0x003042BC auto/m2c_304270  # m2c
+0x00304360 0x003043AC auto/m2c_304360  # m2c
+0x003044B0 0x00304518 auto/m2c_3044B0  # m2c
+0x3045e8 0x304614 auto/auto_3045e8
+0x00304618 0x0030465C auto/m2c_304618  # m2c
+0x00304660 0x00304690 battle/btl_tech_b_c304660  # bt3 copy
+0x003046E0 0x0030470C auto/m2c_3046E0  # m2c
+0x00304710 0x0030475C auto/m2c_304710  # m2c
+0x00304760 0x003047B8 auto/m2c_304760  # m2c
+0x00304888 0x003048D0 auto/m2c_304888  # m2c
+0x00304988 0x003049E4 auto/m2c_304988  # m2c
+0x003049E8 0x00304A2C auto/perm_3049E8  # perm
+0x00304A30 0x00304A5C auto/m2c_304A30  # m2c
+0x304ae8 0x304afc auto/auto_304ae8
+0x00304B00 0x00304B2C auto/m2c_304B00  # m2c
+0x00304C00 0x00304C5C auto/m2c_304C00  # m2c
+0x00304E00 0x00304E4C auto/m2c_304E00  # m2c
+0x00304FD0 0x0030501C auto/m2c_304FD0  # m2c
+0x00305200 0x00305268 auto/m2c_305200  # m2c
+0x305360 0x305378 auto/auto_305360
+0x00305378 0x00305390 auto/m2c_305378  # m2c
+0x00305390 0x003053A8 auto/m2c_305390  # m2c
+0x003053A8 0x003053C8 sys/fade_c3053A8  # bt3 copy
+0x003053C8 0x0030540C auto/m2c_3053C8  # m2c
+0x00305410 0x00305440 battle/btl_tech_b_c305410  # bt3 copy
+0x00305490 0x003054BC auto/m2c_305490  # m2c
+0x003054C0 0x0030550C auto/m2c_3054C0  # m2c
+0x00305510 0x00305568 auto/m2c_305510  # m2c
+0x00305650 0x0030567C auto/m2c_305650  # m2c
+0x00305708 0x00305740 auto/m2c_305708  # m2c
+0x00305798 0x003057E4 auto/m2c_305798  # m2c
+0x003057E8 0x00305848 auto/perm_3057E8  # perm
+0x00305848 0x00305874 auto/m2c_305848  # m2c
+0x00305950 0x00305998 auto/m2c_305950  # m2c
+0x00305A50 0x00305AAC auto/m2c_305A50  # m2c
+0x00305C00 0x00305C4C auto/m2c_305C00  # m2c
+0x00305D78 0x00305DC4 auto/m2c_305D78  # m2c
+0x00305EE8 0x00305F50 auto/m2c_305EE8  # m2c
+0x00306018 0x00306060 auto/m2c_306018  # m2c
+0x003060F0 0x00306128 auto/m2c_3060F0  # m2c
+0x00306350 0x003063AC auto/m2c_306350  # m2c
+0x003063B0 0x003063E4 auto/m2c_3063B0  # m2c
+0x003068A0 0x003068DC auto/m2c_3068A0  # m2c
+0x306a90 0x306aa4 auto/auto_306a90
+0x00306C40 0x00306CB8 auto/m2c_306C40  # m2c
+0x00306DF8 0x00306E08 auto/m2c_306DF8  # m2c
+0x00306EF8 0x00306F10 battle/btl_facade_306EF8  # from BT3-Decompiled
+0x00306F10 0x00306F28 battle/btl_facade_c306F10  # bt3 copy
+0x306f28 0x306fa0 auto/auto_306f28
+0x00306FA0 0x00306FB8 auto/m2c_306FA0  # m2c
+0x00306FB8 0x00306FD0 auto/m2c_306FB8  # m2c
+0x00306FD0 0x00306FE8 auto/m2c_306FD0  # m2c
+0x00306FE8 0x00307000 auto/m2c_306FE8  # m2c
+0x307000 0x307018 auto/auto_307000
+0x00307148 0x003071B4 auto/m2c_307148  # m2c
+0x307360 0x307378 auto/auto_307360
+0x00307378 0x003073E0 auto/m2c_307378  # m2c
+0x003074A0 0x003074DC auto/m2c_3074A0  # m2c
+0x307968 0x307a28 auto/auto_307968
+0x00307A50 0x00307AF8 auto/m2c_307A50  # m2c
+0x307c20 0x307c38 auto/auto_307c20
+0x00307C68 0x00307C98 auto/m2c_307C68  # m2c
+0x00307C98 0x00307CC8 auto/m2c_307C98  # m2c
+0x307cc8 0x307cd4 auto/auto_307cc8
+0x00307D28 0x00307D74 auto/m2c_307D28  # m2c
+0x00307EA8 0x00307EF8 auto/m2c_307EA8  # m2c
+0x307ef8 0x307f00 auto/auto_307ef8
+0x00308338 0x00308360 auto/m2c_308338  # m2c
+0x00308360 0x003083C0 auto/m2c_308360  # m2c
+0x3083c0 0x3083d8 auto/auto_3083c0
+0x00308428 0x00308448 auto/m2c_308428  # m2c
+0x00309028 0x00309050 auto/m2c_309028  # m2c
+0x0030A5F0 0x0030A618 sys/gfx_c30A5F0  # bt3 copy
+0x0030A6D0 0x0030A6F8 sys/gfx_c30A6D0  # bt3 copy
+0x30a6f8 0x30a70c auto/auto_30a6f8
+0x0030A710 0x0030A748 auto/m2c_30A710  # m2c
+0x30a760 0x30a76c auto/auto_30a760
+0x0030A800 0x0030A898 auto/perm_30A800  # perm
+0x0030A898 0x0030A8F0 auto/m2c_30A898  # m2c
+0x30a8f0 0x30a904 auto/auto_30a8f0
+0x30a908 0x30a91c auto/auto_30a908
+0x30a920 0x30a934 auto/auto_30a920
+0x30a938 0x30a94c auto/auto_30a938
+0x30a950 0x30a964 auto/auto_30a950
+0x30a968 0x30a97c auto/auto_30a968
+0x30a980 0x30a994 auto/auto_30a980
+0x30a998 0x30a9ac auto/auto_30a998
+0x30ad50 0x30ad58 auto/auto_30ad50
+0x0030AE80 0x0030AE98 auto/m2c_30AE80  # m2c
+0x0030AF88 0x0030AFB0 auto/m2c_30AF88  # m2c
+0x0030AFB0 0x0030AFC0 auto/m2c_30AFB0  # m2c
+0x30b070 0x30b084 auto/auto_30b070
+0x30b088 0x30b09c auto/auto_30b088
+0x30b0a0 0x30b0b4 auto/auto_30b0a0
+0x30b0b8 0x30b0cc auto/auto_30b0b8
+0x0030B1B8 0x0030B21C auto/m2c_30B1B8  # m2c
+0x0030B348 0x0030B3C0 auto/perm_30B348  # perm
+0x0030B3C0 0x0030B3D4 auto/m2c_30B3C0  # m2c
+0x0030B8B0 0x0030B94C auto/m2c_30B8B0  # m2c
+0x30bce0 0x30bce8 auto/auto_30bce0
+0x30bd38 0x30bd4c auto/auto_30bd38
+0x0030BDA0 0x0030BDC0 auto/m2c_30BDA0  # m2c
+0x30bf30 0x30bf44 auto/auto_30bf30
+0x30bf48 0x30bf5c auto/auto_30bf48
+0x0030BF60 0x0030BF9C auto/m2c_30BF60  # m2c
+0x0030BFA0 0x0030BFB4 auto/m2c_30BFA0  # m2c
+0x0030BFE8 0x0030C014 auto/m2c_30BFE8  # m2c
+0x0030C058 0x0030C084 auto/m2c_30C058  # m2c
+0x0030C088 0x0030C0A0 auto/m2c_30C088  # m2c
+0x0030C0A0 0x0030C0E8 auto/m2c_30C0A0  # m2c
+0x0030C1E8 0x0030C214 auto/m2c_30C1E8  # m2c
+0x0030C238 0x0030C264 auto/m2c_30C238  # m2c
+0x0030C2A8 0x0030C308 auto/m2c_30C2A8  # m2c
+0x0030C478 0x0030C4D4 auto/m2c_30C478  # m2c
+0x0030C678 0x0030C6C4 auto/m2c_30C678  # m2c
+0x0030C778 0x0030C7B4 auto/m2c_30C778  # m2c
+0x0030C840 0x0030C854 battle/xf_30C840  # agent F
+0x30c858 0x30c864 auto/auto_30c858
+0x30d5f8 0x30d60c auto/auto_30d5f8
+0x30d610 0x30d624 auto/auto_30d610
+0x30d628 0x30d63c auto/auto_30d628
+0x30d640 0x30d654 auto/auto_30d640
+0x30d658 0x30d66c auto/auto_30d658
+0x0030D670 0x0030D688 sys/gfxm_d_c_c30D670  # bt3 copy
+0x30ff50 0x30ff5c auto/auto_30ff50
+0x3114d8 0x3114e8 auto/auto_3114d8
+0x00312040 0x00312054 auto/m2c_312040  # m2c
+0x003122F8 0x00312330 auto/m2c_3122F8  # m2c
+0x00312400 0x00312414 auto/m2c_312400  # m2c
+0x00312F60 0x00312F7C auto/m2c_312F60  # m2c
+0x316210 0x316218 auto/auto_316210
+0x003162E8 0x003162F8 auto/m2c_3162E8  # m2c
+0x00316378 0x00316384 auto/m2c_316378  # m2c
+0x00316388 0x00316398 auto/m2c_316388  # m2c
+0x003163B0 0x003163D0 auto/m2c_3163B0  # m2c
+0x00316440 0x0031644C auto/m2c_316440  # m2c
+0x00316588 0x003165DC auto/m2c_316588  # m2c
+0x00316660 0x00316670 auto/m2c_316660  # m2c
+0x00316670 0x0031667C auto/m2c_316670  # m2c
+0x00316680 0x0031668C auto/m2c_316680  # m2c
+0x00316690 0x0031669C auto/m2c_316690  # m2c
+0x003166A0 0x003166AC auto/m2c_3166A0  # m2c
+0x003166B0 0x003166C0 auto/m2c_3166B0  # m2c
+0x003167C0 0x003167CC auto/m2c_3167C0  # m2c
+0x003167D0 0x003167DC auto/m2c_3167D0  # m2c
+0x00316850 0x00316868 auto/m2c_316850  # m2c
+0x00322880 0x003228C4 auto/m2c_322880  # m2c
+0x003228C8 0x00322920 auto/m2c_3228C8  # m2c
+0x00322FF8 0x00323028 auto/m2c_322FF8  # m2c
+0x00323090 0x003230C0 auto/m2c_323090  # m2c
+0x00323180 0x003231A0 battle/eft_ad_b_c323180  # bt3 copy
+0x00324448 0x003244AC auto/m2c_324448  # m2c
+0x00324678 0x003246CC auto/m2c_324678  # m2c
+0x003246D0 0x00324718 auto/m2c_3246D0  # m2c
+0x003252A0 0x0032531C auto/m2c_3252A0  # m2c
+0x00325370 0x00325388 auto/m2c_325370  # m2c
+0x003256A8 0x003256C8 auto/m2c_3256A8  # m2c
+0x003256C8 0x003256EC auto/m2c_3256C8  # m2c
+0x003256F0 0x0032570C auto/m2c_3256F0  # m2c
+0x00325710 0x00325730 auto/m2c_325710  # m2c
+0x00325790 0x003257A8 sys/gfxm_d_c_c325790  # bt3 copy
+0x3258c0 0x3258c8 auto/auto_3258c0
+0x003266F0 0x0032671C auto/m2c_3266F0  # m2c
+0x00326950 0x0032697C auto/m2c_326950  # m2c
+0x329358 0x32938c auto/auto_329358
+0x0032AB30 0x0032AB4C auto/m2c_32AB30  # m2c
+0x0032B548 0x0032B5DC auto/m2c_32B548  # m2c
+0x32b670 0x32b67c auto/auto_32b670
+0x0032B680 0x0032B6A4 auto/m2c_32B680  # m2c
+0x0032B6A8 0x0032B6C4 auto/m2c_32B6A8  # m2c
+0x0032BAE0 0x0032BB0C auto/m2c_32BAE0  # m2c
+0x0032CA50 0x0032CA84 auto/m2c_32CA50  # m2c
+0x0032CDE0 0x0032CDFC auto/m2c_32CDE0  # m2c
+0x0032DD18 0x0032DD3C auto/m2c_32DD18  # m2c
+0x32e840 0x32eb80 auto/auto_32e840
+0x32eb90 0x32f0e0 auto/auto_32eb90
+0x0032F0E0 0x0032F0EC auto/m2c_32F0E0  # m2c
+0x0032F320 0x0032F348 auto/perm_32F320  # perm
+0x32f348 0x32f360 auto/auto_32f348
+0x32f410 0x32f418 auto/auto_32f410
+0x0032F438 0x0032F460 auto/m2c_32F438  # m2c
+0x0032F460 0x0032F488 auto/perm_32F460  # perm
+0x0032F488 0x0032F4B0 auto/perm_32F488  # perm
+0x00331830 0x0033183C auto/m2c_331830  # m2c
+0x331878 0x331884 auto/auto_331878
+0x00331B08 0x00331B3C auto/m2c_331B08  # m2c
+0x00336EC8 0x00336EE8 sys/mem_read_c336EC8  # bt3 copy
+0x003379E0 0x00337A00 sys/mem_read_c3379E0  # bt3 copy
+0x338330 0x33833c auto/auto_338330
+0x338340 0x338350 auto/auto_338340
+0x3383c8 0x3383d8 auto/auto_3383c8
+0x338510 0x338520 auto/auto_338510
+0x00338520 0x00338574 auto/m2c_338520  # m2c
+0x338578 0x338598 auto/auto_338578
+0x3385d0 0x3385e0 auto/auto_3385d0
+0x3386f8 0x338708 auto/auto_3386f8
+0x338738 0x338748 auto/auto_338738
+0x338998 0x3389b8 auto/auto_338998
+0x3389f0 0x338a00 auto/auto_3389f0
+0x33a7b8 0x33a7c8 auto/auto_33a7b8
+0x33a800 0x33a820 auto/auto_33a800
+0x33a8e8 0x33a918 auto/auto_33a8e8
+0x33a948 0x33a9a8 auto/auto_33a948
+0x33b670 0x33b67c auto/auto_33b670

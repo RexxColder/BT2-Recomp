@@ -1,0 +1,19 @@
+--- a/port/eq/1F3830.c
++++ b/port/eq/1F3830.c
+@@ -1,5 +1,4 @@
+ #include "common.h"
+-void bt2_fightlog_note(const char *fmt, ...); /* TEMP TEX0 */
+ 
+ extern u8 *gEftVram;
+ 
+@@ -36,9 +35,5 @@
+     *(s32 *)(ga + 0x804) = *(s32 *)(ga + 0x804) + temp_t1;
+     *(s32 *)(ga + 0x808) = *(s32 *)(ga + 0x808) + *(s32 *)(tex8 + 0x14);
+     *(s32 *)(ga + 0x800) = idx + 1;
+-    {   /* TEMP TEX0: report TEX0 without TCC and without CBP (white-square signature) */
+-        s64 r_ = temp_v0 | ((s64)temp_t0 << 37) | (((s64)arg1 << 34) | (s64)temp_t2) | ((s64)arg2 << 35);
+-        if ((u32)(r_ >> 32) == 0) bt2_fightlog_note("TEX0ADDTEX %llx tcc %d tfx %d clutblk %x hdrhi %x ret %p", (unsigned long long)r_, arg1, arg2, temp_t0, (u32)(*(u64 *)arg0 >> 32), __builtin_return_address(0));
+-        return r_;
+-    }
++    return temp_v0 | ((s64)temp_t0 << 37) | (((s64)arg1 << 34) | (s64)temp_t2) | ((s64)arg2 << 35);
+ }

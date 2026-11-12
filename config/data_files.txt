@@ -1,0 +1,39 @@
+.rodata 0x0036DB70 0x0036DB90 battle/eft_b_131760  # from BT3-Decompiled
+.rodata 0x0036F2A0 0x0036F2D0 battle/eft_det_a_1F4160  # from BT3-Decompiled
+.rodata 0x0036F310 0x0036F4A0 auto/jt_1FD138  # jtbl
+.rodata 0x0036F4A0 0x0036F4E8 auto/jt_1FD1A8  # jtbl
+.rodata 0x0036F840 0x0036F874 battle/btl_char_fx_203D70  # from BT3-Decompiled
+.rodata 0x0036FFC0 0x0037004C auto/jt_21AE38  # jtbl
+.rodata 0x003700A0 0x003700B4 auto/jt_21B608  # jtbl
+.rodata 0x00371E80 0x00371FC4 auto/jt_23F2D8  # jtbl
+.rodata 0x00372018 0x00372040 battle/btl_tech_a_23F770  # from BT3-Decompiled
+.rodata 0x00374960 0x003749A0 auto/jt_24AF50  # jtbl
+.rodata 0x003749A0 0x00374A04 auto/jt_24B3D8  # jtbl
+.rodata 0x00376540 0x00376550 sys/gfxm_d_c_2627D0  # from BT3-Decompiled
+.rodata 0x00376650 0x00376710 sys/gfxm_d_c_267818  # from BT3-Decompiled
+.rodata 0x00376710 0x00376790 sys/gfxm_e_268368  # from BT3-Decompiled
+.rodata 0x00376948 0x00376978 sys/dma_c271370  # bt3 copy
+.rodata 0x00376978 0x003769A8 sys/dma_2716B8  # from BT3-Decompiled
+.rodata 0x00376A60 0x00376A70 sys/gfxm_d_c_c273A60  # bt3 copy
+.rodata 0x00376A70 0x00376AC0 battle/stgm_a_275D28  # from BT3-Decompiled
+.rodata 0x00376B50 0x00376B60 battle/stg_a_b_2764E8  # from BT3-Decompiled
+.rodata 0x003778F0 0x00377924 battle/col_c_2A1A88  # from BT3-Decompiled
+.rodata 0x00377F00 0x00377F18 auto/jt_2B3C30  # jtbl
+.rodata 0x00379F70 0x00379F84 auto/jt_2BCB10  # jtbl
+.rodata 0x0037A860 0x0037A880 auto/jt_2D5A18  # jtbl
+.lit4 0x003842B4 0x003842C4 battle/eft_c_136558  # from BT3-Decompiled
+.lit4 0x003844C0 0x003844C4 battle/eft_e_13EF88  # from BT3-Decompiled
+.lit4 0x003849EC 0x003849F8 battle/eft_m_17A188  # from BT3-Decompiled
+.lit4 0x00384B58 0x00384B5C battle/eft_o_17FFF0  # from BT3-Decompiled
+.lit4 0x00384CD0 0x00384CD4 battle/eft_p_b_197800  # from BT3-Decompiled
+.lit4 0x00384D64 0x00384D68 battle/eft_q_19A0E0  # from BT3-Decompiled
+.lit4 0x00386E10 0x00386E14 battle/btl_cam_25C298  # from BT3-Decompiled
+.lit4 0x00386EF4 0x00386F04 battle/btl_char_get_c26A440  # bt3 copy
+.lit4 0x00386F68 0x00386F78 battle/btl_char_get_c26B030  # bt3 copy
+.lit4 0x00386FDC 0x00386FE0 battle/stg_a_b_273FC0  # from BT3-Decompiled
+.lit4 0x003870EC 0x003870F0 battle/stg_d_28CEE8  # from BT3-Decompiled
+.lit4 0x0038718C 0x00387190 battle/col_b_2939B0  # from BT3-Decompiled
+.lit4 0x0038722C 0x00387230 sys/math3d_299DE8  # from BT3-Decompiled
+.lit4 0x003872B0 0x003872B4 sys/math3d_29B7C0  # from BT3-Decompiled
+.lit4 0x003872B4 0x003872B8 sys/ramp_29BAC0  # from BT3-Decompiled
+.sdata 0x00387B18 0x00387B1C sys/misc_a_287110  # from BT3-Decompiled

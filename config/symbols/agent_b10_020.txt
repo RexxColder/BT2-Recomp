@@ -1,0 +1,1 @@
+EftBound_BuildWall = 0x00144258; // type:func

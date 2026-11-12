@@ -1,0 +1,40 @@
+Stubs temporales de funciones DEL JUEGO sin C (port/full/temp_stubs.c). Fecha 2026-10-13.
+Son definiciones DEBILES: cuando exista el C en src/ o port/eq/, el enlace usa el C y el stub se ignora solo.
+Escritas a mano desde el asm (scratch/m2c_sweep/<ADDR8>.s) porque el juego no sigue sin ellas.
+func_00100258  pantalla: sceGsResetGraph/SetDefDBuff/FlushCache/SyncV/PutDrawEnv x2. Vacia: en headless no hay GS.
+func_0028AFA0  reserva 4 buffers de DMA (func_0028BAA8) y fija gDmaCur. Reproducida del asm.
+func_0028BC08  inicializa D_0038A638 (0x60 bytes) y su primera entrada. Reproducida del asm.
+func_00102360  reinicia la estructura de D_003876A4 (memsets + 5 entradas). Reproducida del asm.
+
+--- Alcanzadas por el arranque hasta el overlay (BT2_STUB_LOG=1 las imprime), todas devuelven 0 ---
+Son CRI (middleware ADX: ADXT_Init func_002ED220, ADXM/ADXT callbacks, 0x2F3xxx-0x30Axxx; varios con nombres de la tabla de simbolos
+que son homonimos falsos: Hud_Term, BtlPause_Term, BtlEvent_SetWaitOff). Su sustitucion real es la etapa 6 (sonido/CRI).
+00284AC8 func_00284AC8
+002F3DE8 func_002F3DE8
+002F3E10 func_002F3E10
+002F3E38 func_002F3E38
+002FE2C0 func_002FE2C0
+00300898 func_00300898
+00300DD0 func_00300DD0
+00302278 func_00302278
+00303B48 Hud_Term
+00303C78 BtlPause_Term
+00304690 func_00304690
+003047B8 func_003047B8
+00305440 func_00305440
+00306E08 BtlEvent_SetWaitOff
+00306E68 func_00306E68
+00307028 func_00307028
+003073E0 func_003073E0
+00307590 func_00307590
+00307700 func_00307700
+00307798 func_00307798
+003077D8 func_003077D8
+003077F0 func_003077F0
+00307AF8 func_00307AF8
+0030A450 func_0030A450
+0030A9B0 func_0030A9B0
+
+Lista completa (referenciadas o solo en la tabla de punteros, regenerada en cada enlace): port/full/TEMP_STUBS_AUTO.txt
+Motivo general: el C del juego/CRI aun no existe (batch 10) y el overlay DBZP.BIN (507 funciones en 0x3B3100..0x421300) no tiene C.
+func_3B7FA8 (Progress_Main del overlay): fin controlado con informe (temp_stubs.c) en vez de caer en Battle_Main sin batalla.

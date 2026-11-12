@@ -1,0 +1,312 @@
+From f887d7c5817ce1c8b3f981e26d2efc2e41cf08ce Mon Sep 17 00:00:00 2001
+From: RexxColder <palettafacundo@gmail.com>
+Date: Thu, 8 Oct 2026 04:43:58 -0300
+Subject: [PATCH 2/9] Boot argv[0] like the console kernel; one ISO9660 LSN
+ space for EE and IOP CD searches and reads
+
+---
+ ps2xIOP/include/ps2x/iop/iso9660.h            | 103 ++++++++++++++++++
+ ps2xIOP/src/emulator/imports/iop_cdvd.cpp     |  60 +++++++---
+ ps2xRuntime/src/lib/Kernel/Stubs/CD.cpp       |  34 ++++++
+ .../src/lib/Kernel/Syscalls/System.cpp        |  19 ++++
+ 4 files changed, 198 insertions(+), 18 deletions(-)
+ create mode 100644 ps2xIOP/include/ps2x/iop/iso9660.h
+
+diff --git a/ps2xIOP/include/ps2x/iop/iso9660.h b/ps2xIOP/include/ps2x/iop/iso9660.h
+new file mode 100644
+index 0000000..5b87483
+--- /dev/null
++++ b/ps2xIOP/include/ps2x/iop/iso9660.h
+@@ -0,0 +1,103 @@
++#pragma once
++
++#include <array>
++#include <cctype>
++#include <cstdint>
++#include <cstring>
++#include <functional>
++#include <string>
++#include <string_view>
++#include <vector>
++
++namespace ps2x::iop
++{
++    // A file found on an ISO9660 disc: what sceCdSearchFile reports (sceCdlFILE lsn/size).
++    struct IsoEntry
++    {
++        uint32_t lsn = 0u;
++        uint32_t size = 0u;
++        bool directory = false;
++    };
++
++    // Reads one 2048-byte sector of the disc; false when the sector does not exist.
++    using IsoSectorReader = std::function<bool(uint32_t lsn, uint8_t *destination)>;
++
++    namespace iso_detail
++    {
++        inline std::string isoKey(std::string_view name)
++        {
++            const size_t version = name.find(';');
++            if (version != std::string_view::npos)
++                name = name.substr(0u, version);
++            while (!name.empty() && name.back() == '.')
++                name.remove_suffix(1u);
++            std::string key(name);
++            for (char &c : key)
++                c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
++            return key;
++        }
++
++        inline uint32_t le32(const uint8_t *p)
++        {
++            return static_cast<uint32_t>(p[0]) | (static_cast<uint32_t>(p[1]) << 8) |
++                   (static_cast<uint32_t>(p[2]) << 16) | (static_cast<uint32_t>(p[3]) << 24);
++        }
++    }
++
++    // Walks the directory records of a real disc layout, so the LSNs match what a sector read returns.
++    // `path` may carry a device ("cdrom0:"), '\\' or '/' separators and ";1" versions; the match ignores case.
++    inline bool isoFindFile(const IsoSectorReader &read, std::string_view path, IsoEntry &out)
++    {
++        constexpr uint32_t kSector = 2048u;
++        std::array<uint8_t, kSector> sector{};
++        if (!read(16u, sector.data()) || sector[0] != 1u || std::memcmp(sector.data() + 1u, "CD001", 5u) != 0)
++            return false;
++        IsoEntry current{iso_detail::le32(sector.data() + 156u + 2u), iso_detail::le32(sector.data() + 156u + 10u), true};
++
++        if (const size_t colon = path.find(':'); colon != std::string_view::npos)
++            path = path.substr(colon + 1u);
++
++        size_t begin = 0u;
++        while (begin < path.size())
++        {
++            size_t end = path.find_first_of("\\/", begin);
++            if (end == std::string_view::npos)
++                end = path.size();
++            const std::string wanted = iso_detail::isoKey(path.substr(begin, end - begin));
++            begin = end + 1u;
++            if (wanted.empty() || wanted == ".")
++                continue;
++            if (!current.directory)
++                return false;
++
++            bool found = false;
++            const uint32_t sectors = (current.size + kSector - 1u) / kSector;
++            for (uint32_t s = 0u; s < sectors && !found; ++s)
++            {
++                if (!read(current.lsn + s, sector.data()))
++                    return false;
++                for (uint32_t offset = 0u; offset < kSector;)
++                {
++                    const uint8_t length = sector[offset];
++                    if (length == 0u)
++                        break; // records never cross a sector; the rest is padding
++                    const uint8_t idLength = sector[offset + 32u];
++                    const std::string_view id(reinterpret_cast<const char *>(sector.data() + offset + 33u), idLength);
++                    if (!(idLength == 1u && (id[0] == '\0' || id[0] == '\1')) && iso_detail::isoKey(id) == wanted)
++                    {
++                        current = IsoEntry{iso_detail::le32(sector.data() + offset + 2u),
++                                           iso_detail::le32(sector.data() + offset + 10u),
++                                           (sector[offset + 25u] & 0x02u) != 0u};
++                        found = true;
++                        break;
++                    }
++                    offset += length;
++                }
++            }
++            if (!found)
++                return false;
++        }
++        out = current;
++        return true;
++    }
++}
+diff --git a/ps2xIOP/src/emulator/imports/iop_cdvd.cpp b/ps2xIOP/src/emulator/imports/iop_cdvd.cpp
+index ad58fb4..a822b4a 100644
+--- a/ps2xIOP/src/emulator/imports/iop_cdvd.cpp
++++ b/ps2xIOP/src/emulator/imports/iop_cdvd.cpp
+@@ -4,11 +4,14 @@
+ #include "../core/iop_kernel.h"
+ #include "../core/iop_memory.h"
+ #include "ps2x/iop/iop_host.h"
++#include "ps2x/iop/iso9660.h"
+ #include "ps2x/iop/ps2_path.h"
+ 
+ #include <algorithm>
+ #include <array>
+ #include <cctype>
++#include <cstdio>
++#include <cstdlib>
+ #include <cstring>
+ #include <filesystem>
+ #include <limits>
+@@ -600,12 +603,31 @@ namespace ps2x::iop::detail
+                 return false;
+ 
+             const std::string guestPath = memory.readString(nameAddress, 1024u);
++            if (std::getenv("PS2X_CD_TRACE"))
++                std::fprintf(stderr, "[iop cdvd] search \"%s\"\n", guestPath.c_str());
++            std::array<uint8_t, 32u> result{};
++            if (!host.hostPath(HostPathKind::CdImage).empty())
++            {
++                // With a disc image the LSNs must be the image's own, the ones sceCdRead will be asked for.
++                IsoEntry entry;
++                if (!isoFindFile([this](uint32_t lsn, uint8_t *dst) { return readImageSectors(lsn, 1u, dst); },
++                                 guestPath, entry))
++                    return false;
++                writeLe32(result.data(), entry.lsn);
++                writeLe32(result.data() + 4u, entry.size);
++                std::string_view leaf(guestPath);
++                if (const size_t slash = leaf.find_last_of("\\/:"); slash != std::string_view::npos)
++                    leaf = leaf.substr(slash + 1u);
++                std::memcpy(result.data() + 8u, leaf.data(), std::min<size_t>(15u, leaf.size()));
++                result[24u] = entry.directory ? 2u : 0u;
++                return memory.writeRam(resultAddress, result.data(), result.size());
++            }
++
+             IsoNode *node = findVirtualIsoNode(guestPath);
+             if (!node)
+                 return false;
+ 
+             // sceCdlFILE: lsn, size, name[16], date/flags[8].
+-            std::array<uint8_t, 32u> result{};
+             writeLe32(result.data(), node->lsn);
+             writeLe32(result.data() + 4u, node->size);
+             const std::string leaf = normalizedIsoComponent(node->identifier);
+@@ -651,8 +673,26 @@ namespace ps2x::iop::detail
+             return host.readHostFile(node->handle, offset, destination, wanted, bytesRead) && bytesRead == wanted;
+         }
+ 
++        bool readImageSectors(uint32_t lsn, uint32_t sectors, uint8_t *destination)
++        {
++            const std::string imagePath = host.hostPath(HostPathKind::CdImage);
++            if (imagePath.empty())
++                return false;
++            if (imageHandle == 0u)
++                imageHandle = host.openHostFile(imagePath);
++            if (imageHandle == 0u)
++                return false;
++            const size_t byteCount = static_cast<size_t>(sectors) * kSectorSize;
++            size_t bytesRead = 0u;
++            return host.readHostFile(imageHandle, static_cast<uint64_t>(lsn) * kSectorSize, destination, byteCount,
++                                     bytesRead) &&
++                   bytesRead == byteCount;
++        }
++
+         bool readSectors(uint32_t lsn, uint32_t sectors, uint32_t destination)
+         {
++            if (std::getenv("PS2X_CD_TRACE"))
++                std::fprintf(stderr, "[iop cdvd] read lsn %u x%u -> %08x\n", lsn, sectors, destination);
+             if (sectors == 0u)
+             {
+                 lastError = kCdvdErrorNone;
+@@ -667,23 +707,7 @@ namespace ps2x::iop::detail
+             const size_t byteCount = static_cast<size_t>(byteCount64);
+             std::vector<uint8_t> bytes(byteCount, 0u);
+ 
+-            bool read = false;
+-            const std::string imagePath = host.hostPath(HostPathKind::CdImage);
+-            if (!imagePath.empty())
+-            {
+-                if (imageHandle == 0u)
+-                    imageHandle = host.openHostFile(imagePath);
+-                if (imageHandle != 0u)
+-                {
+-                    size_t bytesRead = 0u;
+-                    read = host.readHostFile(imageHandle,
+-                                             static_cast<uint64_t>(lsn) * kSectorSize,
+-                                             bytes.data(),
+-                                             byteCount,
+-                                             bytesRead) &&
+-                           bytesRead == byteCount;
+-                }
+-            }
++            bool read = readImageSectors(lsn, sectors, bytes.data());
+ 
+             if (!read && buildVirtualIso())
+             {
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/CD.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/CD.cpp
+index 56a978e..2b3d23a 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/CD.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/CD.cpp
+@@ -1,6 +1,7 @@
+ #include "Common.h"
+ #include "CD.h"
+ #include "MPEG.h"
++#include "ps2x/iop/iso9660.h"
+ #include "runtime/ee_scheduler.h"
+ 
+ namespace ps2_stubs
+@@ -599,6 +600,39 @@ namespace ps2_stubs
+             return;
+         }
+ 
++        const std::filesystem::path cdImage = getCdImagePath();
++        if (!cdImage.empty())
++        {
++            // A disc image keeps its own LSNs: the IOP side (cdvdman/FILEIO drivers) reads those same sectors.
++            ps2x::iop::IsoEntry iso;
++            const bool isoFound = ps2x::iop::isoFindFile(
++                [&](uint32_t lsn, uint8_t *dst) { return readHostRange(cdImage, uint64_t(lsn) * kCdSectorSize, dst, kCdSectorSize); },
++                path, iso);
++            if (!isoFound || iso.directory)
++            {
++                std::cerr << "sceCdSearchFile failed: " << sanitizeForLog(path) << " (image: " << cdImage.string() << ")"
++                          << std::endl;
++                g_lastCdError = -1;
++                setReturnS32(ctx, 0);
++                return;
++            }
++            CdFileEntry isoEntry;
++            isoEntry.baseLbn = iso.lsn;
++            isoEntry.sizeBytes = iso.size;
++            isoEntry.sectors = sectorsForBytes(iso.size);
++            if (!writeCdSearchResult(rdram, fileAddr, path, isoEntry))
++            {
++                g_lastCdError = -1;
++                setReturnS32(ctx, 0);
++                return;
++            }
++            g_cdStreamingLbn = isoEntry.baseLbn;
++            g_cdStreamingEndLbn = isoEntry.baseLbn + isoEntry.sectors;
++            g_lastCdError = 0;
++            setReturnS32(ctx, 1);
++            return;
++        }
++
+         CdFileEntry entry;
+         bool found = registerCdFile(path, entry);
+         CdFileEntry resolvedEntry = entry;
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp b/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
+index 9614016..ff757ac 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
+@@ -531,6 +531,25 @@ namespace ps2_syscalls
+         }
+ 
+         scheduler.setupCurrentThread(initialStack, stackSize, getRegU32(ctx, 28));
++
++        // $a3 = crt0's _args { int argc; char *argv[16]; char payload[256]; }. The kernel fills it with the
++        // boot arguments; games read argv[0] to tell a disc boot ("cdrom0:\SLUS_123.45;1") from a dev boot.
++        const uint32_t args = getRegU32(ctx, 7);
++        if (args != 0u && getMemPtr(rdram, args) && getMemPtr(rdram, args + 0x44u + 255u))
++        {
++            std::string name = PS2Runtime::getIoPaths().elfPath.filename().string();
++            std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::toupper(c); });
++            const std::string bootPath = "cdrom0:\\" + name + ";1";
++            const uint32_t payload = args + 0x44u;
++            uint8_t *dst = getMemPtr(rdram, payload);
++            const size_t len = std::min<size_t>(bootPath.size(), 255u);
++            std::memcpy(dst, bootPath.data(), len);
++            dst[len] = 0;
++            const uint32_t argc = 1u;
++            std::memcpy(getMemPtr(rdram, args), &argc, 4);
++            std::memcpy(getMemPtr(rdram, args + 4u), &payload, 4);
++        }
++
+         setReturnU32(ctx, sp);
+     }
+ 
+-- 
+2.56.0
+

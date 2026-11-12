@@ -1,0 +1,29 @@
+// Agent A (range 0x100000-0x158EB0). BT3 names where the code is the same function as in BT3-Decompiled.
+// eft_e (water splashes): same code as BT3 EftWater_AddSplash
+EftWater_AddSplash = 0x0013D298;
+// BT3 name: the transplanted BT3 C of battle/xa_134600.c uses it at this reference (relocation checked)
+gEftBurstRes = 0x00388710;
+// BT3 name: the transplanted BT3 C of battle/xa_134640.c uses it at this reference (relocation checked)
+gEftBurstClass = 0x003400F8;
+// BT3 name: the transplanted BT3 C of battle/xa_134720.c uses it at this reference (relocation checked)
+gEftBurst = 0x00387724;
+// BT3 name: the transplanted BT3 C of battle/xa_12AEE0.c uses it at this reference (relocation checked)
+Vec3_Normalize = 0x00129AE8;
+Mtx_StoreIdentity = 0x00128768;
+// BT3 name: the transplanted BT3 C of battle/xa_12AEE0.c uses it at this reference (relocation checked)
+Vec3_Cross = 0x00129D00;
+EftHit_GetNew = 0x00127098; // type:func
+BtlScene_FillPackEntries = 0x0014E1E0; // type:func
+BtlRec_CallFlagged = 0x001137C8; // type:func
+BtlSlot_FreeBlocks = 0x001560E8; // type:func
+BtlScene_DrawFrame = 0x001263D0; // type:func
+BtlCur_SetByte18 = 0x00107F00; // type:func
+BtlCur_SetByte1D = 0x00107F58; // type:func
+BtlCur_SetByte19 = 0x00107F88; // type:func
+BtlCur_GetByte1D = 0x00107F30; // type:func
+EftHit_BeginFrame = 0x001272A8; // type:func
+EftCam_StopIfRunning = 0x00126ED0; // type:func
+BtlSlot_ResetSubWord = 0x0014A4D0; // type:func
+EftSteam_DrawStage = 0x0013A948; // type:func
+BtlResult_SetWinnerSide = 0x0010AC90; // type:func
+BtlWork_InitOnce = 0x00102450; // type:func

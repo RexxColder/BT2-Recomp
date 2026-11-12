@@ -1,0 +1,9 @@
+EftShot_BitTableUpdate = 0x00156818; // type:func
+EftShot_BitTableUpdate2 = 0x0015CAF8; // type:func
+GsPkt_EmitQuad = 0x001EF8B0; // type:func
+Font_PrintFitted = 0x0024A198; // type:func
+SndFilt_Run3 = 0x002B27B0; // type:func
+Obj_InitFromTemplate = 0x002BEA60; // type:func
+SndFilt_Run3B = 0x002E70B0; // type:func
+Obj_ApplyRecord = 0x001106D8; // type:func
+GsPkt_EmitBox = 0x001431C0; // type:func

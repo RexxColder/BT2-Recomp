@@ -1,0 +1,4 @@
+_root = 0x00100250; // type:func
+Vu0Cur_ClearTrans = 0x00128F88; // type:func
+Vu0Cur_GetTrans = 0x00128FC0; // type:func
+Vu0Cur_SetTrans = 0x00129020; // type:func

@@ -1,0 +1,2209 @@
+{
+  "generado": "mapa_afs.py (analisis offline; sin prueba en ejecucion)",
+  "formato": "AFS: 'AFS\\0' + u32 count + count pares {offset,size}",
+  "orden_idiomas_afs1": [
+    "en",
+    "es",
+    "de",
+    "fr",
+    "it"
+  ],
+  "orden_idiomas_afs2": [
+    "de",
+    "en",
+    "it",
+    "fr",
+    "es"
+  ],
+  "nota_idiomas": "El orden de idioma del AFS NO es el del port. Port: 0=EN,1=ES,2=FR,3=DE,4=IT. Usar los codigos de 'langs'/'lang_index', no el indice del port.",
+  "particiones": [
+    {
+      "particion": 0,
+      "usa": "ZS2US_1.AFS",
+      "eu": "ZS2EU_1.AFS",
+      "usa_count": 13234,
+      "eu_count": 13197,
+      "bloques": [
+        {
+          "kind": "historia",
+          "usa_base": 793,
+          "count": 553,
+          "eu_base": 793,
+          "stride": 553,
+          "langs": [
+            "en",
+            "es",
+            "de",
+            "fr",
+            "it"
+          ],
+          "lang_index": {
+            "en": 0,
+            "es": 1,
+            "de": 2,
+            "fr": 3,
+            "it": 4
+          },
+          "lang_bases": {
+            "en": 793,
+            "es": 1346,
+            "de": 1899,
+            "fr": 2452,
+            "it": 3005
+          },
+          "formula": "eu_id = 0x319 + lang_index*0x229 + (usa_id - 0x319)",
+          "verificado": {
+            "profile": 1.0,
+            "partial_usa": 0.866,
+            "delta": 0,
+            "langs_por_texto": [
+              "en",
+              "es",
+              "de",
+              "fr",
+              "it"
+            ],
+            "identicas_por_idioma": {
+              "en": 517,
+              "es": 16,
+              "de": 16,
+              "fr": 16,
+              "it": 16
+            }
+          },
+          "nota": "553 packs UTF-16 por idioma; la copia EN es la versión UK (36 packs difieren de la USA)."
+        },
+        {
+          "kind": "menu",
+          "usa_base": 1348,
+          "count": 23,
+          "eu_base": 3561,
+          "stride": 23,
+          "langs": [
+            "en",
+            "es",
+            "de",
+            "fr",
+            "it"
+          ],
+          "lang_index": {
+            "en": 0,
+            "es": 1,
+            "de": 2,
+            "fr": 3,
+            "it": 4
+          },
+          "lang_bases": {
+            "en": 3561,
+            "es": 3584,
+            "de": 3607,
+            "fr": 3630,
+            "it": 3653
+          },
+          "formula": "eu_id = 0xde9 + lang_index*0x17 + (usa_id - 0x544)",
+          "verificado": {
+            "profile": 1.0,
+            "partial_usa": 0.13,
+            "delta": 0,
+            "langs_por_texto": [
+              "en",
+              "es",
+              "de",
+              "fr",
+              "it"
+            ],
+            "identicas_por_idioma": {
+              "en": 3,
+              "es": 2,
+              "de": 2,
+              "fr": 2,
+              "it": 2
+            }
+          },
+          "nota": "23 recursos de menú (FOD/texturas + tablas); la última entrada es LOAD_*.DBT. Memory card = posición 0xC."
+        },
+        {
+          "kind": "items",
+          "usa_base": 1895,
+          "count": 3,
+          "eu_base": 4200,
+          "stride": 3,
+          "langs": [
+            "en",
+            "es",
+            "de",
+            "fr",
+            "it"
+          ],
+          "lang_index": {
+            "en": 0,
+            "es": 1,
+            "de": 2,
+            "fr": 3,
+            "it": 4
+          },
+          "lang_bases": {
+            "en": 4200,
+            "es": 4203,
+            "de": 4206,
+            "fr": 4209,
+            "it": 4212
+          },
+          "formula": "eu_id = 0x1068 + lang_index*0x3 + (usa_id - 0x767)",
+          "verificado": {
+            "profile": 1.0,
+            "partial_usa": 0.0,
+            "delta": null,
+            "langs_por_texto": [
+              "en",
+              "es",
+              "de",
+              "fr",
+              "it"
+            ],
+            "identicas_por_idioma": {
+              "en": 0,
+              "es": 0,
+              "de": 0,
+              "fr": 0,
+              "it": 0
+            }
+          },
+          "nota": "3 contenedores comprimidos: nombres y descripciones de objetos/Z-items. No estaba remapeado."
+        }
+      ],
+      "especiales": [
+        {
+          "tipo": "font_sistema",
+          "usa": [
+            {
+              "id": 1346,
+              "bytes": 105792,
+              "nota": "Fnt4 en +0x40"
+            },
+            {
+              "id": 1347,
+              "bytes": 92864,
+              "nota": "identico a EU 0xDE7"
+            }
+          ],
+          "eu": [
+            {
+              "id": 3558,
+              "bytes": 110144,
+              "nota": "Fnt4 en +0x80; no drop-in"
+            },
+            {
+              "id": 3559,
+              "bytes": 92864,
+              "nota": "identico a USA 0x543"
+            },
+            {
+              "id": 3560,
+              "bytes": 235056,
+              "nota": "blob solo EU"
+            }
+          ],
+          "nota": "No remapear el font: el port debe seguir usando ZS2US_1.AFS 0x542."
+        }
+      ],
+      "rangos_usa_sin_equivalencia": [
+        {
+          "desde": 33,
+          "hasta": 605,
+          "entradas": 573,
+          "bytes": 1072016,
+          "que": "guiones GSC (la EU tiene su propia versión en el mismo id)"
+        },
+        {
+          "desde": 627,
+          "hasta": 659,
+          "entradas": 33,
+          "bytes": 67248,
+          "que": "guiones GSC (la EU tiene su propia versión en el mismo id)"
+        },
+        {
+          "desde": 664,
+          "hasta": 763,
+          "entradas": 100,
+          "bytes": 137600,
+          "que": "guiones GSC (la EU tiene su propia versión en el mismo id)"
+        },
+        {
+          "desde": 766,
+          "hasta": 792,
+          "entradas": 27,
+          "bytes": 45088,
+          "que": "guiones GSC (la EU tiene su propia versión en el mismo id)"
+        },
+        {
+          "desde": 1349,
+          "hasta": 1354,
+          "entradas": 6,
+          "bytes": 13133312,
+          "que": "entradas de un bloque localizado (traducidas en la EU)"
+        },
+        {
+          "desde": 1356,
+          "hasta": 1369,
+          "entradas": 14,
+          "bytes": 27645136,
+          "que": "entradas de un bloque localizado (traducidas en la EU)"
+        },
+        {
+          "desde": 10888,
+          "hasta": 10894,
+          "entradas": 7,
+          "bytes": 874522,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10898,
+          "hasta": 10905,
+          "entradas": 8,
+          "bytes": 1224320,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10908,
+          "hasta": 10911,
+          "entradas": 4,
+          "bytes": 553156,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10918,
+          "hasta": 10923,
+          "entradas": 6,
+          "bytes": 889584,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10929,
+          "hasta": 10933,
+          "entradas": 5,
+          "bytes": 632918,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10939,
+          "hasta": 10942,
+          "entradas": 4,
+          "bytes": 670552,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10950,
+          "hasta": 10956,
+          "entradas": 7,
+          "bytes": 1219762,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10958,
+          "hasta": 10961,
+          "entradas": 4,
+          "bytes": 403864,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10969,
+          "hasta": 10973,
+          "entradas": 5,
+          "bytes": 826994,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10978,
+          "hasta": 10982,
+          "entradas": 5,
+          "bytes": 615926,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10989,
+          "hasta": 10994,
+          "entradas": 6,
+          "bytes": 1021236,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 10998,
+          "hasta": 11001,
+          "entradas": 4,
+          "bytes": 513484,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11050,
+          "hasta": 11054,
+          "entradas": 5,
+          "bytes": 803594,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11059,
+          "hasta": 11063,
+          "entradas": 5,
+          "bytes": 761366,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11070,
+          "hasta": 11073,
+          "entradas": 4,
+          "bytes": 394540,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11108,
+          "hasta": 11116,
+          "entradas": 9,
+          "bytes": 1731294,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11118,
+          "hasta": 11123,
+          "entradas": 6,
+          "bytes": 1067388,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11132,
+          "hasta": 11136,
+          "entradas": 5,
+          "bytes": 400574,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11150,
+          "hasta": 11154,
+          "entradas": 5,
+          "bytes": 385094,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11209,
+          "hasta": 11214,
+          "entradas": 6,
+          "bytes": 506976,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11239,
+          "hasta": 11244,
+          "entradas": 6,
+          "bytes": 664404,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11248,
+          "hasta": 11252,
+          "entradas": 5,
+          "bytes": 568478,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11258,
+          "hasta": 11264,
+          "entradas": 7,
+          "bytes": 916066,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11268,
+          "hasta": 11272,
+          "entradas": 5,
+          "bytes": 995654,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11278,
+          "hasta": 11283,
+          "entradas": 6,
+          "bytes": 1327920,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11310,
+          "hasta": 11315,
+          "entradas": 6,
+          "bytes": 919788,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11331,
+          "hasta": 11335,
+          "entradas": 5,
+          "bytes": 1112222,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11348,
+          "hasta": 11355,
+          "entradas": 8,
+          "bytes": 1719284,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11358,
+          "hasta": 11365,
+          "entradas": 8,
+          "bytes": 1464296,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11368,
+          "hasta": 11372,
+          "entradas": 5,
+          "bytes": 1256510,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11378,
+          "hasta": 11383,
+          "entradas": 6,
+          "bytes": 1262148,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11390,
+          "hasta": 11395,
+          "entradas": 6,
+          "bytes": 1078008,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11410,
+          "hasta": 11415,
+          "entradas": 6,
+          "bytes": 898476,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11429,
+          "hasta": 11432,
+          "entradas": 4,
+          "bytes": 815992,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11450,
+          "hasta": 11454,
+          "entradas": 5,
+          "bytes": 810578,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11460,
+          "hasta": 11463,
+          "entradas": 4,
+          "bytes": 613708,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11468,
+          "hasta": 11474,
+          "entradas": 7,
+          "bytes": 1462042,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11478,
+          "hasta": 11484,
+          "entradas": 7,
+          "bytes": 2200726,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11488,
+          "hasta": 11494,
+          "entradas": 7,
+          "bytes": 1528174,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11498,
+          "hasta": 11501,
+          "entradas": 4,
+          "bytes": 830968,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11510,
+          "hasta": 11513,
+          "entradas": 4,
+          "bytes": 756520,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11520,
+          "hasta": 11523,
+          "entradas": 4,
+          "bytes": 589984,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11530,
+          "hasta": 11534,
+          "entradas": 5,
+          "bytes": 1017110,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11539,
+          "hasta": 11543,
+          "entradas": 5,
+          "bytes": 786854,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11579,
+          "hasta": 11582,
+          "entradas": 4,
+          "bytes": 522592,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11588,
+          "hasta": 11596,
+          "entradas": 9,
+          "bytes": 1880478,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11598,
+          "hasta": 11605,
+          "entradas": 8,
+          "bytes": 2031404,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11608,
+          "hasta": 11612,
+          "entradas": 5,
+          "bytes": 1133858,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11618,
+          "hasta": 11627,
+          "entradas": 10,
+          "bytes": 2302060,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11629,
+          "hasta": 11633,
+          "entradas": 5,
+          "bytes": 550910,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11641,
+          "hasta": 11645,
+          "entradas": 5,
+          "bytes": 833870,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11653,
+          "hasta": 11657,
+          "entradas": 5,
+          "bytes": 1288226,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11659,
+          "hasta": 11666,
+          "entradas": 8,
+          "bytes": 1475996,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11669,
+          "hasta": 11675,
+          "entradas": 7,
+          "bytes": 1524898,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11679,
+          "hasta": 11684,
+          "entradas": 6,
+          "bytes": 1022172,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11699,
+          "hasta": 11703,
+          "entradas": 5,
+          "bytes": 1269974,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11712,
+          "hasta": 11716,
+          "entradas": 5,
+          "bytes": 917714,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11719,
+          "hasta": 11723,
+          "entradas": 5,
+          "bytes": 891542,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11729,
+          "hasta": 11733,
+          "entradas": 5,
+          "bytes": 1029602,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11739,
+          "hasta": 11742,
+          "entradas": 4,
+          "bytes": 758500,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11759,
+          "hasta": 11763,
+          "entradas": 5,
+          "bytes": 1677710,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11768,
+          "hasta": 11774,
+          "entradas": 7,
+          "bytes": 1625806,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11778,
+          "hasta": 11786,
+          "entradas": 9,
+          "bytes": 2362482,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11788,
+          "hasta": 11793,
+          "entradas": 6,
+          "bytes": 1120056,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11798,
+          "hasta": 11804,
+          "entradas": 7,
+          "bytes": 1506502,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11809,
+          "hasta": 11816,
+          "entradas": 8,
+          "bytes": 1337108,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11819,
+          "hasta": 11824,
+          "entradas": 6,
+          "bytes": 1102632,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11829,
+          "hasta": 11833,
+          "entradas": 5,
+          "bytes": 819974,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11839,
+          "hasta": 11843,
+          "entradas": 5,
+          "bytes": 1307738,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11869,
+          "hasta": 11872,
+          "entradas": 4,
+          "bytes": 750004,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11890,
+          "hasta": 11896,
+          "entradas": 7,
+          "bytes": 860446,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11899,
+          "hasta": 11902,
+          "entradas": 4,
+          "bytes": 992320,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11919,
+          "hasta": 11923,
+          "entradas": 5,
+          "bytes": 1230878,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11929,
+          "hasta": 11933,
+          "entradas": 5,
+          "bytes": 970598,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11948,
+          "hasta": 11955,
+          "entradas": 8,
+          "bytes": 1402808,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 11958,
+          "hasta": 11967,
+          "entradas": 10,
+          "bytes": 2914636,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12108,
+          "hasta": 12122,
+          "entradas": 15,
+          "bytes": 3167502,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12169,
+          "hasta": 12172,
+          "entradas": 4,
+          "bytes": 584296,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12179,
+          "hasta": 12182,
+          "entradas": 4,
+          "bytes": 601828,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12188,
+          "hasta": 12191,
+          "entradas": 4,
+          "bytes": 567088,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12268,
+          "hasta": 12272,
+          "entradas": 5,
+          "bytes": 736922,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12278,
+          "hasta": 12283,
+          "entradas": 6,
+          "bytes": 1559580,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12288,
+          "hasta": 12306,
+          "entradas": 19,
+          "bytes": 2769862,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12318,
+          "hasta": 12327,
+          "entradas": 10,
+          "bytes": 1546060,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12348,
+          "hasta": 12362,
+          "entradas": 15,
+          "bytes": 1453254,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12378,
+          "hasta": 12387,
+          "entradas": 10,
+          "bytes": 1471864,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12408,
+          "hasta": 12414,
+          "entradas": 7,
+          "bytes": 1282402,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12438,
+          "hasta": 12455,
+          "entradas": 18,
+          "bytes": 2391156,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12468,
+          "hasta": 12472,
+          "entradas": 5,
+          "bytes": 679070,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12498,
+          "hasta": 12509,
+          "entradas": 12,
+          "bytes": 1732368,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12528,
+          "hasta": 12545,
+          "entradas": 18,
+          "bytes": 1897164,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 12558,
+          "hasta": 12580,
+          "entradas": 23,
+          "bytes": 3099926,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13104,
+          "hasta": 13108,
+          "entradas": 5,
+          "bytes": 1205534,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13110,
+          "hasta": 13114,
+          "entradas": 5,
+          "bytes": 1269218,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13116,
+          "hasta": 13120,
+          "entradas": 5,
+          "bytes": 1218782,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13122,
+          "hasta": 13126,
+          "entradas": 5,
+          "bytes": 1129178,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13128,
+          "hasta": 13132,
+          "entradas": 5,
+          "bytes": 1194986,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13134,
+          "hasta": 13138,
+          "entradas": 5,
+          "bytes": 1381538,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13140,
+          "hasta": 13144,
+          "entradas": 5,
+          "bytes": 1402598,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13146,
+          "hasta": 13150,
+          "entradas": 5,
+          "bytes": 1398530,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13152,
+          "hasta": 13156,
+          "entradas": 5,
+          "bytes": 1332974,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13158,
+          "hasta": 13162,
+          "entradas": 5,
+          "bytes": 1140806,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13164,
+          "hasta": 13168,
+          "entradas": 5,
+          "bytes": 1312706,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13170,
+          "hasta": 13174,
+          "entradas": 5,
+          "bytes": 1216082,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13176,
+          "hasta": 13180,
+          "entradas": 5,
+          "bytes": 1479422,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13182,
+          "hasta": 13186,
+          "entradas": 5,
+          "bytes": 1469522,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13188,
+          "hasta": 13192,
+          "entradas": 5,
+          "bytes": 1428266,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13194,
+          "hasta": 13198,
+          "entradas": 5,
+          "bytes": 1405586,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13200,
+          "hasta": 13204,
+          "entradas": 5,
+          "bytes": 1422578,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13206,
+          "hasta": 13210,
+          "entradas": 5,
+          "bytes": 1286786,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13212,
+          "hasta": 13216,
+          "entradas": 5,
+          "bytes": 1412030,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13218,
+          "hasta": 13222,
+          "entradas": 5,
+          "bytes": 1620758,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13224,
+          "hasta": 13228,
+          "entradas": 5,
+          "bytes": 1526222,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        },
+        {
+          "desde": 13230,
+          "hasta": 13233,
+          "entradas": 4,
+          "bytes": 996820,
+          "que": "audio ADX (no está en la EU1; el port usa el audio USA)"
+        }
+      ],
+      "rangos_eu_sin_equivalencia": [
+        {
+          "desde": 33,
+          "hasta": 605,
+          "entradas": 573,
+          "bytes": 1072016,
+          "que": "guiones GSC propios de la EU (no es texto localizado)"
+        },
+        {
+          "desde": 627,
+          "hasta": 659,
+          "entradas": 33,
+          "bytes": 67248,
+          "que": "guiones GSC propios de la EU (no es texto localizado)"
+        },
+        {
+          "desde": 664,
+          "hasta": 763,
+          "entradas": 100,
+          "bytes": 137600,
+          "que": "guiones GSC propios de la EU (no es texto localizado)"
+        },
+        {
+          "desde": 766,
+          "hasta": 792,
+          "entradas": 27,
+          "bytes": 45088,
+          "que": "guiones GSC propios de la EU (no es texto localizado)"
+        },
+        {
+          "desde": 1346,
+          "hasta": 1727,
+          "entradas": 382,
+          "bytes": 276416,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 1742,
+          "hasta": 1869,
+          "entradas": 128,
+          "bytes": 46000,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 1872,
+          "hasta": 2280,
+          "entradas": 409,
+          "bytes": 307600,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 2295,
+          "hasta": 2422,
+          "entradas": 128,
+          "bytes": 47760,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 2425,
+          "hasta": 2833,
+          "entradas": 409,
+          "bytes": 294256,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 2848,
+          "hasta": 2975,
+          "entradas": 128,
+          "bytes": 45600,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 2978,
+          "hasta": 3386,
+          "entradas": 409,
+          "bytes": 298336,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 3401,
+          "hasta": 3528,
+          "entradas": 128,
+          "bytes": 47024,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 3531,
+          "hasta": 3557,
+          "entradas": 27,
+          "bytes": 25408,
+          "que": "bloque historia (copia localizada)"
+        },
+        {
+          "desde": 3562,
+          "hasta": 3567,
+          "entradas": 6,
+          "bytes": 13057616,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3569,
+          "hasta": 3582,
+          "entradas": 14,
+          "bytes": 27612416,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3585,
+          "hasta": 3590,
+          "entradas": 6,
+          "bytes": 13072016,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3592,
+          "hasta": 3606,
+          "entradas": 15,
+          "bytes": 27719984,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3608,
+          "hasta": 3613,
+          "entradas": 6,
+          "bytes": 13037600,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3615,
+          "hasta": 3629,
+          "entradas": 15,
+          "bytes": 27706672,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3631,
+          "hasta": 3636,
+          "entradas": 6,
+          "bytes": 13029680,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3638,
+          "hasta": 3652,
+          "entradas": 15,
+          "bytes": 27705760,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3654,
+          "hasta": 3659,
+          "entradas": 6,
+          "bytes": 13068160,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 3661,
+          "hasta": 3675,
+          "entradas": 15,
+          "bytes": 27753776,
+          "que": "bloque menú (copia localizada)"
+        },
+        {
+          "desde": 4200,
+          "hasta": 4214,
+          "entradas": 15,
+          "bytes": 2450176,
+          "que": "bloque objetos (copia localizada)"
+        }
+      ]
+    },
+    {
+      "particion": 1,
+      "usa": "ZS2US_2.AFS",
+      "eu": "ZS2EU_2.AFS",
+      "usa_count": 32245,
+      "eu_count": 34607,
+      "bloques": [
+        {
+          "kind": "pelea_pausa",
+          "usa_base": 24,
+          "count": 2,
+          "eu_base": 2378,
+          "stride": 2,
+          "langs": [
+            "de",
+            "en",
+            "it",
+            "fr",
+            "es"
+          ],
+          "lang_index": {
+            "de": 0,
+            "en": 1,
+            "it": 2,
+            "fr": 3,
+            "es": 4
+          },
+          "lang_bases": {
+            "de": 2378,
+            "en": 2380,
+            "it": 2382,
+            "fr": 2384,
+            "es": 2386
+          },
+          "formula": "eu_id = 0x94a + lang_index*0x2 + (usa_id - 0x18)",
+          "verificado": {
+            "profile": 1.0,
+            "partial_usa": 0.0,
+            "langs_por_texto": [
+              "de",
+              "en",
+              "it",
+              "fr",
+              "es"
+            ]
+          },
+          "nota": "Tablas de condiciones de misión y rótulos de pausa/HUD; ambas con count=120/header=0x200. Orden DE,EN,IT,FR,ES."
+        }
+      ],
+      "especiales": [],
+      "rangos_usa_sin_equivalencia": [
+        {
+          "desde": 24,
+          "hasta": 25,
+          "entradas": 2,
+          "bytes": 802944,
+          "que": "tablas de pelea/pausa (reemplazadas por 10 archivos EU2 0x94A..0x953)"
+        }
+      ],
+      "rangos_eu_sin_equivalencia": [
+        {
+          "desde": 8,
+          "hasta": 14,
+          "entradas": 7,
+          "bytes": 874522,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 18,
+          "hasta": 25,
+          "entradas": 8,
+          "bytes": 1224320,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 28,
+          "hasta": 31,
+          "entradas": 4,
+          "bytes": 553156,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 38,
+          "hasta": 43,
+          "entradas": 6,
+          "bytes": 889584,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 49,
+          "hasta": 53,
+          "entradas": 5,
+          "bytes": 632918,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 59,
+          "hasta": 62,
+          "entradas": 4,
+          "bytes": 670552,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 70,
+          "hasta": 76,
+          "entradas": 7,
+          "bytes": 1219762,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 78,
+          "hasta": 81,
+          "entradas": 4,
+          "bytes": 403864,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 89,
+          "hasta": 93,
+          "entradas": 5,
+          "bytes": 826994,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 98,
+          "hasta": 102,
+          "entradas": 5,
+          "bytes": 615926,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 109,
+          "hasta": 114,
+          "entradas": 6,
+          "bytes": 1021236,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 118,
+          "hasta": 121,
+          "entradas": 4,
+          "bytes": 513484,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 170,
+          "hasta": 174,
+          "entradas": 5,
+          "bytes": 803594,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 179,
+          "hasta": 183,
+          "entradas": 5,
+          "bytes": 761366,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 190,
+          "hasta": 193,
+          "entradas": 4,
+          "bytes": 394540,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 228,
+          "hasta": 236,
+          "entradas": 9,
+          "bytes": 1731294,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 238,
+          "hasta": 243,
+          "entradas": 6,
+          "bytes": 1067388,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 252,
+          "hasta": 256,
+          "entradas": 5,
+          "bytes": 400574,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 270,
+          "hasta": 274,
+          "entradas": 5,
+          "bytes": 385094,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 329,
+          "hasta": 334,
+          "entradas": 6,
+          "bytes": 506976,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 359,
+          "hasta": 364,
+          "entradas": 6,
+          "bytes": 664404,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 368,
+          "hasta": 372,
+          "entradas": 5,
+          "bytes": 568478,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 378,
+          "hasta": 384,
+          "entradas": 7,
+          "bytes": 916066,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 388,
+          "hasta": 392,
+          "entradas": 5,
+          "bytes": 995654,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 398,
+          "hasta": 403,
+          "entradas": 6,
+          "bytes": 1327920,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 430,
+          "hasta": 435,
+          "entradas": 6,
+          "bytes": 919788,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 451,
+          "hasta": 455,
+          "entradas": 5,
+          "bytes": 1112222,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 468,
+          "hasta": 475,
+          "entradas": 8,
+          "bytes": 1719284,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 478,
+          "hasta": 485,
+          "entradas": 8,
+          "bytes": 1464296,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 488,
+          "hasta": 492,
+          "entradas": 5,
+          "bytes": 1256510,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 498,
+          "hasta": 503,
+          "entradas": 6,
+          "bytes": 1262148,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 510,
+          "hasta": 515,
+          "entradas": 6,
+          "bytes": 1078008,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 530,
+          "hasta": 535,
+          "entradas": 6,
+          "bytes": 898476,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 549,
+          "hasta": 552,
+          "entradas": 4,
+          "bytes": 815992,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 570,
+          "hasta": 574,
+          "entradas": 5,
+          "bytes": 810578,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 580,
+          "hasta": 583,
+          "entradas": 4,
+          "bytes": 613708,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 588,
+          "hasta": 594,
+          "entradas": 7,
+          "bytes": 1462042,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 598,
+          "hasta": 604,
+          "entradas": 7,
+          "bytes": 2200726,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 608,
+          "hasta": 614,
+          "entradas": 7,
+          "bytes": 1528174,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 618,
+          "hasta": 621,
+          "entradas": 4,
+          "bytes": 830968,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 630,
+          "hasta": 633,
+          "entradas": 4,
+          "bytes": 756520,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 640,
+          "hasta": 643,
+          "entradas": 4,
+          "bytes": 589984,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 650,
+          "hasta": 654,
+          "entradas": 5,
+          "bytes": 1017110,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 659,
+          "hasta": 663,
+          "entradas": 5,
+          "bytes": 786854,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 699,
+          "hasta": 702,
+          "entradas": 4,
+          "bytes": 522592,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 708,
+          "hasta": 716,
+          "entradas": 9,
+          "bytes": 1880478,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 718,
+          "hasta": 725,
+          "entradas": 8,
+          "bytes": 2031404,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 728,
+          "hasta": 732,
+          "entradas": 5,
+          "bytes": 1133858,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 738,
+          "hasta": 747,
+          "entradas": 10,
+          "bytes": 2302060,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 749,
+          "hasta": 753,
+          "entradas": 5,
+          "bytes": 550910,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 761,
+          "hasta": 765,
+          "entradas": 5,
+          "bytes": 833870,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 773,
+          "hasta": 777,
+          "entradas": 5,
+          "bytes": 1288226,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 779,
+          "hasta": 786,
+          "entradas": 8,
+          "bytes": 1475996,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 789,
+          "hasta": 795,
+          "entradas": 7,
+          "bytes": 1524898,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 799,
+          "hasta": 804,
+          "entradas": 6,
+          "bytes": 1022172,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 819,
+          "hasta": 823,
+          "entradas": 5,
+          "bytes": 1269974,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 832,
+          "hasta": 836,
+          "entradas": 5,
+          "bytes": 917714,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 839,
+          "hasta": 843,
+          "entradas": 5,
+          "bytes": 891542,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 849,
+          "hasta": 853,
+          "entradas": 5,
+          "bytes": 1029602,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 859,
+          "hasta": 862,
+          "entradas": 4,
+          "bytes": 758500,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 879,
+          "hasta": 883,
+          "entradas": 5,
+          "bytes": 1677710,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 888,
+          "hasta": 894,
+          "entradas": 7,
+          "bytes": 1625806,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 898,
+          "hasta": 906,
+          "entradas": 9,
+          "bytes": 2362482,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 908,
+          "hasta": 913,
+          "entradas": 6,
+          "bytes": 1120056,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 918,
+          "hasta": 924,
+          "entradas": 7,
+          "bytes": 1506502,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 929,
+          "hasta": 936,
+          "entradas": 8,
+          "bytes": 1337108,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 939,
+          "hasta": 944,
+          "entradas": 6,
+          "bytes": 1102632,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 949,
+          "hasta": 953,
+          "entradas": 5,
+          "bytes": 819974,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 959,
+          "hasta": 963,
+          "entradas": 5,
+          "bytes": 1307738,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 989,
+          "hasta": 992,
+          "entradas": 4,
+          "bytes": 750004,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1010,
+          "hasta": 1016,
+          "entradas": 7,
+          "bytes": 860446,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1019,
+          "hasta": 1022,
+          "entradas": 4,
+          "bytes": 992320,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1039,
+          "hasta": 1043,
+          "entradas": 5,
+          "bytes": 1230878,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1049,
+          "hasta": 1053,
+          "entradas": 5,
+          "bytes": 970598,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1068,
+          "hasta": 1075,
+          "entradas": 8,
+          "bytes": 1402808,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1078,
+          "hasta": 1087,
+          "entradas": 10,
+          "bytes": 2914636,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1228,
+          "hasta": 1242,
+          "entradas": 15,
+          "bytes": 3167502,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1289,
+          "hasta": 1292,
+          "entradas": 4,
+          "bytes": 584296,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1299,
+          "hasta": 1302,
+          "entradas": 4,
+          "bytes": 601828,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1308,
+          "hasta": 1311,
+          "entradas": 4,
+          "bytes": 567088,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1388,
+          "hasta": 1392,
+          "entradas": 5,
+          "bytes": 736922,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1398,
+          "hasta": 1403,
+          "entradas": 6,
+          "bytes": 1559580,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1408,
+          "hasta": 1426,
+          "entradas": 19,
+          "bytes": 2769862,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1438,
+          "hasta": 1447,
+          "entradas": 10,
+          "bytes": 1546060,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1468,
+          "hasta": 1482,
+          "entradas": 15,
+          "bytes": 1453254,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1498,
+          "hasta": 1507,
+          "entradas": 10,
+          "bytes": 1471864,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1528,
+          "hasta": 1534,
+          "entradas": 7,
+          "bytes": 1282402,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1558,
+          "hasta": 1575,
+          "entradas": 18,
+          "bytes": 2391156,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1588,
+          "hasta": 1592,
+          "entradas": 5,
+          "bytes": 679070,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1618,
+          "hasta": 1629,
+          "entradas": 12,
+          "bytes": 1732368,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1648,
+          "hasta": 1665,
+          "entradas": 18,
+          "bytes": 1897164,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 1678,
+          "hasta": 1700,
+          "entradas": 23,
+          "bytes": 3099926,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2224,
+          "hasta": 2228,
+          "entradas": 5,
+          "bytes": 1205534,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2230,
+          "hasta": 2234,
+          "entradas": 5,
+          "bytes": 1269218,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2236,
+          "hasta": 2240,
+          "entradas": 5,
+          "bytes": 1218782,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2242,
+          "hasta": 2246,
+          "entradas": 5,
+          "bytes": 1129178,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2248,
+          "hasta": 2252,
+          "entradas": 5,
+          "bytes": 1194986,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2254,
+          "hasta": 2258,
+          "entradas": 5,
+          "bytes": 1381538,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2260,
+          "hasta": 2264,
+          "entradas": 5,
+          "bytes": 1402598,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2266,
+          "hasta": 2270,
+          "entradas": 5,
+          "bytes": 1398530,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2272,
+          "hasta": 2276,
+          "entradas": 5,
+          "bytes": 1332974,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2278,
+          "hasta": 2282,
+          "entradas": 5,
+          "bytes": 1140806,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2284,
+          "hasta": 2288,
+          "entradas": 5,
+          "bytes": 1312706,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2290,
+          "hasta": 2294,
+          "entradas": 5,
+          "bytes": 1216082,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2296,
+          "hasta": 2300,
+          "entradas": 5,
+          "bytes": 1479422,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2302,
+          "hasta": 2306,
+          "entradas": 5,
+          "bytes": 1469522,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2308,
+          "hasta": 2312,
+          "entradas": 5,
+          "bytes": 1428266,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2314,
+          "hasta": 2318,
+          "entradas": 5,
+          "bytes": 1405586,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2320,
+          "hasta": 2324,
+          "entradas": 5,
+          "bytes": 1422578,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2326,
+          "hasta": 2330,
+          "entradas": 5,
+          "bytes": 1286786,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2332,
+          "hasta": 2336,
+          "entradas": 5,
+          "bytes": 1412030,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2338,
+          "hasta": 2342,
+          "entradas": 5,
+          "bytes": 1620758,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2344,
+          "hasta": 2348,
+          "entradas": 5,
+          "bytes": 1526222,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2350,
+          "hasta": 2353,
+          "entradas": 4,
+          "bytes": 996820,
+          "que": "ADX extra de la EU2 (audio PAL) + duplicados de USA"
+        },
+        {
+          "desde": 2378,
+          "hasta": 2387,
+          "entradas": 10,
+          "bytes": 4015744,
+          "que": "bloque pelea/pausa (copia localizada)"
+        }
+      ]
+    }
+  ],
+  "bloques": [
+    {
+      "particion": 0,
+      "kind": "historia",
+      "usa_base": 793,
+      "count": 553,
+      "eu_base": 793,
+      "stride": 553,
+      "langs": [
+        "en",
+        "es",
+        "de",
+        "fr",
+        "it"
+      ],
+      "lang_index": {
+        "en": 0,
+        "es": 1,
+        "de": 2,
+        "fr": 3,
+        "it": 4
+      },
+      "lang_bases": {
+        "en": 793,
+        "es": 1346,
+        "de": 1899,
+        "fr": 2452,
+        "it": 3005
+      }
+    },
+    {
+      "particion": 0,
+      "kind": "menu",
+      "usa_base": 1348,
+      "count": 23,
+      "eu_base": 3561,
+      "stride": 23,
+      "langs": [
+        "en",
+        "es",
+        "de",
+        "fr",
+        "it"
+      ],
+      "lang_index": {
+        "en": 0,
+        "es": 1,
+        "de": 2,
+        "fr": 3,
+        "it": 4
+      },
+      "lang_bases": {
+        "en": 3561,
+        "es": 3584,
+        "de": 3607,
+        "fr": 3630,
+        "it": 3653
+      }
+    },
+    {
+      "particion": 0,
+      "kind": "items",
+      "usa_base": 1895,
+      "count": 3,
+      "eu_base": 4200,
+      "stride": 3,
+      "langs": [
+        "en",
+        "es",
+        "de",
+        "fr",
+        "it"
+      ],
+      "lang_index": {
+        "en": 0,
+        "es": 1,
+        "de": 2,
+        "fr": 3,
+        "it": 4
+      },
+      "lang_bases": {
+        "en": 4200,
+        "es": 4203,
+        "de": 4206,
+        "fr": 4209,
+        "it": 4212
+      }
+    },
+    {
+      "particion": 1,
+      "kind": "pelea_pausa",
+      "usa_base": 24,
+      "count": 2,
+      "eu_base": 2378,
+      "stride": 2,
+      "langs": [
+        "de",
+        "en",
+        "it",
+        "fr",
+        "es"
+      ],
+      "lang_index": {
+        "de": 0,
+        "en": 1,
+        "it": 2,
+        "fr": 3,
+        "es": 4
+      },
+      "lang_bases": {
+        "de": 2378,
+        "en": 2380,
+        "it": 2382,
+        "fr": 2384,
+        "es": 2386
+      }
+    }
+  ]
+}

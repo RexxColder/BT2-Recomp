@@ -1,0 +1,1 @@
+BtlObj_TickTimers = 0x001F92A0; // type:func

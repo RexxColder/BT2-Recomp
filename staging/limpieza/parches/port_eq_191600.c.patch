@@ -1,0 +1,10 @@
+--- a/port/eq/191600.c
++++ b/port/eq/191600.c
+@@ -17,7 +17,5 @@
+     memcpy(&a, arg0, 0x30);
+     a.model = NULL;
+     t = BtlTaskList_AddTail(D_003877C4, D_00342018, &a);
+-    /* B10 log temporal: cada objeto blast creado, quien lo pide y si la lista lo acepto */
+-    bt2_fightlog_note("B10 BLAST-CREA tarea %p desde %p", t, __builtin_return_address(0));
+     return t;
+ }

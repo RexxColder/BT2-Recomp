@@ -1,0 +1,6 @@
+Vec4_Div = 0x00129BE8; // type:func
+Vec3_Div = 0x00129C08; // type:func
+Vec3_AddSub = 0x0012A320; // type:func
+Vec3_SubAdd = 0x0012A340; // type:func
+Vec3_ScaleAdd = 0x0012A360; // type:func
+Vec3_ScaleSub = 0x0012A380; // type:func

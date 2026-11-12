@@ -1,0 +1,33 @@
+# DBZP.BIN, the gameplay overlay: loaded raw at 0x3B3100 by func_001002D8 (see docs/PORT_LOG.md §7).
+# Split only to find its function starts (scripts/overlay.py); not rebuilt.
+name: "DBZP.BIN overlay"
+options:
+  basename: DBZP
+  target_path: disc/DBZP.BIN
+  base_path: ../..
+  platform: ps2
+  compiler: EEGCC
+  asm_path: asm_ovl
+  data_path: asm_ovl/data
+  src_path: src_ovl
+  build_path: build/ovl
+  ld_script_path: build/ovl/DBZP.ld
+  symbol_addrs_path: []
+  undefined_funcs_auto_path: build/ovl/undefined_funcs_auto.txt
+  undefined_syms_auto_path: build/ovl/undefined_syms_auto.txt
+  create_asm_dependencies: False
+  generate_asm_macros_files: False
+  find_file_boundaries: False
+  o_as_suffix: True
+  string_encoding: ASCII
+  data_string_encoding: ASCII
+  disassemble_all: True
+segments:
+  - name: ovl
+    type: code
+    start: 0x000000
+    vram: 0x003B3100
+    subsegments:
+      - [0x000000, asm, ovl/000000]
+      - [0x06E200, data, ovl/06E200]
+  - [0x07D48F]

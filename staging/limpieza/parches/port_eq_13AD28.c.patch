@@ -1,0 +1,16 @@
+--- a/port/eq/13AD28.c
++++ b/port/eq/13AD28.c
+@@ -1,5 +1,4 @@
+ #include "common.h"
+-void bt2_fightlog_note(const char *fmt, ...); /* TEMP TEX0 */
+ 
+ extern f32 EftStage_GetTintScale(void);
+ extern void Vec4_Sub(u8 *arg0, u8 *arg1, u8 *arg2);
+@@ -83,7 +82,6 @@
+     *(u64 *)(pkt + 0x20) = 0x54;
+     *(u64 *)(pkt + 0x18) = 0xF42424242160ULL;
+     *(u64 *)(pkt + 0x28) = tex;
+-    if ((u32)(*(u64 *)(pkt + 0x28) >> 32) == 0 && (u32)*(u64 *)(pkt + 0x28) > 0xFFFFu) bt2_fightlog_note("TEX0TRUNC 13AD28 %llx", (unsigned long long)*(u64 *)(pkt + 0x28)); /* TEMP TEX0 */
+     *(u64 *)(pkt + 0x00) = 0xA0000007ULL;
+     *(u64 *)(pkt + 0x10) = 0xC400000000008001ULL;
+     *(u8 *)(pkt + 0x30) = (u8)FloatToU32(color[0] * tint);

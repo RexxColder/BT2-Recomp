@@ -1,0 +1,80 @@
+0x00105260 0x00105278 sys/gfxm_d_c_105260  # from BT3-Decompiled
+0x001086B8 0x00108780 battle/hud_0_c_1086B8  # from BT3-Decompiled
+0x0011EB48 0x0011EB68 battle/eft_ad_b_11EB48  # from BT3-Decompiled
+0x001B6098 0x001B60D8 battle/eft_t_c_1B6098  # from BT3-Decompiled
+0x0020A258 0x0020A2F8 battle/btl_char_api_20A258  # from BT3-Decompiled
+0x0020A3E0 0x0020A440 battle/btl_char_api_20A3E0  # from BT3-Decompiled
+0x00274E68 0x00274ED0 battle/stgm_a_274E68  # from BT3-Decompiled
+0x00298130 0x00298158 sys/vu0_a_c_c_298130  # from BT3-Decompiled
+0x002B4DC0 0x002B4E00 battle/eft_ad_b_2B4DC0  # from BT3-Decompiled
+0x002B9C20 0x002B9C50 battle/eft_ad_b_2B9C20  # from BT3-Decompiled
+0x002EFC88 0x002EFCA0 battle/btl_char_get_2EFC88  # from BT3-Decompiled
+0x00128C88 0x00128D38 sys/xa_128C88  # agent A  (link)
+0x00128D68 0x00128E74 sys/xa_128D68  # agent A  (link)
+0x00135568 0x001355E0 battle/xa_135568  # agent A  (link)
+0x00135D70 0x00135D9C sys/xa_135D70  # agent A  (link)
+0x00143C38 0x00143E90 battle/xa_143C38  # agent A  (link)
+0x00178940 0x001791D0 battle/xb_178940  # agent B  (link)
+0x0017D2D8 0x0017D658 battle/xb_17D2D8  # agent B  (link)
+0x001BC010 0x001BC210 battle/xc_1BC010  # agent C  (link)
+0x001BC230 0x001BC430 battle/xc_1BC230  # agent C  (link)
+0x0017D218 0x0017D2D8 battle/xb_17D218  # agent B  (link)
+0x001086B8 0x00108780 battle/xa_1086B8  # agent A
+0x00134720 0x00134BA0 battle/xa_134720  # agent A
+0x00128C88 0x00128D38 sys/xa_128C88  # agent A  (link)
+0x00128D68 0x00128E74 sys/xa_128D68  # agent A  (link)
+0x00135568 0x001355E0 battle/xa_135568  # agent A  (link)
+0x00135D70 0x00135D9C sys/xa_135D70  # agent A  (link)
+0x00143C38 0x00143E90 battle/xa_143C38  # agent A  (link)
+0x00178940 0x001791D0 battle/xb_178940  # agent B  (link)
+0x0017D218 0x0017D2D8 battle/xb_17D218  # agent B  (link)
+0x0017D2D8 0x0017D658 battle/xb_17D2D8  # agent B  (link)
+0x001BC010 0x001BC210 battle/xc_1BC010  # agent C  (link)
+0x001BC230 0x001BC430 battle/xc_1BC230  # agent C  (link)
+0x0023EFB8 0x0023EFD8 battle/xd_23EFB8  # agent D  (link)
+0x00248040 0x00248064 battle/xd_248040  # agent D  (link)
+0x00297560 0x0029757C sys/xe_297560  # agent E  (link)
+0x00297D50 0x00297D74 sys/xe_297D50  # agent E  (link)
+0x2e07c0 0x2e07d4 auto/auto_2e07c0  (link)
+0x2e07f0 0x2e0808 auto/auto_2e07f0  (link)
+0x0025A468 0x0025A48C battle/xd_25A468  # agent D
+0x0025C770 0x0025C794 battle/xd_25C770  # agent D
+0x00274E68 0x00274ED0 battle/xe_274E68  # agent E
+0x00294628 0x0029562C battle/xe_294628  # agent E
+0x00295F80 0x00296518 sys/xe_295F80  # agent E
+0x00298130 0x00298158 sys/xe_298130  # agent E
+0x0029B550 0x0029B710 sys/xe_29B550  # agent E
+0x002B4DC0 0x002B4DFC battle/xe_2B4DC0  # agent E
+0x0017D218 0x0017D2D8 battle/xb_17D218  # agent B  (link)
+0x0023EFB8 0x0023EFD8 battle/xd_23EFB8  # agent D  (link)
+0x2e07f0 0x2e0808 auto/auto_2e07f0
+0x00273FC0 0x00274050 battle/stg_a_b_273FC0  # from BT3-Decompiled  (link)
+0x002764E8 0x002765A8 battle/stg_a_b_2764E8  # from BT3-Decompiled  (link)
+0x001086B8 0x00108780 battle/hud_0_c_1086B8  # from BT3-Decompiled
+0x00303CC8 0x00303CF8 battle/btl_tech_b_c303CC8  # bt3 copy
+0x003046E0 0x00304710 battle/btl_tech_b_c3046E0  # bt3 copy
+0x00305490 0x003054C0 battle/btl_tech_b_c305490  # bt3 copy
+0x00126ED0 0x00126F04 battle/xa_126ED0  # agent A  (link)
+0x0014E1E0 0x0014E24C battle/xa_14E1E0  # agent A  (link)
+0x0015C6D8 0x0015C754 auto/m2c_15C6D8  # m2c  (link)
+0x001600D0 0x0016014C auto/m2c_1600D0  # m2c  (link)
+0x00160D50 0x00160DCC auto/m2c_160D50  # m2c  (link)
+0x00162270 0x001622FC auto/m2c_162270  # m2c  (link)
+0x00169CE0 0x00169D44 auto/m2c_169CE0  # m2c  (link)
+0x0016A328 0x0016A3B4 auto/m2c_16A328  # m2c  (link)
+0x0016B208 0x0016B284 auto/m2c_16B208  # m2c  (link)
+0x0017D218 0x0017D2D8 battle/xb_17D218  # agent B  (link)
+0x001E74A0 0x001E74D4 auto/perm_1E74A0  # perm  (link)
+0x00262118 0x002621B8 auto/perm_262118  # perm  (link)
+0x002C0E10 0x002C0E3C auto/perm_2C0E10  # perm  (link)
+0x002F4348 0x002F43CC auto/perm_2F4348  # perm  (link)
+0x003057E8 0x00305848 auto/perm_3057E8  # perm  (link)
+0x001E6920 0x001E695C auto/perm_1E6920  # perm  (link)
+0x002C0E10 0x002C0E3C auto/perm_2C0E10  # perm  (link)
+0x002C2FF0 0x002C3060 auto/perm_2C2FF0  # perm  (link)
+0x002EA3A0 0x002EA3CC auto/perm_2EA3A0  # perm  (link)
+0x002F2038 0x002F2078 auto/perm_2F2038  # perm  (link)
+0x002F4E28 0x002F4E74 auto/perm_2F4E28  # perm  (link)
+0x002F4EB0 0x002F4EFC auto/perm_2F4EB0  # perm  (link)
+0x002C0E10 0x002C0E3C auto/perm_2C0E10  # perm  (link)
+0x002DF688 0x002DF744 auto/perm_2DF688  # perm  (link)

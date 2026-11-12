@@ -1,0 +1,656 @@
+diff --git a/ps2xIOP/src/emulator/core/iop_memory.cpp b/ps2xIOP/src/emulator/core/iop_memory.cpp
+index 192a5d9..e08f53c 100644
+--- a/ps2xIOP/src/emulator/core/iop_memory.cpp
++++ b/ps2xIOP/src/emulator/core/iop_memory.cpp
+@@ -1,3 +1,5 @@
++#include <cstdio>
++#include <cstdlib>
+ #include "iop_memory.h"
+ 
+ #include <algorithm>
+@@ -325,7 +327,10 @@ namespace ps2x::iop::detail
+             return address;
+         }
+ 
+-        uint32_t candidate = alignUp(m_heapCursor, alignment);
++        // First fit from the bottom, as SYSMEM does: starting at the high-water cursor never reused a freed block,
++        // so load/unload cycles (sceSifLoadModuleBuffer staging, per-module argv) leaked the 832 KB heap until a
++        // 16 KB request failed (BT2's PS2RNA_Init, which then halts on purpose).
++        uint32_t candidate = alignUp(HeapBase, alignment);
+         for (;;)
+         {
+             bool overlap = false;
+@@ -342,7 +347,15 @@ namespace ps2x::iop::detail
+                 break;
+         }
+         if (candidate > HeapLimit || size > HeapLimit - candidate)
++        {
++            if (std::getenv("PS2X_IOP_HEAP_TRACE"))
++            {
++                std::fprintf(stderr, "[iop heap] %u bytes failed; %zu blocks:\n", size, m_allocations.size());
++                for (const auto &block : m_allocations)
++                    std::fprintf(stderr, "[iop heap]   %08x +%x\n", block.address, block.size);
++            }
+             return 0u;
++        }
+         m_allocations.push_back({candidate, size});
+         markOwned(candidate, size);
+         m_heapCursor = std::max(m_heapCursor, candidate + size);
+diff --git a/ps2xIOP/src/emulator/core/iop_memory.h b/ps2xIOP/src/emulator/core/iop_memory.h
+index 0a72572..b2538bf 100644
+--- a/ps2xIOP/src/emulator/core/iop_memory.h
++++ b/ps2xIOP/src/emulator/core/iop_memory.h
+@@ -24,7 +24,9 @@ namespace ps2x::iop::detail
+         static constexpr uint32_t Spu2End = 0x1FA00000u;
+         static constexpr uint32_t SifBase = 0x1D000000u;
+         static constexpr uint32_t SifEnd = 0x1D001000u;
+-        static constexpr uint32_t HeapBase = 0x00120000u;
++        // Modules load from 0x10000 up to here. Was 0x120000: BT2 loads 14 modules ending near 0x8F000, while CRI
++        // ADX and the stream driver need ~800 KB of heap besides the rest (the 832 KB heap ran out).
++        static constexpr uint32_t HeapBase = 0x000A0000u;
+         static constexpr uint32_t HeapLimit = 0x001F0000u;
+ 
+         struct Allocation
+diff --git a/ps2xIOP/src/emulator/iop_emulator.cpp b/ps2xIOP/src/emulator/iop_emulator.cpp
+index ba98a2d..e9e3072 100644
+--- a/ps2xIOP/src/emulator/iop_emulator.cpp
++++ b/ps2xIOP/src/emulator/iop_emulator.cpp
+@@ -18,6 +18,7 @@
+ #include "iop_emulator_const.h"
+ 
+ #include <algorithm>
++#include <cstring>
+ #include <cstdio>
+ #include <cstdlib>
+ #include <cctype>
+@@ -93,6 +94,7 @@ namespace ps2x::iop::detail
+             uint32_t function = 0u;
+             uint32_t gp = 0u;
+             uint32_t argument = 0u;
++            bool alarm = false; // thbase SetAlarm: re-armed with the handler's return value (cycles), 0 stops it
+         };
+ 
+         explicit Impl(IopHost &hostRef)
+@@ -271,6 +273,37 @@ namespace ps2x::iop::detail
+ 
+             if (iequals(call.library, "thbase") || iequals(call.library, "threadman"))
+             {
++                // SetAlarm/iSetAlarm(const iop_sys_clock_t *clock, handler, arg) and CancelAlarm/iCancelAlarm(handler,
++                // arg). The handler runs in interrupt context when the clock (IOP cycles) runs out; a non-zero
++                // return value is the next interval. RAD's Bink IOP module paces its reads with one.
++                if (call.ordinal == 35u || call.ordinal == 37u)
++                {
++                    const uint64_t delay = static_cast<uint64_t>(memory.read32(cpu.gpr[4])) |
++                                           (static_cast<uint64_t>(memory.read32(cpu.gpr[4] + 4u)) << 32u);
++                    pendingGuestCallbacks.emplace(totalCycles + std::max<uint64_t>(delay, 1u),
++                                                  ScheduledGuestCallback{cpu.gpr[5], cpu.gpr[28], cpu.gpr[6], true});
++                    if (std::getenv("PS2X_IRQ_TRACE"))
++                        std::fprintf(stderr, "[iop alarm] set handler %08x arg %08x in %llu cycles\n", cpu.gpr[5], cpu.gpr[6],
++                                     static_cast<unsigned long long>(delay));
++                    setV0(0u);
++                    return ImportDisposition::Handled;
++                }
++                if (call.ordinal == 36u || call.ordinal == 38u)
++                {
++                    bool found = false;
++                    for (auto it = pendingGuestCallbacks.begin(); it != pendingGuestCallbacks.end();)
++                    {
++                        if (it->second.alarm && it->second.function == cpu.gpr[4] && it->second.argument == cpu.gpr[5])
++                        {
++                            it = pendingGuestCallbacks.erase(it);
++                            found = true;
++                        }
++                        else
++                            ++it;
++                    }
++                    setV0(found ? 0u : static_cast<uint32_t>(-105)); // KE_NOEXIST_ALARM
++                    return ImportDisposition::Handled;
++                }
+                 return kernel.dispatchThreadImport(call.ordinal, cpu, totalCycles)
+                            ? ImportDisposition::Handled
+                            : ImportDisposition::Missing;
+@@ -558,13 +591,17 @@ namespace ps2x::iop::detail
+                 {
+                     if (callback.function != 0u)
+                     {
+-                        (void)callFunction(callback.function,
+-                                           callback.argument,
+-                                           0u,
+-                                           0u,
+-                                           0u,
+-                                           callback.gp,
+-                                           100000u);
++                        const uint32_t result = callFunction(callback.function,
++                                                             callback.argument,
++                                                             0u,
++                                                             0u,
++                                                             0u,
++                                                             callback.gp,
++                                                             100000u);
++                        if (callback.alarm && std::getenv("PS2X_IRQ_TRACE"))
++                            std::fprintf(stderr, "[iop alarm] fired %08x -> %u\n", callback.function, result);
++                        if (callback.alarm && result != 0u)
++                            pendingGuestCallbacks.emplace(totalCycles + result, callback);
+                     }
+                 }
+             }
+@@ -640,19 +677,35 @@ namespace ps2x::iop::detail
+             module.entry = loaded.entry;
+             module.gp = loaded.gp;
+ 
+-            uint32_t args = 0u;
++            // start(argc, argv) as MODLOAD calls it: argv[0] is the module path, then one entry per NUL-separated
++            // string of the load arguments, then NULL (RAD's Bink IOP module refuses to start unless argc == 3).
++            std::vector<uint8_t> strings(module.path.begin(), module.path.end());
++            strings.push_back(0u);
+             if (arguments && argumentSize)
+             {
+-                args = allocate(argumentSize + 1u, 16u);
+-                if (args)
+-                {
+-                    writeRam(args, arguments, argumentSize);
+-                    write8(args + argumentSize, 0u);
+-                }
+-            }
+-            const uint32_t startResult = callFunction(module.entry, argumentSize, args, 0u, 0u, module.gp);
+-            if (args)
+-                freeAllocation(args);
++                const auto *bytes = static_cast<const uint8_t *>(arguments);
++                strings.insert(strings.end(), bytes, bytes + argumentSize);
++                if (strings.back() != 0u)
++                    strings.push_back(0u);
++            }
++            std::vector<uint32_t> offsets{0u};
++            for (size_t i = module.path.size() + 1u; i < strings.size(); ++i)
++                if (strings[i - 1u] == 0u)
++                    offsets.push_back(static_cast<uint32_t>(i));
++            const uint32_t argc = static_cast<uint32_t>(offsets.size());
++            const uint32_t pointerBytes = (argc + 1u) * 4u;
++            const uint32_t argv = allocate(pointerBytes + static_cast<uint32_t>(strings.size()), 16u);
++            if (argv)
++            {
++                const uint32_t text = argv + pointerBytes;
++                writeRam(text, strings.data(), strings.size());
++                for (uint32_t i = 0; i < argc; ++i)
++                    write32(argv + i * 4u, text + offsets[i]);
++                write32(argv + argc * 4u, 0u);
++            }
++            const uint32_t startResult = callFunction(module.entry, argv ? argc : 0u, argv, 0u, 0u, module.gp);
++            if (argv)
++                freeAllocation(argv);
+             module.resident = startResult == 0u || startResult == 2u;
+             result.moduleId = module.id;
+             result.startResult = static_cast<int32_t>(startResult);
+@@ -681,7 +734,20 @@ namespace ps2x::iop::detail
+         ModuleLoadResult loadModuleBuffer(uint32_t guestAddress, const void *arguments, uint32_t argumentSize)
+         {
+             std::vector<uint8_t> image;
+-            if (!IopModuleLoader::readElfFromGuest(host, guestAddress, image))
++            // sceSifLoadModuleBuffer takes an IOP address: the EE first copies the IRX to IOP RAM (Bink's
++            // RAD_IOP_SIDE module in Downhill Jam). An ELF found at that EE address is accepted too.
++            // On by default (BT2's sceChk01 needs it); PS2X_IOP_RAM_MODULES=0 turns the IOP RAM case off. Downhill
++            // Jam: with it the Bink intro starts but its streaming stalls after two reads; without it the movies are
++            // skipped.
++            static const bool iopRamModules = []()
++            {
++                const char *value = std::getenv("PS2X_IOP_RAM_MODULES");
++                return !value || std::strcmp(value, "0") != 0;
++            }();
++            if (!IopModuleLoader::readElfFromGuest(host, guestAddress, image) &&
++                !(iopRamModules && IopModuleLoader::readElf([this](uint32_t address, void *destination, size_t size)
++                                          { return memory.readRam(address, destination, size); },
++                                          guestAddress, image)))
+                 return {true, -1, -1};
+             std::ostringstream tag;
+             tag << "buffer@0x" << std::hex << guestAddress;
+@@ -774,10 +840,13 @@ namespace ps2x::iop::detail
+         // walking the thread table (half of all host time). Run it in slices of at least kDefaultSlice cycles;
+         // RPCs and SIF commands still reach it synchronously.
+         m_impl->pendingIopCycles += total / 8u;
+-        if (m_impl->pendingIopCycles >= kDefaultSlice)
++        // A long EE idle wait hands over millions of cycles at once: run them slice by slice and deliver the
++        // IOP's SIF commands after each, so the EE gets them when they were sent (one big slice held them all to
++        // its end, and loads hung or went out of order).
++        while (m_impl->pendingIopCycles >= kDefaultSlice)
+         {
+-            const uint64_t iopCycles = m_impl->pendingIopCycles;
+-            m_impl->pendingIopCycles = 0u;
++            const uint64_t iopCycles = std::min<uint64_t>(m_impl->pendingIopCycles, kDefaultSlice);
++            m_impl->pendingIopCycles -= iopCycles;
+             m_impl->runCycles(iopCycles);
+             m_impl->rpc.deliverPendingCommands(*m_impl);
+         }
+diff --git a/ps2xIOP/src/emulator/services/iop_module_loader.cpp b/ps2xIOP/src/emulator/services/iop_module_loader.cpp
+index 80e59d6..64498cf 100644
+--- a/ps2xIOP/src/emulator/services/iop_module_loader.cpp
++++ b/ps2xIOP/src/emulator/services/iop_module_loader.cpp
+@@ -321,9 +321,16 @@ namespace ps2x::iop::detail
+     }
+ 
+     bool IopModuleLoader::readElfFromGuest(IopHost &host, uint32_t guestAddress, std::vector<uint8_t> &bytes)
++    {
++        return readElf([&host](uint32_t address, void *destination, size_t size)
++                       { return host.readGuest(address, destination, size); },
++                       guestAddress, bytes);
++    }
++
++    bool IopModuleLoader::readElf(const Reader &read, uint32_t guestAddress, std::vector<uint8_t> &bytes)
+     {
+         Elf32Ehdr header{};
+-        if (!host.readGuest(guestAddress, &header, sizeof(header)) || !validElfHeader(header))
++        if (!read(guestAddress, &header, sizeof(header)) || !validElfHeader(header))
+             return false;
+ 
+         uint64_t required = sizeof(header);
+@@ -334,7 +341,7 @@ namespace ps2x::iop::detail
+             return false; // Should we log an error here? TODO check later
+ 
+         bytes.resize(static_cast<size_t>(required));
+-        if (!host.readGuest(guestAddress, bytes.data(), bytes.size()))
++        if (!read(guestAddress, bytes.data(), bytes.size()))
+             return false;
+ 
+         if (header.shnum != 0u && header.shentsize >= sizeof(Elf32Shdr))
+@@ -364,7 +371,7 @@ namespace ps2x::iop::detail
+             return false;
+ 
+         bytes.resize(static_cast<size_t>(required));
+-        return host.readGuest(guestAddress, bytes.data(), bytes.size());
++        return read(guestAddress, bytes.data(), bytes.size());
+     }
+ 
+     IopImageLoadResult IopModuleLoader::load(std::span<const uint8_t> image, IopMemory &memory, uint32_t moduleCursor)
+diff --git a/ps2xIOP/src/emulator/services/iop_module_loader.h b/ps2xIOP/src/emulator/services/iop_module_loader.h
+index 6cd9ef6..38f3d77 100644
+--- a/ps2xIOP/src/emulator/services/iop_module_loader.h
++++ b/ps2xIOP/src/emulator/services/iop_module_loader.h
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include <cstdint>
++#include <functional>
+ #include <span>
+ #include <string_view>
+ #include <vector>
+@@ -43,6 +44,9 @@ namespace ps2x::iop::detail
+     public:
+         [[nodiscard]] static bool readWholeHostFile(IopHost &host, std::string_view guestPath, std::vector<uint8_t> &bytes);
+         [[nodiscard]] static bool readElfFromGuest(IopHost &host, uint32_t guestAddress, std::vector<uint8_t> &bytes);
++        // Same, reading through `read` (e.g. from IOP RAM).
++        using Reader = std::function<bool(uint32_t address, void *destination, size_t size)>;
++        [[nodiscard]] static bool readElf(const Reader &read, uint32_t address, std::vector<uint8_t> &bytes);
+         [[nodiscard]] static IopImageLoadResult load(std::span<const uint8_t> image, IopMemory &memory, uint32_t moduleCursor);
+     };
+ }
+diff --git a/ps2xIOP/src/emulator/services/iop_rpc.cpp b/ps2xIOP/src/emulator/services/iop_rpc.cpp
+index df21384..aef3c34 100644
+--- a/ps2xIOP/src/emulator/services/iop_rpc.cpp
++++ b/ps2xIOP/src/emulator/services/iop_rpc.cpp
+@@ -217,7 +217,7 @@ namespace ps2x::iop::detail
+                              packetSize, extraSize, extraDestination, cpu.gpr[31], delivered ? "delivered" : "NO HANDLER");
+             if (std::getenv("PS2X_SIF_TRACE") && commandId != 1u)
+             {
+-                std::fprintf(stderr, "    ");
++                std::fprintf(stderr, "    opt %08x |", m_memory.read32(packetAddress + 12u));
+                 for (uint32_t i = 16u; i < packetSize; i += 4u)
+                 {
+                     uint32_t word;
+@@ -313,7 +313,9 @@ namespace ps2x::iop::detail
+                          (it == m_cmdHandlers.end() || it->second.function == 0u) ? "queued (no handler yet)" : "delivered");
+         if (std::getenv("PS2X_SIF_TRACE"))
+         {
+-            std::fprintf(stderr, "    ");
++            uint32_t opt = 0u;
++            std::memcpy(&opt, packet + 12u, 4u);
++            std::fprintf(stderr, "    opt %08x |", opt);
+             for (uint32_t i = 16u; i < packetSize; i += 4u)
+             {
+                 uint32_t word;
+diff --git a/ps2xRecomp/src/lib/control_flow_emitter.cpp b/ps2xRecomp/src/lib/control_flow_emitter.cpp
+index 4bf8dc5..2a69a2e 100644
+--- a/ps2xRecomp/src/lib/control_flow_emitter.cpp
++++ b/ps2xRecomp/src/lib/control_flow_emitter.cpp
+@@ -158,6 +158,26 @@ namespace ps2recomp
+ 
+         m_ss << fmt::format("    if (ctx->pc == 0x{:X}u) {{\n", delayPc());
+         emitDelaySlot("        ");
++
++        // Resuming in the delay slot of an always-taken branch (`b`, `beq $0,$0`, `bgez $0`, `j`) must continue at
++        // its target: the fallthrough is unreachable on hardware (upstream #260, Ridge Racer V's main loop "returned").
++        const bool zeroCompare = m_branchInst.rs == 0 && m_branchInst.rt == 0;
++        uint32_t alwaysTarget = 0u;
++        if ((m_branchInst.opcode == OPCODE_BEQ || m_branchInst.opcode == OPCODE_BEQL) && zeroCompare)
++            alwaysTarget = conditionalBranchTarget();
++        else if (m_branchInst.opcode == OPCODE_REGIMM && m_branchInst.rs == 0 &&
++                 (m_branchInst.rt == REGIMM_BGEZ || m_branchInst.rt == REGIMM_BGEZL))
++            alwaysTarget = conditionalBranchTarget();
++        else if (m_branchInst.opcode == OPCODE_J)
++            alwaysTarget = buildAbsoluteJumpTarget(m_branchInst.address, m_branchInst.target);
++        if (alwaysTarget != 0u && isInternalTarget(alwaysTarget))
++        {
++            m_ss << fmt::format("        ctx->pc = 0x{:X}u;\n", alwaysTarget);
++            m_ss << fmt::format("        goto label_{:x};\n", alwaysTarget);
++            m_ss << "    }\n";
++            return;
++        }
++
+         m_ss << fmt::format("        ctx->pc = 0x{:X}u;\n", fallthroughPc());
+ 
+         if (isInternalTarget(fallthroughPc()))
+diff --git a/ps2xRecomp/src/lib/cop0_translator.cpp b/ps2xRecomp/src/lib/cop0_translator.cpp
+index 1823a39..b1b45a1 100644
+--- a/ps2xRecomp/src/lib/cop0_translator.cpp
++++ b/ps2xRecomp/src/lib/cop0_translator.cpp
+@@ -44,7 +44,7 @@ namespace ps2recomp
+             case COP0_REG_BADVADDR:
+                 return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ctx->cop0_badvaddr);", rt);
+             case COP0_REG_COUNT:
+-                return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ctx->cop0_count);", rt);
++                return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)(runtime->cop0Count() + ctx->cop0_count));", rt);
+             case COP0_REG_ENTRYHI:
+                 return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ctx->cop0_entryhi);", rt);
+             case COP0_REG_COMPARE:
+@@ -94,7 +94,7 @@ namespace ps2recomp
+             case COP0_REG_BADVADDR:
+                 return "// MTC0 to BADVADDR register ignored (read-only)";
+             case COP0_REG_COUNT:
+-                return fmt::format("ctx->cop0_count = GPR_U32(ctx, {});", rt);
++                return fmt::format("ctx->cop0_count = GPR_U32(ctx, {}) - runtime->cop0Count();", rt);
+             case COP0_REG_ENTRYHI:
+                 return fmt::format("ctx->cop0_entryhi = GPR_U32(ctx, {}) & 0xC00000FF;", rt);
+             case COP0_REG_COMPARE:
+diff --git a/ps2xRuntime/include/ps2_call_list.h b/ps2xRuntime/include/ps2_call_list.h
+index 5c418a2..6402fd6 100644
+--- a/ps2xRuntime/include/ps2_call_list.h
++++ b/ps2xRuntime/include/ps2_call_list.h
+@@ -91,6 +91,7 @@
+     X(SifRemoveRpc)            \
+     X(sceSifCallRpc)           \
+     X(sceSifSendCmd)           \
++    X(_sceSifSendCmd)          \
+     X(sceRpcGetPacket)         \
+                                \
+     X(fioOpen)                 \
+@@ -125,6 +126,7 @@
+     X(sceSifLoadElfPart)       \
+     X(sceSifLoadModule)        \
+     X(sceSifLoadModuleBuffer)  \
++    X(_sceSifLoadModuleBuffer) \
+                                \
+     X(SetupThread)             \
+     X(EndOfHeap)               \
+diff --git a/ps2xRuntime/include/ps2_runtime.h b/ps2xRuntime/include/ps2_runtime.h
+index ad25d54..5200b43 100644
+--- a/ps2xRuntime/include/ps2_runtime.h
++++ b/ps2xRuntime/include/ps2_runtime.h
+@@ -392,6 +392,8 @@ public:
+ 
+     EeScheduler &eeScheduler();
+     const EeScheduler &eeScheduler() const;
++    // COP0 Count: the EE cycle counter (games time things with it, e.g. Bink's millisecond clock).
++    uint32_t cop0Count() const;
+     void postEeEvent(EeEvent event);
+     bool eeCheckpointDue(uint32_t cycles = 32u) noexcept;
+     [[noreturn]] void eeWaitVSyncTicks(uint32_t ticks, uint32_t resumePc);
+diff --git a/ps2xRuntime/include/runtime/ee_scheduler.h b/ps2xRuntime/include/runtime/ee_scheduler.h
+index d551ec9..e6a69ee 100644
+--- a/ps2xRuntime/include/runtime/ee_scheduler.h
++++ b/ps2xRuntime/include/runtime/ee_scheduler.h
+@@ -366,6 +366,7 @@ public:
+     void bindMainContextForSyscall(R5900Context &ctx, uint8_t *rdram);
+ 
+     [[nodiscard]] EeKernelSnapshot snapshot() const;
++    [[nodiscard]] uint64_t eeCycle() const noexcept { return m_eeCycle; }
+     void publishSnapshot();
+ 
+ private:
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
+index 7d3bb6d..ad65fd5 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
+@@ -45,6 +45,8 @@ namespace ps2_stubs
+     {
+         (void)rdram;
+         (void)runtime;
++        if (std::getenv("PS2X_PAD_TRACE"))
++            std::fprintf(stderr, "[pad2] init\n");
+         std::lock_guard<std::mutex> lock(g_pad2Mutex);
+         g_pad2Sockets.fill(Pad2Socket{});
+         setReturnS32(ctx, 1);
+@@ -68,6 +70,8 @@ namespace ps2_stubs
+             if (!g_pad2Sockets[id].open)
+             {
+                 g_pad2Sockets[id] = Pad2Socket{true, port, slot};
++                if (std::getenv("PS2X_PAD_TRACE"))
++                    std::fprintf(stderr, "[pad2] socket %d = port %u slot %u\n", id, port, slot);
+                 setReturnS32(ctx, id);
+                 return;
+             }
+@@ -94,6 +98,14 @@ namespace ps2_stubs
+         // Only the first controller is connected (the host pad / keyboard).
+         const bool present = socketFor(static_cast<int32_t>(getRegU32(ctx, 4)), socket) && socket.port == 0u &&
+                              socket.slot == 0u;
++        static const bool trace = std::getenv("PS2X_PAD_TRACE") != nullptr;
++        static uint32_t traced = 0;
++        if (trace && traced < 8u)
++        {
++            ++traced;
++            std::fprintf(stderr, "[pad2] state socket %d -> %d\n", static_cast<int32_t>(getRegU32(ctx, 4)),
++                         present ? kPad2StateStable : kPad2StateNoDevice);
++        }
+         setReturnS32(ctx, present ? kPad2StateStable : kPad2StateNoDevice);
+     }
+ 
+@@ -131,10 +143,11 @@ namespace ps2_stubs
+         if (getPadOverrideBytes(forced)) // scripted input (debug panel / test harness) wins over the host pad
+             std::memcpy(data + 2, forced, sizeof(forced));
+         std::memcpy(out, data + 2, kPad2ReadBytes);
+-        // PS2X_PAD_TRACE=1: log reads with a button held, and every 600th read.
++        // PS2X_PAD_TRACE=1: log reads with a button held, and every 600th read (=2: every 50th).
+         static const bool trace = std::getenv("PS2X_PAD_TRACE") != nullptr;
+         static uint64_t reads = 0;
+-        if (trace && ((data[2] & data[3]) != 0xFFu || (++reads % 600u) == 0u))
++        static const uint64_t every = trace && std::getenv("PS2X_PAD_TRACE")[0] == '2' ? 50u : 600u;
++        if (trace && ((data[2] & data[3]) != 0xFFu || (++reads % every) == 0u))
+             std::fprintf(stderr, "[pad2] read #%llu socket port %u buttons %02x%02x\n",
+                          static_cast<unsigned long long>(reads), socket.port, data[3], data[2]);
+         setReturnS32(ctx, static_cast<int32_t>(kPad2ReadBytes));
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp
+index dc975ed..2cb63aa 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp
+@@ -303,7 +303,11 @@ namespace ps2_stubs
+     {
+         (void)rdram;
+         const uint32_t reqSize = getRegU32(ctx, 4);
+-        setReturnU32(ctx, runtime ? runtime->allocateIopMemory(reqSize, 64u) : 0u);
++        const uint32_t address = runtime ? runtime->allocateIopMemory(reqSize, 64u) : 0u;
++        if (address == 0u)
++            std::cerr << "[sceSifAllocIopHeap] " << reqSize << " bytes failed (ra=0x" << std::hex << getRegU32(ctx, 31)
++                      << std::dec << ")" << std::endl;
++        setReturnU32(ctx, address);
+     }
+ 
+     void sceSifAllocSysMemory(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h b/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h
+index 6204325..b010d68 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h
+@@ -320,6 +320,16 @@ static void ensureOsdConfigInitialized()
+     uint32_t ps1drvConfig = 0;
+     uint32_t version = 1;  // OSD2
+     uint32_t language = 1; // English
++    // PS2X_LANGUAGE: console language the game reads from the OSD config (a number, or en/fr/es/de/it/nl/pt/ja).
++    if (const char *value = std::getenv("PS2X_LANGUAGE"))
++    {
++        static const std::pair<const char *, uint32_t> kNames[] = {{"ja", 0u}, {"en", 1u}, {"fr", 2u}, {"es", 3u},
++                                                                   {"de", 4u}, {"it", 5u}, {"nl", 6u}, {"pt", 7u}};
++        language = static_cast<uint32_t>(std::strtoul(value, nullptr, 0)) & 0x1Fu;
++        for (const auto &[name, code] : kNames)
++            if (std::strcmp(value, name) == 0)
++                language = code;
++    }
+     g_osd_config_raw = packOsdConfig(spdifMode, screenType, videoOutput, japLanguage, ps1drvConfig, version, language, tz);
+     g_osd_config2_raw = packOsdConfig2(0, 0, 0, 0, version, language);
+     g_osd_config_initialized = true;
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp
+index 3e690a8..50bc694 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp
+@@ -968,18 +968,10 @@ namespace ps2_syscalls
+         SifCallRpc(rdram, ctx, runtime);
+     }
+ 
+-    void sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    // Shared by sceSifSendCmd/isceSifSendCmd (public ABI) and _sceSifSendCmd (the libkernel core they call).
++    static void sendSifCommand(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime, uint32_t cid, uint32_t packetAddr,
++                               uint32_t packetSize, uint32_t srcExtra, uint32_t destExtra, uint32_t sizeExtra)
+     {
+-        uint32_t cid = getRegU32(ctx, 4);
+-        uint32_t packetAddr = getRegU32(ctx, 5);
+-        uint32_t packetSize = getRegU32(ctx, 6);
+-        uint32_t srcExtra = getRegU32(ctx, 7);
+-
+-        uint32_t sp = getRegU32(ctx, 29);
+-        uint32_t destExtra = 0;
+-        uint32_t sizeExtra = 0;
+-        readStackU32(rdram, sp, 0x10, destExtra);
+-        readStackU32(rdram, sp, 0x14, sizeExtra);
+ 
+         // The extra data goes EE -> IOP: copy it into IOP memory (the destination is an IOP address).
+         if (sizeExtra > 0 && sizeExtra <= 0x100000u && srcExtra && destExtra && runtime)
+@@ -1019,6 +1011,26 @@ namespace ps2_syscalls
+         setReturnS32(ctx, 1);
+     }
+ 
++    void sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        uint32_t sp = getRegU32(ctx, 29);
++        uint32_t destExtra = 0;
++        uint32_t sizeExtra = 0;
++        readStackU32(rdram, sp, 0x10, destExtra);
++        readStackU32(rdram, sp, 0x14, sizeExtra);
++        sendSifCommand(rdram, ctx, runtime, getRegU32(ctx, 4), getRegU32(ctx, 5), getRegU32(ctx, 6), getRegU32(ctx, 7),
++                       destExtra, sizeExtra);
++    }
++
++    // _sceSifSendCmd(cid, mode, packet, psize, src, dest, size): everything in registers, mode 1 when called from
++    // an interrupt handler (isceSifSendCmd). Needs its own entry: the leading-underscore alias would send it to
++    // sceSifSendCmd, which reads the packet from $a1 (the mode) and drops the command.
++    void _sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        sendSifCommand(rdram, ctx, runtime, getRegU32(ctx, 4), getRegU32(ctx, 6), getRegU32(ctx, 7), getRegU32(ctx, 8),
++                       getRegU32(ctx, 9), getRegU32(ctx, 10));
++    }
++
+     void sceRpcGetPacket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+     {
+         uint32_t queuePtr = getRegU32(ctx, 4);
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h
+index 5e9a446..066708a 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h
+@@ -16,5 +16,6 @@ namespace ps2_syscalls
+     void SifRemoveRpc(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifCallRpc(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void _sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceRpcGetPacket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+ }
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp b/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
+index ff757ac..cc1b02c 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
+@@ -323,6 +323,37 @@ namespace ps2_syscalls
+         setReturnS32(ctx, loaded.moduleId);
+     }
+ 
++    // _sceSifLoadModuleBuffer(iop_addr, arglen, args, int *modres): the libkernel core of sceSifLoadModuleBuffer.
++    // Needs its own entry: the leading-underscore alias went to the public handler, which never writes *modres
++    // (the module's start() result). BT2's sceChk01 loads an IRX embedded in the ELF this way and exits main
++    // unless *modres says the module stayed resident.
++    void _sceSifLoadModuleBuffer(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        const uint32_t resultAddr = getRegU32(ctx, 7); // $a3
++        int32_t startResult = -1;
++        const uint32_t bufferAddr = getRegU32(ctx, 4);
++        std::vector<uint8_t> arguments;
++        constexpr uint32_t kMaxIopModuleArguments = 64u * 1024u;
++        if (!rdram || !runtime || bufferAddr == 0u ||
++            !copyGuestBytesBounded(rdram, getRegU32(ctx, 6), getRegU32(ctx, 5), kMaxIopModuleArguments, arguments))
++        {
++            setReturnS32(ctx, -1);
++            return;
++        }
++        const auto loaded = runtime->loadIopModuleBuffer(bufferAddr, arguments.empty() ? nullptr : arguments.data(),
++                                                         static_cast<uint32_t>(arguments.size()));
++        if (loaded.handled && loaded.moduleId > 0)
++        {
++            startResult = loaded.startResult;
++            trackSifModuleLoadExternal(makeSifModuleBufferTag(rdram, bufferAddr), loaded.moduleId);
++            logSifModuleAction("load-buffer-emulated", loaded.moduleId, makeSifModuleBufferTag(rdram, bufferAddr), 1u);
++        }
++        if (resultAddr != 0u)
++            if (uint8_t *out = getMemPtr(rdram, resultAddr))
++                std::memcpy(out, &startResult, sizeof(startResult));
++        setReturnS32(ctx, loaded.handled && loaded.moduleId > 0 ? loaded.moduleId : -1);
++    }
++
+     void TODO(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime, uint32_t encodedSyscallId)
+     {
+         // a bit more detail mayber reomve old logic, lets get it more raw
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/System.h b/ps2xRuntime/src/lib/Kernel/Syscalls/System.h
+index c9b9991..d28b400 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/System.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/System.h
+@@ -21,6 +21,7 @@ namespace ps2_syscalls
+     void sceSifLoadElfPart(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifLoadModule(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifLoadModuleBuffer(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void _sceSifLoadModuleBuffer(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void TODO(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime, uint32_t encodedSyscallId);
+     void initializeGuestKernelState(uint8_t *rdram, PS2Runtime *runtime);
+     void SetSyscall(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+diff --git a/ps2xRuntime/src/lib/ps2_memory.cpp b/ps2xRuntime/src/lib/ps2_memory.cpp
+index cfe1970..407f859 100644
+--- a/ps2xRuntime/src/lib/ps2_memory.cpp
++++ b/ps2xRuntime/src/lib/ps2_memory.cpp
+@@ -1144,6 +1144,11 @@ void PS2Memory::write128(uint32_t address, __m128i value)
+ bool PS2Memory::writeIORegister(uint32_t address, uint32_t value)
+ {
+     syncVif1ForAddress(address);
++    // D_ENABLEW (0x1000F590) and D_ENABLER (0x1000F520) are the write and read ports of the one DMAC suspend
++    // register (PCSX2 dmacWrite32 mirrors it too): without this a game that suspends the DMAC and waits to see the
++    // bit spins forever (upstream #257, Ridge Racer V).
++    if (address == 0x1000F590u)
++        m_ioRegisters[0x1000F520u] = value;
+     size_t timerIndex = 0u;
+     uint32_t timerOffset = 0u;
+     if (decodeEeTimerRegister(address, timerIndex, timerOffset))
+@@ -1949,8 +1954,9 @@ namespace
+     {
+         static const bool enabled = []()
+         {
++            // Off by default: with it on, Downhill Jam's pad task stops running (scePad2Read is never called).
+             const char *value = std::getenv("PS2X_VIF1_THREAD");
+-            return !value || std::strcmp(value, "0") != 0;
++            return value && std::strcmp(value, "0") != 0;
+         }();
+         return enabled;
+     }
+diff --git a/ps2xRuntime/src/lib/ps2_runtime.cpp b/ps2xRuntime/src/lib/ps2_runtime.cpp
+index 85b0022..b613d48 100644
+--- a/ps2xRuntime/src/lib/ps2_runtime.cpp
++++ b/ps2xRuntime/src/lib/ps2_runtime.cpp
+@@ -2255,6 +2255,11 @@ const EeScheduler &PS2Runtime::eeScheduler() const
+     return *m_eeScheduler;
+ }
+ 
++uint32_t PS2Runtime::cop0Count() const
++{
++    return static_cast<uint32_t>(m_eeScheduler->eeCycle());
++}
++
+ void PS2Runtime::postEeEvent(EeEvent event)
+ {
+     m_eeScheduler->postEvent(event);

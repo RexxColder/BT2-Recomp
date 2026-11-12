@@ -1,0 +1,9 @@
+--- a/port/eq/22C9B8.c
++++ b/port/eq/22C9B8.c
+@@ -9,6 +9,5 @@
+     func_002113C0((s32)arg0, 0, 2, 1);
+     if (*(s32 *)(arg0 + 0xB84) > 0) {
+         *(s32 *)(arg0 + 0x8DC) = *(s32 *)(arg0 + 0x8DC) | 2;
+-        bt2_fightlog_note("B3 BIT2 22C9B8 chr %08X B84 %d", (s32)arg0, *(s32 *)(arg0 + 0xB84)); /* TEMP */
+     }
+ }

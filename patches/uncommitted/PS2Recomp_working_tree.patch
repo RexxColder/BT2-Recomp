@@ -1,0 +1,2599 @@
+diff --git a/ps2xIOP/src/emulator/core/iop_memory.cpp b/ps2xIOP/src/emulator/core/iop_memory.cpp
+index 192a5d9..e08f53c 100644
+--- a/ps2xIOP/src/emulator/core/iop_memory.cpp
++++ b/ps2xIOP/src/emulator/core/iop_memory.cpp
+@@ -1,3 +1,5 @@
++#include <cstdio>
++#include <cstdlib>
+ #include "iop_memory.h"
+ 
+ #include <algorithm>
+@@ -325,7 +327,10 @@ namespace ps2x::iop::detail
+             return address;
+         }
+ 
+-        uint32_t candidate = alignUp(m_heapCursor, alignment);
++        // First fit from the bottom, as SYSMEM does: starting at the high-water cursor never reused a freed block,
++        // so load/unload cycles (sceSifLoadModuleBuffer staging, per-module argv) leaked the 832 KB heap until a
++        // 16 KB request failed (BT2's PS2RNA_Init, which then halts on purpose).
++        uint32_t candidate = alignUp(HeapBase, alignment);
+         for (;;)
+         {
+             bool overlap = false;
+@@ -342,7 +347,15 @@ namespace ps2x::iop::detail
+                 break;
+         }
+         if (candidate > HeapLimit || size > HeapLimit - candidate)
++        {
++            if (std::getenv("PS2X_IOP_HEAP_TRACE"))
++            {
++                std::fprintf(stderr, "[iop heap] %u bytes failed; %zu blocks:\n", size, m_allocations.size());
++                for (const auto &block : m_allocations)
++                    std::fprintf(stderr, "[iop heap]   %08x +%x\n", block.address, block.size);
++            }
+             return 0u;
++        }
+         m_allocations.push_back({candidate, size});
+         markOwned(candidate, size);
+         m_heapCursor = std::max(m_heapCursor, candidate + size);
+diff --git a/ps2xIOP/src/emulator/core/iop_memory.h b/ps2xIOP/src/emulator/core/iop_memory.h
+index 0a72572..b2538bf 100644
+--- a/ps2xIOP/src/emulator/core/iop_memory.h
++++ b/ps2xIOP/src/emulator/core/iop_memory.h
+@@ -24,7 +24,9 @@ namespace ps2x::iop::detail
+         static constexpr uint32_t Spu2End = 0x1FA00000u;
+         static constexpr uint32_t SifBase = 0x1D000000u;
+         static constexpr uint32_t SifEnd = 0x1D001000u;
+-        static constexpr uint32_t HeapBase = 0x00120000u;
++        // Modules load from 0x10000 up to here. Was 0x120000: BT2 loads 14 modules ending near 0x8F000, while CRI
++        // ADX and the stream driver need ~800 KB of heap besides the rest (the 832 KB heap ran out).
++        static constexpr uint32_t HeapBase = 0x000A0000u;
+         static constexpr uint32_t HeapLimit = 0x001F0000u;
+ 
+         struct Allocation
+diff --git a/ps2xIOP/src/emulator/iop_emulator.cpp b/ps2xIOP/src/emulator/iop_emulator.cpp
+index ba98a2d..e9e3072 100644
+--- a/ps2xIOP/src/emulator/iop_emulator.cpp
++++ b/ps2xIOP/src/emulator/iop_emulator.cpp
+@@ -18,6 +18,7 @@
+ #include "iop_emulator_const.h"
+ 
+ #include <algorithm>
++#include <cstring>
+ #include <cstdio>
+ #include <cstdlib>
+ #include <cctype>
+@@ -93,6 +94,7 @@ namespace ps2x::iop::detail
+             uint32_t function = 0u;
+             uint32_t gp = 0u;
+             uint32_t argument = 0u;
++            bool alarm = false; // thbase SetAlarm: re-armed with the handler's return value (cycles), 0 stops it
+         };
+ 
+         explicit Impl(IopHost &hostRef)
+@@ -271,6 +273,37 @@ namespace ps2x::iop::detail
+ 
+             if (iequals(call.library, "thbase") || iequals(call.library, "threadman"))
+             {
++                // SetAlarm/iSetAlarm(const iop_sys_clock_t *clock, handler, arg) and CancelAlarm/iCancelAlarm(handler,
++                // arg). The handler runs in interrupt context when the clock (IOP cycles) runs out; a non-zero
++                // return value is the next interval. RAD's Bink IOP module paces its reads with one.
++                if (call.ordinal == 35u || call.ordinal == 37u)
++                {
++                    const uint64_t delay = static_cast<uint64_t>(memory.read32(cpu.gpr[4])) |
++                                           (static_cast<uint64_t>(memory.read32(cpu.gpr[4] + 4u)) << 32u);
++                    pendingGuestCallbacks.emplace(totalCycles + std::max<uint64_t>(delay, 1u),
++                                                  ScheduledGuestCallback{cpu.gpr[5], cpu.gpr[28], cpu.gpr[6], true});
++                    if (std::getenv("PS2X_IRQ_TRACE"))
++                        std::fprintf(stderr, "[iop alarm] set handler %08x arg %08x in %llu cycles\n", cpu.gpr[5], cpu.gpr[6],
++                                     static_cast<unsigned long long>(delay));
++                    setV0(0u);
++                    return ImportDisposition::Handled;
++                }
++                if (call.ordinal == 36u || call.ordinal == 38u)
++                {
++                    bool found = false;
++                    for (auto it = pendingGuestCallbacks.begin(); it != pendingGuestCallbacks.end();)
++                    {
++                        if (it->second.alarm && it->second.function == cpu.gpr[4] && it->second.argument == cpu.gpr[5])
++                        {
++                            it = pendingGuestCallbacks.erase(it);
++                            found = true;
++                        }
++                        else
++                            ++it;
++                    }
++                    setV0(found ? 0u : static_cast<uint32_t>(-105)); // KE_NOEXIST_ALARM
++                    return ImportDisposition::Handled;
++                }
+                 return kernel.dispatchThreadImport(call.ordinal, cpu, totalCycles)
+                            ? ImportDisposition::Handled
+                            : ImportDisposition::Missing;
+@@ -558,13 +591,17 @@ namespace ps2x::iop::detail
+                 {
+                     if (callback.function != 0u)
+                     {
+-                        (void)callFunction(callback.function,
+-                                           callback.argument,
+-                                           0u,
+-                                           0u,
+-                                           0u,
+-                                           callback.gp,
+-                                           100000u);
++                        const uint32_t result = callFunction(callback.function,
++                                                             callback.argument,
++                                                             0u,
++                                                             0u,
++                                                             0u,
++                                                             callback.gp,
++                                                             100000u);
++                        if (callback.alarm && std::getenv("PS2X_IRQ_TRACE"))
++                            std::fprintf(stderr, "[iop alarm] fired %08x -> %u\n", callback.function, result);
++                        if (callback.alarm && result != 0u)
++                            pendingGuestCallbacks.emplace(totalCycles + result, callback);
+                     }
+                 }
+             }
+@@ -640,19 +677,35 @@ namespace ps2x::iop::detail
+             module.entry = loaded.entry;
+             module.gp = loaded.gp;
+ 
+-            uint32_t args = 0u;
++            // start(argc, argv) as MODLOAD calls it: argv[0] is the module path, then one entry per NUL-separated
++            // string of the load arguments, then NULL (RAD's Bink IOP module refuses to start unless argc == 3).
++            std::vector<uint8_t> strings(module.path.begin(), module.path.end());
++            strings.push_back(0u);
+             if (arguments && argumentSize)
+             {
+-                args = allocate(argumentSize + 1u, 16u);
+-                if (args)
+-                {
+-                    writeRam(args, arguments, argumentSize);
+-                    write8(args + argumentSize, 0u);
+-                }
+-            }
+-            const uint32_t startResult = callFunction(module.entry, argumentSize, args, 0u, 0u, module.gp);
+-            if (args)
+-                freeAllocation(args);
++                const auto *bytes = static_cast<const uint8_t *>(arguments);
++                strings.insert(strings.end(), bytes, bytes + argumentSize);
++                if (strings.back() != 0u)
++                    strings.push_back(0u);
++            }
++            std::vector<uint32_t> offsets{0u};
++            for (size_t i = module.path.size() + 1u; i < strings.size(); ++i)
++                if (strings[i - 1u] == 0u)
++                    offsets.push_back(static_cast<uint32_t>(i));
++            const uint32_t argc = static_cast<uint32_t>(offsets.size());
++            const uint32_t pointerBytes = (argc + 1u) * 4u;
++            const uint32_t argv = allocate(pointerBytes + static_cast<uint32_t>(strings.size()), 16u);
++            if (argv)
++            {
++                const uint32_t text = argv + pointerBytes;
++                writeRam(text, strings.data(), strings.size());
++                for (uint32_t i = 0; i < argc; ++i)
++                    write32(argv + i * 4u, text + offsets[i]);
++                write32(argv + argc * 4u, 0u);
++            }
++            const uint32_t startResult = callFunction(module.entry, argv ? argc : 0u, argv, 0u, 0u, module.gp);
++            if (argv)
++                freeAllocation(argv);
+             module.resident = startResult == 0u || startResult == 2u;
+             result.moduleId = module.id;
+             result.startResult = static_cast<int32_t>(startResult);
+@@ -681,7 +734,20 @@ namespace ps2x::iop::detail
+         ModuleLoadResult loadModuleBuffer(uint32_t guestAddress, const void *arguments, uint32_t argumentSize)
+         {
+             std::vector<uint8_t> image;
+-            if (!IopModuleLoader::readElfFromGuest(host, guestAddress, image))
++            // sceSifLoadModuleBuffer takes an IOP address: the EE first copies the IRX to IOP RAM (Bink's
++            // RAD_IOP_SIDE module in Downhill Jam). An ELF found at that EE address is accepted too.
++            // On by default (BT2's sceChk01 needs it); PS2X_IOP_RAM_MODULES=0 turns the IOP RAM case off. Downhill
++            // Jam: with it the Bink intro starts but its streaming stalls after two reads; without it the movies are
++            // skipped.
++            static const bool iopRamModules = []()
++            {
++                const char *value = std::getenv("PS2X_IOP_RAM_MODULES");
++                return !value || std::strcmp(value, "0") != 0;
++            }();
++            if (!IopModuleLoader::readElfFromGuest(host, guestAddress, image) &&
++                !(iopRamModules && IopModuleLoader::readElf([this](uint32_t address, void *destination, size_t size)
++                                          { return memory.readRam(address, destination, size); },
++                                          guestAddress, image)))
+                 return {true, -1, -1};
+             std::ostringstream tag;
+             tag << "buffer@0x" << std::hex << guestAddress;
+@@ -774,10 +840,13 @@ namespace ps2x::iop::detail
+         // walking the thread table (half of all host time). Run it in slices of at least kDefaultSlice cycles;
+         // RPCs and SIF commands still reach it synchronously.
+         m_impl->pendingIopCycles += total / 8u;
+-        if (m_impl->pendingIopCycles >= kDefaultSlice)
++        // A long EE idle wait hands over millions of cycles at once: run them slice by slice and deliver the
++        // IOP's SIF commands after each, so the EE gets them when they were sent (one big slice held them all to
++        // its end, and loads hung or went out of order).
++        while (m_impl->pendingIopCycles >= kDefaultSlice)
+         {
+-            const uint64_t iopCycles = m_impl->pendingIopCycles;
+-            m_impl->pendingIopCycles = 0u;
++            const uint64_t iopCycles = std::min<uint64_t>(m_impl->pendingIopCycles, kDefaultSlice);
++            m_impl->pendingIopCycles -= iopCycles;
+             m_impl->runCycles(iopCycles);
+             m_impl->rpc.deliverPendingCommands(*m_impl);
+         }
+diff --git a/ps2xIOP/src/emulator/services/iop_module_loader.cpp b/ps2xIOP/src/emulator/services/iop_module_loader.cpp
+index 80e59d6..64498cf 100644
+--- a/ps2xIOP/src/emulator/services/iop_module_loader.cpp
++++ b/ps2xIOP/src/emulator/services/iop_module_loader.cpp
+@@ -321,9 +321,16 @@ namespace ps2x::iop::detail
+     }
+ 
+     bool IopModuleLoader::readElfFromGuest(IopHost &host, uint32_t guestAddress, std::vector<uint8_t> &bytes)
++    {
++        return readElf([&host](uint32_t address, void *destination, size_t size)
++                       { return host.readGuest(address, destination, size); },
++                       guestAddress, bytes);
++    }
++
++    bool IopModuleLoader::readElf(const Reader &read, uint32_t guestAddress, std::vector<uint8_t> &bytes)
+     {
+         Elf32Ehdr header{};
+-        if (!host.readGuest(guestAddress, &header, sizeof(header)) || !validElfHeader(header))
++        if (!read(guestAddress, &header, sizeof(header)) || !validElfHeader(header))
+             return false;
+ 
+         uint64_t required = sizeof(header);
+@@ -334,7 +341,7 @@ namespace ps2x::iop::detail
+             return false; // Should we log an error here? TODO check later
+ 
+         bytes.resize(static_cast<size_t>(required));
+-        if (!host.readGuest(guestAddress, bytes.data(), bytes.size()))
++        if (!read(guestAddress, bytes.data(), bytes.size()))
+             return false;
+ 
+         if (header.shnum != 0u && header.shentsize >= sizeof(Elf32Shdr))
+@@ -364,7 +371,7 @@ namespace ps2x::iop::detail
+             return false;
+ 
+         bytes.resize(static_cast<size_t>(required));
+-        return host.readGuest(guestAddress, bytes.data(), bytes.size());
++        return read(guestAddress, bytes.data(), bytes.size());
+     }
+ 
+     IopImageLoadResult IopModuleLoader::load(std::span<const uint8_t> image, IopMemory &memory, uint32_t moduleCursor)
+diff --git a/ps2xIOP/src/emulator/services/iop_module_loader.h b/ps2xIOP/src/emulator/services/iop_module_loader.h
+index 6cd9ef6..38f3d77 100644
+--- a/ps2xIOP/src/emulator/services/iop_module_loader.h
++++ b/ps2xIOP/src/emulator/services/iop_module_loader.h
+@@ -1,6 +1,7 @@
+ #pragma once
+ 
+ #include <cstdint>
++#include <functional>
+ #include <span>
+ #include <string_view>
+ #include <vector>
+@@ -43,6 +44,9 @@ namespace ps2x::iop::detail
+     public:
+         [[nodiscard]] static bool readWholeHostFile(IopHost &host, std::string_view guestPath, std::vector<uint8_t> &bytes);
+         [[nodiscard]] static bool readElfFromGuest(IopHost &host, uint32_t guestAddress, std::vector<uint8_t> &bytes);
++        // Same, reading through `read` (e.g. from IOP RAM).
++        using Reader = std::function<bool(uint32_t address, void *destination, size_t size)>;
++        [[nodiscard]] static bool readElf(const Reader &read, uint32_t address, std::vector<uint8_t> &bytes);
+         [[nodiscard]] static IopImageLoadResult load(std::span<const uint8_t> image, IopMemory &memory, uint32_t moduleCursor);
+     };
+ }
+diff --git a/ps2xIOP/src/emulator/services/iop_rpc.cpp b/ps2xIOP/src/emulator/services/iop_rpc.cpp
+index df21384..aef3c34 100644
+--- a/ps2xIOP/src/emulator/services/iop_rpc.cpp
++++ b/ps2xIOP/src/emulator/services/iop_rpc.cpp
+@@ -217,7 +217,7 @@ namespace ps2x::iop::detail
+                              packetSize, extraSize, extraDestination, cpu.gpr[31], delivered ? "delivered" : "NO HANDLER");
+             if (std::getenv("PS2X_SIF_TRACE") && commandId != 1u)
+             {
+-                std::fprintf(stderr, "    ");
++                std::fprintf(stderr, "    opt %08x |", m_memory.read32(packetAddress + 12u));
+                 for (uint32_t i = 16u; i < packetSize; i += 4u)
+                 {
+                     uint32_t word;
+@@ -313,7 +313,9 @@ namespace ps2x::iop::detail
+                          (it == m_cmdHandlers.end() || it->second.function == 0u) ? "queued (no handler yet)" : "delivered");
+         if (std::getenv("PS2X_SIF_TRACE"))
+         {
+-            std::fprintf(stderr, "    ");
++            uint32_t opt = 0u;
++            std::memcpy(&opt, packet + 12u, 4u);
++            std::fprintf(stderr, "    opt %08x |", opt);
+             for (uint32_t i = 16u; i < packetSize; i += 4u)
+             {
+                 uint32_t word;
+diff --git a/ps2xRecomp/src/lib/control_flow_emitter.cpp b/ps2xRecomp/src/lib/control_flow_emitter.cpp
+index 4bf8dc5..2a69a2e 100644
+--- a/ps2xRecomp/src/lib/control_flow_emitter.cpp
++++ b/ps2xRecomp/src/lib/control_flow_emitter.cpp
+@@ -158,6 +158,26 @@ namespace ps2recomp
+ 
+         m_ss << fmt::format("    if (ctx->pc == 0x{:X}u) {{\n", delayPc());
+         emitDelaySlot("        ");
++
++        // Resuming in the delay slot of an always-taken branch (`b`, `beq $0,$0`, `bgez $0`, `j`) must continue at
++        // its target: the fallthrough is unreachable on hardware (upstream #260, Ridge Racer V's main loop "returned").
++        const bool zeroCompare = m_branchInst.rs == 0 && m_branchInst.rt == 0;
++        uint32_t alwaysTarget = 0u;
++        if ((m_branchInst.opcode == OPCODE_BEQ || m_branchInst.opcode == OPCODE_BEQL) && zeroCompare)
++            alwaysTarget = conditionalBranchTarget();
++        else if (m_branchInst.opcode == OPCODE_REGIMM && m_branchInst.rs == 0 &&
++                 (m_branchInst.rt == REGIMM_BGEZ || m_branchInst.rt == REGIMM_BGEZL))
++            alwaysTarget = conditionalBranchTarget();
++        else if (m_branchInst.opcode == OPCODE_J)
++            alwaysTarget = buildAbsoluteJumpTarget(m_branchInst.address, m_branchInst.target);
++        if (alwaysTarget != 0u && isInternalTarget(alwaysTarget))
++        {
++            m_ss << fmt::format("        ctx->pc = 0x{:X}u;\n", alwaysTarget);
++            m_ss << fmt::format("        goto label_{:x};\n", alwaysTarget);
++            m_ss << "    }\n";
++            return;
++        }
++
+         m_ss << fmt::format("        ctx->pc = 0x{:X}u;\n", fallthroughPc());
+ 
+         if (isInternalTarget(fallthroughPc()))
+diff --git a/ps2xRecomp/src/lib/cop0_translator.cpp b/ps2xRecomp/src/lib/cop0_translator.cpp
+index 1823a39..b1b45a1 100644
+--- a/ps2xRecomp/src/lib/cop0_translator.cpp
++++ b/ps2xRecomp/src/lib/cop0_translator.cpp
+@@ -44,7 +44,7 @@ namespace ps2recomp
+             case COP0_REG_BADVADDR:
+                 return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ctx->cop0_badvaddr);", rt);
+             case COP0_REG_COUNT:
+-                return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ctx->cop0_count);", rt);
++                return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)(runtime->cop0Count() + ctx->cop0_count));", rt);
+             case COP0_REG_ENTRYHI:
+                 return fmt::format("SET_GPR_S32(ctx, {}, (int32_t)ctx->cop0_entryhi);", rt);
+             case COP0_REG_COMPARE:
+@@ -94,7 +94,7 @@ namespace ps2recomp
+             case COP0_REG_BADVADDR:
+                 return "// MTC0 to BADVADDR register ignored (read-only)";
+             case COP0_REG_COUNT:
+-                return fmt::format("ctx->cop0_count = GPR_U32(ctx, {});", rt);
++                return fmt::format("ctx->cop0_count = GPR_U32(ctx, {}) - runtime->cop0Count();", rt);
+             case COP0_REG_ENTRYHI:
+                 return fmt::format("ctx->cop0_entryhi = GPR_U32(ctx, {}) & 0xC00000FF;", rt);
+             case COP0_REG_COMPARE:
+diff --git a/ps2xRecomp/src/lib/vu_translation_helpers.cpp b/ps2xRecomp/src/lib/vu_translation_helpers.cpp
+index 509fd07..0c627f7 100644
+--- a/ps2xRecomp/src/lib/vu_translation_helpers.cpp
++++ b/ps2xRecomp/src/lib/vu_translation_helpers.cpp
+@@ -113,12 +113,17 @@ namespace ps2recomp
+ 
+     std::string CodeGenerator::translateVU_VILWR(const Instruction &inst)
+     {
+-        return fmt::format("{{ uint32_t addr = (uint32_t)(ctx->vi[{}] << 2) & 0x3FFC; ctx->vi[{}] = static_cast<uint16_t>(READ32(addr)); }}", inst.rd, inst.rt); // VILWR.<f> vit, (vis)
++        // VU0 data memory: qword vis * 16 at 0x11004000, the word of the one field in dest (x=0 .. w=3)
++        const uint8_t f = inst.vectorInfo.vectorField;
++        const uint32_t word = (f & 0x8) ? 0u : (f & 0x4) ? 1u : (f & 0x2) ? 2u : 3u;
++        return fmt::format("{{ uint32_t addr = 0x11004000u + (((uint32_t)(ctx->vi[{}] & 0xFF)) << 4) + {}u; ctx->vi[{}] = static_cast<uint16_t>(READ32(addr)); }}", inst.rd, word * 4, inst.rt); // VILWR.<f> vit, (vis)
+     }
+ 
+     std::string CodeGenerator::translateVU_VISWR(const Instruction &inst)
+     {
+-        return fmt::format("{{ uint32_t addr = (uint32_t)(ctx->vi[{}] << 2) & 0x3FFC; WRITE32(addr, (uint32_t)ctx->vi[{}]); }}", inst.rd, inst.rt); // VISWR.<f> vit, (vis)
++        const uint8_t f = inst.vectorInfo.vectorField;
++        const uint32_t word = (f & 0x8) ? 0u : (f & 0x4) ? 1u : (f & 0x2) ? 2u : 3u;
++        return fmt::format("{{ uint32_t addr = 0x11004000u + (((uint32_t)(ctx->vi[{}] & 0xFF)) << 4) + {}u; WRITE32(addr, (uint32_t)ctx->vi[{}]); }}", inst.rd, word * 4, inst.rt); // VISWR.<f> vit, (vis)
+     }
+ 
+     std::string CodeGenerator::translateVU_VIADD(const Instruction &inst)
+@@ -769,7 +774,7 @@ namespace ps2recomp
+     {
+         uint8_t vis = inst.rd;
+         uint8_t dest_mask = inst.vectorInfo.vectorField;
+-        return fmt::format("{{ uint32_t addr = ((uint32_t)(ctx->vi[{}] & 0x3FF)) << 4; "
++        return fmt::format("{{ uint32_t addr = 0x11004000u + (((uint32_t)(ctx->vi[{}] & 0xFF)) << 4); "
+                            "__m128 res = _mm_castsi128_ps(READ128(addr)); "
+                            "__m128i mask = _mm_set_epi32({}, {}, {}, {}); "
+                            "ctx->vu0_vf[{}] = _mm_blendv_ps(ctx->vu0_vf[{}], res, _mm_castsi128_ps(mask)); "
+@@ -783,15 +788,16 @@ namespace ps2recomp
+ 
+     std::string CodeGenerator::translateVU_VSQI(const Instruction &inst)
+     {
+-        uint8_t vis = inst.rd;
++        // vsqi/vsqd vfs, (vit++/--vit): fs = rd (stored vector), it = rt (address register)
++        uint8_t vis = inst.rt;
+         uint8_t dest_mask = inst.vectorInfo.vectorField;
+-        return fmt::format("{{ uint32_t addr = ((uint32_t)(ctx->vi[{}] & 0x3FF)) << 4; "
++        return fmt::format("{{ uint32_t addr = 0x11004000u + (((uint32_t)(ctx->vi[{}] & 0xFF)) << 4); "
+                            "__m128i old_val = READ128(addr); "
+                            "__m128 res = _mm_blendv_ps(_mm_castsi128_ps(old_val), ctx->vu0_vf[{}], _mm_castsi128_ps(_mm_set_epi32({}, {}, {}, {}))); "
+                            "WRITE128(addr, _mm_castps_si128(res)); "
+                            "ctx->vi[{}] = (ctx->vi[{}] + 1) & 0x3FF; }}",
+                            vis,
+-                           inst.rt,
++                           inst.rd,
+                            (dest_mask & 0x1) ? -1 : 0, (dest_mask & 0x2) ? -1 : 0,
+                            (dest_mask & 0x4) ? -1 : 0, (dest_mask & 0x8) ? -1 : 0,
+                            vis, vis);
+@@ -802,7 +808,7 @@ namespace ps2recomp
+         uint8_t vis = inst.rd;
+         uint8_t dest_mask = inst.vectorInfo.vectorField;
+         return fmt::format("{{ ctx->vi[{}] = (ctx->vi[{}] - 1) & 0x3FF; "
+-                           "uint32_t addr = ((uint32_t)(ctx->vi[{}] & 0x3FF)) << 4; "
++                           "uint32_t addr = 0x11004000u + (((uint32_t)(ctx->vi[{}] & 0xFF)) << 4); "
+                            "__m128 res = _mm_castsi128_ps(READ128(addr)); "
+                            "__m128i mask = _mm_set_epi32({}, {}, {}, {}); "
+                            "ctx->vu0_vf[{}] = _mm_blendv_ps(ctx->vu0_vf[{}], res, _mm_castsi128_ps(mask)); }}",
+@@ -815,16 +821,17 @@ namespace ps2recomp
+ 
+     std::string CodeGenerator::translateVU_VSQD(const Instruction &inst)
+     {
+-        uint8_t vis = inst.rd;
++        // vsqi/vsqd vfs, (vit++/--vit): fs = rd (stored vector), it = rt (address register)
++        uint8_t vis = inst.rt;
+         uint8_t dest_mask = inst.vectorInfo.vectorField;
+         return fmt::format("{{ ctx->vi[{}] = (ctx->vi[{}] - 1) & 0x3FF; "
+-                           "uint32_t addr = ((uint32_t)(ctx->vi[{}] & 0x3FF)) << 4; "
++                           "uint32_t addr = 0x11004000u + (((uint32_t)(ctx->vi[{}] & 0xFF)) << 4); "
+                            "__m128i old_val = READ128(addr); "
+                            "__m128 res = _mm_blendv_ps(_mm_castsi128_ps(old_val), ctx->vu0_vf[{}], _mm_castsi128_ps(_mm_set_epi32({}, {}, {}, {}))); "
+                            "WRITE128(addr, _mm_castps_si128(res)); }}",
+                            vis, vis,
+                            vis,
+-                           inst.rt,
++                           inst.rd,
+                            (dest_mask & 0x1) ? -1 : 0, (dest_mask & 0x2) ? -1 : 0,
+                            (dest_mask & 0x4) ? -1 : 0, (dest_mask & 0x8) ? -1 : 0);
+     }
+diff --git a/ps2xRecomp/src/lib/vu_translator.cpp b/ps2xRecomp/src/lib/vu_translator.cpp
+index d0fc95d..09da0f2 100644
+--- a/ps2xRecomp/src/lib/vu_translator.cpp
++++ b/ps2xRecomp/src/lib/vu_translator.cpp
+@@ -268,15 +268,17 @@ namespace ps2recomp
+ 
+                     return fmt::format(
+                         "{{ __m128 fs = ctx->vu0_vf[{}]; "
+-                        "__m128 ft = _mm_shuffle_ps(ctx->vu0_vf[{}], ctx->vu0_vf[{}], {}); "
++                        // VU CLIP: against |w|; bits per axis x,y,z: +axis (fs > +|w|) then -axis (fs < -|w|)
++                        "__m128 ft = _mm_and_ps(_mm_shuffle_ps(ctx->vu0_vf[{}], ctx->vu0_vf[{}], {}), "
++                        "_mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF))); "
+                         "__m128 neg_ft = _mm_xor_ps(ft, _mm_castsi128_ps(_mm_set1_epi32(0x80000000))); "
+                         "__m128 gt = _mm_cmpgt_ps(fs, ft); "
+                         "__m128 lt = _mm_cmplt_ps(fs, neg_ft); "
+                         "uint32_t gt_mask = (uint32_t)_mm_movemask_ps(gt); "
+                         "uint32_t lt_mask = (uint32_t)_mm_movemask_ps(lt); "
+-                        "uint32_t flags = ((lt_mask & 0x1) << 0) | ((gt_mask & 0x1) << 1) | "
+-                        "((lt_mask & 0x2) << 1) | ((gt_mask & 0x2) << 2) | "
+-                        "((lt_mask & 0x4) << 2) | ((gt_mask & 0x4) << 3); "
++                        "uint32_t flags = ((gt_mask & 0x1) << 0) | ((lt_mask & 0x1) << 1) | "
++                        "((gt_mask & 0x2) << 1) | ((lt_mask & 0x2) << 2) | "
++                        "((gt_mask & 0x4) << 2) | ((lt_mask & 0x4) << 3); "
+                         "ctx->vu0_clip_flags = ((ctx->vu0_clip_flags << 6) | (flags & 0x3F)) & 0xFFFFFF; }}",
+                         inst.rd, inst.rt, inst.rt, shuffle_pattern);
+                 }
+diff --git a/ps2xRuntime/CMakeLists.txt b/ps2xRuntime/CMakeLists.txt
+index 7dcbec5..de56e6c 100644
+--- a/ps2xRuntime/CMakeLists.txt
++++ b/ps2xRuntime/CMakeLists.txt
+@@ -16,6 +16,7 @@ option(PS2X_ENABLE_IOP_RPC_TRACE "Log unhandled IOP/SIF RPC trace suggestions" O
+ option(PS2X_STRICT_RETURN_DIAGNOSTICS "Route generated JR $ra returns through runtime branch diagnostics" OFF)
+ option(PS2X_SHOW_WINDOWS_CONSOLE "Show a console window for ps2EntryRunner on Windows release builds" ON)
+ option(PS2X_ENABLE_DEBUG_UI "Build the desktop runtime debug UI" ON)
++option(PS2X_HOST_SDL3 "Desktop: raylib on SDL3 (window, GL context, gamepads) instead of GLFW" OFF)
+ 
+ if(PS2X_ENABLE_SCCACHE)
+     find_program(PS2X_SCCACHE_PROGRAM sccache)
+@@ -75,11 +76,16 @@ else()
+         set(PLATFORM "Android" CACHE STRING "" FORCE)
+     endif()
+ 
++    if(PS2X_HOST_SDL3 AND NOT PS2X_IS_ANDROID)
++        set(PLATFORM "SDL" CACHE STRING "" FORCE)
++        set(_raylib_patch PATCH_COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_LIST_DIR}/cmake/raylib_sdl3.cmake)
++    endif()
+     FetchContent_Declare(
+         raylib
+         GIT_REPOSITORY "https://github.com/raysan5/raylib.git"
+         GIT_TAG "5.5" # we will migrate to 4.2.0 later, trust me it will be better
+         GIT_PROGRESS TRUE
++        ${_raylib_patch}
+     )
+     FetchContent_MakeAvailable(raylib)
+ 
+@@ -237,6 +243,15 @@ if(PS2X_IS_VITA)
+ else()
+     target_link_libraries(ps2_host_backend INTERFACE raylib)
+ 
++    # gs_gl_backend.cpp drives GL 3.3 directly (shaders, FBOs, integer textures), so it needs the GL entry points
++    # that raylib's loader does not re-export.
++    find_package(OpenGL)
++    if(OpenGL_FOUND)
++        target_link_libraries(ps2_host_backend INTERFACE OpenGL::GL)
++    else()
++        target_link_libraries(ps2_host_backend INTERFACE GL)
++    endif()
++
+     if(PS2X_IS_ANDROID)
+         target_link_libraries(ps2_host_backend INTERFACE log android)
+     endif()
+@@ -383,6 +398,7 @@ add_library(ps2_runtime STATIC
+     src/lib/gs/ps2_gs_memory.cpp
+     src/lib/gs/gs_frontend.cpp
+     src/lib/gs/gs_cpu_backend.cpp
++    src/lib/gs/gs_gl_backend.cpp
+     src/lib/gs/gs_threaded_backend.cpp
+     src/lib/ps2_iop_host.cpp
+     src/lib/ps2_memory.cpp
+diff --git a/ps2xRuntime/include/ps2_call_list.h b/ps2xRuntime/include/ps2_call_list.h
+index 5c418a2..6402fd6 100644
+--- a/ps2xRuntime/include/ps2_call_list.h
++++ b/ps2xRuntime/include/ps2_call_list.h
+@@ -91,6 +91,7 @@
+     X(SifRemoveRpc)            \
+     X(sceSifCallRpc)           \
+     X(sceSifSendCmd)           \
++    X(_sceSifSendCmd)          \
+     X(sceRpcGetPacket)         \
+                                \
+     X(fioOpen)                 \
+@@ -125,6 +126,7 @@
+     X(sceSifLoadElfPart)       \
+     X(sceSifLoadModule)        \
+     X(sceSifLoadModuleBuffer)  \
++    X(_sceSifLoadModuleBuffer) \
+                                \
+     X(SetupThread)             \
+     X(EndOfHeap)               \
+diff --git a/ps2xRuntime/include/ps2_runtime.h b/ps2xRuntime/include/ps2_runtime.h
+index ad25d54..5200b43 100644
+--- a/ps2xRuntime/include/ps2_runtime.h
++++ b/ps2xRuntime/include/ps2_runtime.h
+@@ -392,6 +392,8 @@ public:
+ 
+     EeScheduler &eeScheduler();
+     const EeScheduler &eeScheduler() const;
++    // COP0 Count: the EE cycle counter (games time things with it, e.g. Bink's millisecond clock).
++    uint32_t cop0Count() const;
+     void postEeEvent(EeEvent event);
+     bool eeCheckpointDue(uint32_t cycles = 32u) noexcept;
+     [[noreturn]] void eeWaitVSyncTicks(uint32_t ticks, uint32_t resumePc);
+diff --git a/ps2xRuntime/include/ps2_runtime_macros.h b/ps2xRuntime/include/ps2_runtime_macros.h
+index 0f19c9f..7a11bcd 100644
+--- a/ps2xRuntime/include/ps2_runtime_macros.h
++++ b/ps2xRuntime/include/ps2_runtime_macros.h
+@@ -13,6 +13,7 @@
+ #endif
+ 
+ #include "ps2_runtime.h"
++#include "ps2_identity.h"
+ 
+ static inline int32_t Ps2ExtractEpi32(__m128i v, int index)
+ {
+@@ -152,6 +153,14 @@ static inline uint32_t ps2_plzcw32(uint32_t x)
+ // Fast path: Direct RDRAM access (masked).
+ // Slow path: Full runtime->Load/Store
+ 
++// rdram == nullptr: identity mode, guest RAM at its own host addresses except the low 64 KB (ps2_identity.h).
++static inline uint8_t *Ps2FastPtr(const uint8_t *rdram, uint32_t offset)
++{
++    if (__builtin_expect(rdram == nullptr && offset < kPs2LowShadowSize, 0))
++        return g_ps2LowShadow + offset;
++    return const_cast<uint8_t *>(rdram) + offset;
++}
++
+ static inline bool Ps2FastRangeIsContiguous(uint32_t offset, uint32_t bytes)
+ {
+     return offset <= (PS2_RAM_SIZE - bytes);
+@@ -159,7 +168,7 @@ static inline bool Ps2FastRangeIsContiguous(uint32_t offset, uint32_t bytes)
+ 
+ static inline uint8_t Ps2FastRead8(const uint8_t *rdram, uint32_t addr)
+ {
+-    return rdram[addr & PS2_RAM_MASK];
++    return *Ps2FastPtr(rdram, addr & PS2_RAM_MASK);
+ }
+ 
+ static inline uint16_t Ps2FastRead16(const uint8_t *rdram, uint32_t addr)
+@@ -170,7 +179,7 @@ static inline uint16_t Ps2FastRead16(const uint8_t *rdram, uint32_t addr)
+         uint8_t wrapped[sizeof(uint16_t)];
+         for (uint32_t i = 0; i < sizeof(uint16_t); ++i)
+         {
+-            wrapped[i] = rdram[(offset + i) & PS2_RAM_MASK];
++            wrapped[i] = *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK);
+         }
+         uint16_t value;
+         std::memcpy(&value, wrapped, sizeof(value));
+@@ -178,7 +187,7 @@ static inline uint16_t Ps2FastRead16(const uint8_t *rdram, uint32_t addr)
+     }
+ 
+     uint16_t value;
+-    std::memcpy(&value, rdram + offset, sizeof(value));
++    std::memcpy(&value, Ps2FastPtr(rdram, offset), sizeof(value));
+     return value;
+ }
+ 
+@@ -190,7 +199,7 @@ static inline uint32_t Ps2FastRead32(const uint8_t *rdram, uint32_t addr)
+         uint8_t wrapped[sizeof(uint32_t)];
+         for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
+         {
+-            wrapped[i] = rdram[(offset + i) & PS2_RAM_MASK];
++            wrapped[i] = *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK);
+         }
+         uint32_t value;
+         std::memcpy(&value, wrapped, sizeof(value));
+@@ -198,7 +207,7 @@ static inline uint32_t Ps2FastRead32(const uint8_t *rdram, uint32_t addr)
+     }
+ 
+     uint32_t value;
+-    std::memcpy(&value, rdram + offset, sizeof(value));
++    std::memcpy(&value, Ps2FastPtr(rdram, offset), sizeof(value));
+     return value;
+ }
+ 
+@@ -210,7 +219,7 @@ static inline uint64_t Ps2FastRead64(const uint8_t *rdram, uint32_t addr)
+         uint8_t wrapped[sizeof(uint64_t)];
+         for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
+         {
+-            wrapped[i] = rdram[(offset + i) & PS2_RAM_MASK];
++            wrapped[i] = *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK);
+         }
+         uint64_t value;
+         std::memcpy(&value, wrapped, sizeof(value));
+@@ -218,7 +227,7 @@ static inline uint64_t Ps2FastRead64(const uint8_t *rdram, uint32_t addr)
+     }
+ 
+     uint64_t value;
+-    std::memcpy(&value, rdram + offset, sizeof(value));
++    std::memcpy(&value, Ps2FastPtr(rdram, offset), sizeof(value));
+     return value;
+ }
+ 
+@@ -230,7 +239,7 @@ static inline __m128i Ps2FastRead128(const uint8_t *rdram, uint32_t addr)
+         alignas(16) uint8_t wrapped[sizeof(__m128i)];
+         for (uint32_t i = 0; i < sizeof(__m128i); ++i)
+         {
+-            wrapped[i] = rdram[(offset + i) & PS2_RAM_MASK];
++            wrapped[i] = *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK);
+         }
+         __m128i value;
+         std::memcpy(&value, wrapped, sizeof(value));
+@@ -238,13 +247,13 @@ static inline __m128i Ps2FastRead128(const uint8_t *rdram, uint32_t addr)
+     }
+ 
+     __m128i value;
+-    std::memcpy(&value, rdram + offset, sizeof(value));
++    std::memcpy(&value, Ps2FastPtr(rdram, offset), sizeof(value));
+     return value;
+ }
+ 
+ static inline void Ps2FastWrite8(uint8_t *rdram, uint32_t addr, uint8_t value)
+ {
+-    rdram[addr & PS2_RAM_MASK] = value;
++    *Ps2FastPtr(rdram, addr & PS2_RAM_MASK) = value;
+ }
+ 
+ static inline void Ps2FastWrite16(uint8_t *rdram, uint32_t addr, uint16_t value)
+@@ -256,11 +265,11 @@ static inline void Ps2FastWrite16(uint8_t *rdram, uint32_t addr, uint16_t value)
+         std::memcpy(wrapped, &value, sizeof(value));
+         for (uint32_t i = 0; i < sizeof(uint16_t); ++i)
+         {
+-            rdram[(offset + i) & PS2_RAM_MASK] = wrapped[i];
++            *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK) = wrapped[i];
+         }
+         return;
+     }
+-    std::memcpy(rdram + offset, &value, sizeof(value));
++    std::memcpy(Ps2FastPtr(rdram, offset), &value, sizeof(value));
+ }
+ 
+ static inline void Ps2FastWrite32(uint8_t *rdram, uint32_t addr, uint32_t value)
+@@ -272,11 +281,11 @@ static inline void Ps2FastWrite32(uint8_t *rdram, uint32_t addr, uint32_t value)
+         std::memcpy(wrapped, &value, sizeof(value));
+         for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
+         {
+-            rdram[(offset + i) & PS2_RAM_MASK] = wrapped[i];
++            *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK) = wrapped[i];
+         }
+         return;
+     }
+-    std::memcpy(rdram + offset, &value, sizeof(value));
++    std::memcpy(Ps2FastPtr(rdram, offset), &value, sizeof(value));
+ }
+ 
+ static inline void Ps2FastWrite64(uint8_t *rdram, uint32_t addr, uint64_t value)
+@@ -288,11 +297,11 @@ static inline void Ps2FastWrite64(uint8_t *rdram, uint32_t addr, uint64_t value)
+         std::memcpy(wrapped, &value, sizeof(value));
+         for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
+         {
+-            rdram[(offset + i) & PS2_RAM_MASK] = wrapped[i];
++            *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK) = wrapped[i];
+         }
+         return;
+     }
+-    std::memcpy(rdram + offset, &value, sizeof(value));
++    std::memcpy(Ps2FastPtr(rdram, offset), &value, sizeof(value));
+ }
+ 
+ static inline void Ps2FastWrite128(uint8_t *rdram, uint32_t addr, __m128i value)
+@@ -304,11 +313,11 @@ static inline void Ps2FastWrite128(uint8_t *rdram, uint32_t addr, __m128i value)
+         std::memcpy(wrapped, &value, sizeof(value));
+         for (uint32_t i = 0; i < sizeof(__m128i); ++i)
+         {
+-            rdram[(offset + i) & PS2_RAM_MASK] = wrapped[i];
++            *Ps2FastPtr(rdram, (offset + i) & PS2_RAM_MASK) = wrapped[i];
+         }
+         return;
+     }
+-    std::memcpy(rdram + offset, &value, sizeof(value));
++    std::memcpy(Ps2FastPtr(rdram, offset), &value, sizeof(value));
+ }
+ 
+ #define FAST_READ8(addr) Ps2FastRead8(rdram, (uint32_t)(addr))
+diff --git a/ps2xRuntime/include/runtime/ee_scheduler.h b/ps2xRuntime/include/runtime/ee_scheduler.h
+index d551ec9..f04e8e0 100644
+--- a/ps2xRuntime/include/runtime/ee_scheduler.h
++++ b/ps2xRuntime/include/runtime/ee_scheduler.h
+@@ -366,8 +366,29 @@ public:
+     void bindMainContextForSyscall(R5900Context &ctx, uint8_t *rdram);
+ 
+     [[nodiscard]] EeKernelSnapshot snapshot() const;
++    [[nodiscard]] uint64_t eeCycle() const noexcept { return m_eeCycle; }
+     void publishSnapshot();
+ 
++    // BT2 port: why the guest threads that wake up never run. The demo stops with its worker threads stuck in
++    // Ready while the main thread keeps going; these counters say whether the scheduler is rotating at all
++    // (switches/slicesExpired) or whether a woken thread is simply never selected (selectPerThread).
++    struct ScheduleDebug
++    {
++        uint64_t eeCycle = 0;
++        uint64_t sliceEndCycle = 0;
++        int currentThreadId = 0;
++        bool rescheduleRequested = false;
++        bool timeSliceExpired = false;
++        uint64_t dispatches = 0;      // times the executor picked a function to run
++        uint64_t checkpointsTrue = 0; // times checkpointDue() said "stop here"
++        uint64_t slicesExpired = 0;   // times a rotation was asked for because the slice ran out
++        uint64_t switches = 0;        // times makeRunning() gave the CPU to another thread
++        uint64_t selectPerThread[16] = {0};
++        int readyFrontPriority = -1;  // priority of the first non-empty ready queue
++        uint32_t readyQueuesUsed = 0; // how many ready queues are non-empty
++    };
++    [[nodiscard]] ScheduleDebug scheduleDebug() const;
++
+ private:
+     struct ScheduledEvent
+     {
+@@ -443,6 +464,13 @@ private:
+     std::atomic<bool> m_checkpointPending{false};
+     uint32_t m_debugPublishCountdown = 0u;
+ 
++    // BT2 port: scheduling counters (see scheduleDebug()).
++    uint64_t m_dbgDispatches = 0;
++    uint64_t m_dbgCheckpointsTrue = 0;
++    uint64_t m_dbgSlicesExpired = 0;
++    uint64_t m_dbgSwitches = 0;
++    uint64_t m_dbgSelectPerThread[16] = {0};
++
+     mutable std::mutex m_eventMutex;
+     std::condition_variable m_eventCv;
+     std::deque<EeEvent> m_events;
+diff --git a/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h b/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h
+index 83d759b..4e6cc7d 100644
+--- a/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h
++++ b/ps2xRuntime/include/runtime/gs/gs_cpu_backend.h
+@@ -4,6 +4,7 @@
+ #include "runtime/gs/gs_texture_page_cache.h"
+ 
+ #include <array>
++#include <atomic>
+ #include <mutex>
+ #include <vector>
+ 
+@@ -33,6 +34,14 @@ public:
+     void SnapshotVram(std::vector<uint8_t> &out) const override;
+     GSTransferSnapshot GetTransferSnapshot() const override;
+ 
++    // Shared with GSGlBackend so both paths read the exact same texels: fills dst with the width*height texels the
++    // draw would sample, in the 0xAABBGGRR packing WritePixel consumes.
++    void DecodeTexture(const GSDrawState &state, uint32_t *dst, uint32_t width, uint32_t height);
++
++    // Lands a block of RGBA8 pixels into a framebuffer, used to put a GL readback back into VRAM.
++    void WriteFramebufferRect(uint32_t psm, uint32_t base, uint32_t fbw, uint32_t x0, uint32_t y0, uint32_t width,
++                              uint32_t height, const uint32_t *rgba);
++
+ private:
+     void ResetUnlocked();
+     void LoadClutUnlocked(const GSTex0Reg &tex0, const GSTexClutReg &texclut);
+@@ -40,6 +49,31 @@ private:
+     uint32_t ReadTextureVramUnlocked(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y);
+     void WriteVramUnlocked(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y, uint32_t value);
+ 
++    // The PS2 texture swizzle costs more than everything else in the pixel loop, so a linear
++    // (detextured) copy of the current texture is kept per thread and reused for every texel of a
++    // draw. Only REPEAT/CLAMP wrapping is served from it; region clamping keeps the swizzled path.
++    struct LinearTexture
++    {
++        bool valid = false;
++        uint32_t width = 0;
++        uint32_t height = 0;
++        uint32_t tbp0 = 0;
++        uint32_t tbw = 0;
++        uint32_t psm = 0;
++        uint32_t cbp = 0;
++        uint32_t cpsm = 0;
++        uint32_t csm = 0;
++        uint32_t csa = 0;
++        uint32_t ta0 = 0;
++        uint32_t ta1 = 0;
++        uint32_t aem = 0;
++        uint64_t generation = 0;
++        bool regionWrap = false;
++        std::vector<uint32_t> rgba;
++    };
++    const uint32_t *linearTexture(const GSDrawState &state);
++    static void invalidateLinearTexture(LinearTexture &cache);
++
+     void DrawPrimitive(const GSPrimitiveBatch &batch);
+     void DrawSprite(const GSPrimitiveBatch &batch);
+     void DrawTriangle(const GSPrimitiveBatch &batch);
+@@ -82,6 +116,10 @@ private:
+     std::array<uint32_t, 2> m_clutCbp{};
+     GSMem::TexturePageCache m_texturePageCache;
+ 
++    // Bumped whenever VRAM or the CLUT may have changed, so the per-thread linear textures are
++    // rebuilt instead of serving stale texels.
++    static std::atomic<uint64_t> s_textureGeneration;
++
+     GSTransferCommand m_transfer{};
+     GSTransferSnapshot m_transferState{};
+     std::vector<uint8_t> m_localToHostBuffer;
+diff --git a/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h b/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h
+index 1daf778..b4dd548 100644
+--- a/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h
++++ b/ps2xRuntime/include/runtime/gs/gs_texture_page_cache.h
+@@ -1,12 +1,18 @@
+ #pragma once
+ 
+ #include <array>
++#include <atomic>
+ #include <cstddef>
+ #include <cstdint>
+ #include <cstring>
+ 
+ namespace GSMem
+ {
++    // How well the texture page cache is doing. A miss costs an 8 KB memcpy, so a low hit rate means the cache is
++    // copying more than it saves; PS2X_FRAME_PROF=1 prints these next to the rasterizer's fill rate.
++    extern std::atomic<uint64_t> g_pageMisses;
++    extern std::atomic<uint64_t> g_pageHits;
++
+     class TexturePageCache
+     {
+     public:
+@@ -30,7 +36,9 @@ namespace GSMem
+             {
+                 std::memcpy(slot.bytes.data(), vram + pageBase, kPageSize);
+                 slot.pageBase = pageBase;
++                g_pageMisses.fetch_add(1, std::memory_order_relaxed);
+             }
++            g_pageHits.fetch_add(1, std::memory_order_relaxed);
+             return slot.bytes.data() + (byteAddress & (kPageSize - 1u));
+         }
+ 
+diff --git a/ps2xRuntime/include/runtime/gs/ps2_gs_memory.h b/ps2xRuntime/include/runtime/gs/ps2_gs_memory.h
+index c784ff7..ebd48f7 100644
+--- a/ps2xRuntime/include/runtime/gs/ps2_gs_memory.h
++++ b/ps2xRuntime/include/runtime/gs/ps2_gs_memory.h
+@@ -540,8 +540,9 @@ namespace GSMem
+ 
+ 	void InitLookupTables();
+ 
+-    // Shares swizzle, VRAM wrapping, and lane extraction with the direct reads.
+-    u32 ReadTexture(TexturePageCache& cache, const u8* data, u32 psm, u32 bp, u32 bw, u32 x, u32 y);
++    // Shares swizzle, VRAM wrapping, and lane extraction with the direct reads. A null cache reads straight out of
++    // the VRAM (PS2X_GS_NOCACHE=1): the page cache copies 8 KB per miss, which only pays off while it hits.
++    u32 ReadTexture(TexturePageCache* cache, const u8* data, u32 psm, u32 bp, u32 bw, u32 x, u32 y);
+ 
+ 	void WriteCT32(u8* data, u32 bp, u32 bw, u32 x, u32 y, u32 value);
+ 	void WriteZ32(u8* data, u32 bp, u32 bw, u32 x, u32 y, u32 value);
+diff --git a/ps2xRuntime/include/runtime/ps2_memory.h b/ps2xRuntime/include/runtime/ps2_memory.h
+index 0bd1445..05836cb 100644
+--- a/ps2xRuntime/include/runtime/ps2_memory.h
++++ b/ps2xRuntime/include/runtime/ps2_memory.h
+@@ -1,6 +1,7 @@
+ #ifndef PS2_MEMORY_H
+ #define PS2_MEMORY_H
+ 
++#include "ps2_identity.h"
+ #include <cstddef>
+ #include <cstdint>
+ #include <array>
+@@ -148,7 +149,7 @@ inline bool ps2ResolveGuestPointer(uint32_t addr, uint32_t &offset, bool &scratc
+ }
+ inline uint8_t *getMemPtr(uint8_t *rdram, uint32_t addr)
+ {
+-    if (rdram == nullptr)
++    if (ps2RdramMissing(rdram))
+     {
+         return nullptr;
+     }
+@@ -170,7 +171,7 @@ inline uint8_t *getMemPtr(uint8_t *rdram, uint32_t addr)
+ 
+ inline const uint8_t *getConstMemPtr(const uint8_t *rdram, uint32_t addr)
+ {
+-    if (rdram == nullptr)
++    if (ps2RdramMissing(rdram))
+     {
+         return nullptr;
+     }
+diff --git a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+index 97fbe54..8c3da9a 100644
+--- a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
++++ b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include <cstdlib>
+ #include <cstdio>
+ #include "runtime/ee_scheduler.h"
+@@ -300,6 +301,7 @@ void EeScheduler::run()
+         }
+         PS2Runtime::RecompiledFunction function = m_runtime.lookupFunction(context.pc);
+ 
++        ++m_dbgDispatches; // BT2 port
+         if (checkpointDue(kGuestDispatchCycles))
+         {
+             continue;
+@@ -387,6 +389,7 @@ bool EeScheduler::checkpointDue(uint32_t cycles) noexcept
+     if (m_checkpointPending.load(std::memory_order_acquire) ||
+         m_stopRequested.load(std::memory_order_acquire))
+     {
++        ++m_dbgCheckpointsTrue; // BT2 port
+         return true;
+     }
+ 
+@@ -394,6 +397,7 @@ bool EeScheduler::checkpointDue(uint32_t cycles) noexcept
+     if (nextEventCycle != 0u && m_eeCycle >= nextEventCycle)
+     {
+         m_checkpointPending.store(true, std::memory_order_release);
++        ++m_dbgCheckpointsTrue; // BT2 port
+         return true;
+     }
+ 
+@@ -407,6 +411,7 @@ bool EeScheduler::checkpointDue(uint32_t cycles) noexcept
+     {
+         m_rescheduleRequested = true;
+         m_timeSliceExpired = true;
++        ++m_dbgSlicesExpired; // BT2 port: the slice ran out with someone else ready -> a rotation
+         return true;
+     }
+ 
+@@ -1693,6 +1698,12 @@ void EeScheduler::makeRunning(GuestThread &item)
+     item.status = EeThreadStatus::Running;
+     m_currentThreadId = item.id;
+     renewTimeSlice();
++    // BT2 port: per-thread run counts, to see a thread that wakes up and never gets the CPU.
++    ++m_dbgSwitches;
++    if (item.id >= 0 && item.id < 16)
++    {
++        ++m_dbgSelectPerThread[item.id];
++    }
+ }
+ 
+ void EeScheduler::makeDormant(GuestThread &item)
+@@ -2050,7 +2061,7 @@ void EeScheduler::writeGuestU32(uint32_t address, uint32_t value)
+         return;
+     }
+     const uint32_t physical = address & 0x1FFFFFFFu;
+-    if (!m_rdram || physical > PS2_RAM_SIZE - sizeof(value))
++    if (ps2RdramMissing(m_rdram) || physical > PS2_RAM_SIZE - sizeof(value))
+     {
+         return;
+     }
+@@ -2148,6 +2159,37 @@ void EeScheduler::updateNextDeadline()
+     m_nextDeadlineCycle.store(it->deadlineCycle, std::memory_order_release);
+ }
+ 
++// BT2 port: scheduling state for the port's watchdog (see ee_scheduler.h).
++EeScheduler::ScheduleDebug EeScheduler::scheduleDebug() const
++{
++    ScheduleDebug d;
++    d.eeCycle = m_eeCycle;
++    d.sliceEndCycle = m_sliceEndCycle;
++    d.currentThreadId = m_currentThreadId;
++    d.rescheduleRequested = m_rescheduleRequested;
++    d.timeSliceExpired = m_timeSliceExpired;
++    d.dispatches = m_dbgDispatches;
++    d.checkpointsTrue = m_dbgCheckpointsTrue;
++    d.slicesExpired = m_dbgSlicesExpired;
++    d.switches = m_dbgSwitches;
++    for (int i = 0; i < 16; ++i)
++    {
++        d.selectPerThread[i] = m_dbgSelectPerThread[i];
++    }
++    for (int p = 0; p < kPriorityCount; ++p)
++    {
++        if (!m_readyQueues[static_cast<size_t>(p)].empty())
++        {
++            if (d.readyFrontPriority < 0)
++            {
++                d.readyFrontPriority = p;
++            }
++            ++d.readyQueuesUsed;
++        }
++    }
++    return d;
++}
++
+ bool EeScheduler::hasReadyAtOrAbovePriority(int priority) const
+ {
+     const int last = std::clamp(priority, 0, kPriorityCount - 1);
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/MPEG.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/MPEG.cpp
+index 44eaef4..502e922 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/MPEG.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/MPEG.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "Common.h"
+ #include "MPEG.h"
+ #include "runtime/ee_scheduler.h"
+@@ -779,7 +780,7 @@ namespace ps2_stubs
+ 
+         uint32_t readStackArg(uint8_t *rdram, R5900Context *ctx, uint32_t offset)
+         {
+-            if (!rdram || !ctx)
++            if (ps2RdramMissing(rdram) || !ctx)
+             {
+                 return 0u;
+             }
+@@ -1559,7 +1560,7 @@ namespace ps2_stubs
+ 
+         bool writeMpegCallbackData(uint8_t *rdram, uint32_t addr, const MpegStreamCallbackEvent &event)
+         {
+-            if (!rdram || addr == 0u)
++            if (ps2RdramMissing(rdram) || addr == 0u)
+             {
+                 return false;
+             }
+@@ -1585,7 +1586,7 @@ namespace ps2_stubs
+                                          const MpegStreamCallbackEvent &event,
+                                          const MpegRegisteredCallback &callback)
+         {
+-            if (!rdram || !callerCtx || !runtime || callback.func == 0u || !runtime->hasFunction(callback.func))
++            if (ps2RdramMissing(rdram) || !callerCtx || !runtime || callback.func == 0u || !runtime->hasFunction(callback.func))
+             {
+                 return;
+             }
+@@ -1654,7 +1655,7 @@ namespace ps2_stubs
+ 
+         void writeBlankMpegFrame(uint8_t *rdram, uint32_t destAddr, uint32_t width, uint32_t height)
+         {
+-            if (!rdram || destAddr == 0u)
++            if (ps2RdramMissing(rdram) || destAddr == 0u)
+             {
+                 return;
+             }
+@@ -1688,7 +1689,7 @@ namespace ps2_stubs
+ 
+         void writeDecodedFrameToGuest(uint8_t *rdram, uint32_t destAddr, const MpegDecodedFrame &frame)
+         {
+-            if (!rdram || destAddr == 0u || frame.rgba.empty() || frame.width <= 0 || frame.height <= 0)
++            if (ps2RdramMissing(rdram) || destAddr == 0u || frame.rgba.empty() || frame.width <= 0 || frame.height <= 0)
+             {
+                 return;
+             }
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp
+index c764f57..4d627d7 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Pad.cpp
+@@ -3,6 +3,9 @@
+ 
+ namespace ps2_stubs
+ {
++    // BT2 port: called from the guest thread on every pad read; the port installs it to drive BT2_INPUT off guest
++    // time. nullptr (the default) keeps the pad reading exactly as before.
++    void (*ps2PadReadHook)() = nullptr;
+     namespace
+     {
+         constexpr uint8_t kPadModeDigital = 0x41;
+@@ -295,6 +298,22 @@ namespace ps2_stubs
+                 }
+             }
+ 
++            // BT2 port: the scripted pad (BT2_INPUT) advances here, in the guest's own thread, instead of from
++            // the host's per-present watchdog hook. A press scheduled for guest second T is then applied on the
++            // first pad read the guest makes at or after T, whatever the host's frame rate is: tying it to the
++            // present made a press land a whole frame late, or get skipped entirely, on a slow host.
++            if (ps2PadReadHook)
++            {
++                static int hookDbg = (std::getenv("PS2X_PAD_HOOK_DBG") != nullptr);
++                if (hookDbg)
++                {
++                    static unsigned long long hookCount = 0;
++                    if ((++hookCount % 60) == 1)
++                        std::fprintf(stderr, "[pad-hook] called %llu times\n", hookCount);
++                }
++                ps2PadReadHook();
++            }
++
+             bool usedBackend = false;
+             if (!useOverride)
+             {
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
+index 7d3bb6d..ad65fd5 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Pad2.cpp
+@@ -45,6 +45,8 @@ namespace ps2_stubs
+     {
+         (void)rdram;
+         (void)runtime;
++        if (std::getenv("PS2X_PAD_TRACE"))
++            std::fprintf(stderr, "[pad2] init\n");
+         std::lock_guard<std::mutex> lock(g_pad2Mutex);
+         g_pad2Sockets.fill(Pad2Socket{});
+         setReturnS32(ctx, 1);
+@@ -68,6 +70,8 @@ namespace ps2_stubs
+             if (!g_pad2Sockets[id].open)
+             {
+                 g_pad2Sockets[id] = Pad2Socket{true, port, slot};
++                if (std::getenv("PS2X_PAD_TRACE"))
++                    std::fprintf(stderr, "[pad2] socket %d = port %u slot %u\n", id, port, slot);
+                 setReturnS32(ctx, id);
+                 return;
+             }
+@@ -94,6 +98,14 @@ namespace ps2_stubs
+         // Only the first controller is connected (the host pad / keyboard).
+         const bool present = socketFor(static_cast<int32_t>(getRegU32(ctx, 4)), socket) && socket.port == 0u &&
+                              socket.slot == 0u;
++        static const bool trace = std::getenv("PS2X_PAD_TRACE") != nullptr;
++        static uint32_t traced = 0;
++        if (trace && traced < 8u)
++        {
++            ++traced;
++            std::fprintf(stderr, "[pad2] state socket %d -> %d\n", static_cast<int32_t>(getRegU32(ctx, 4)),
++                         present ? kPad2StateStable : kPad2StateNoDevice);
++        }
+         setReturnS32(ctx, present ? kPad2StateStable : kPad2StateNoDevice);
+     }
+ 
+@@ -131,10 +143,11 @@ namespace ps2_stubs
+         if (getPadOverrideBytes(forced)) // scripted input (debug panel / test harness) wins over the host pad
+             std::memcpy(data + 2, forced, sizeof(forced));
+         std::memcpy(out, data + 2, kPad2ReadBytes);
+-        // PS2X_PAD_TRACE=1: log reads with a button held, and every 600th read.
++        // PS2X_PAD_TRACE=1: log reads with a button held, and every 600th read (=2: every 50th).
+         static const bool trace = std::getenv("PS2X_PAD_TRACE") != nullptr;
+         static uint64_t reads = 0;
+-        if (trace && ((data[2] & data[3]) != 0xFFu || (++reads % 600u) == 0u))
++        static const uint64_t every = trace && std::getenv("PS2X_PAD_TRACE")[0] == '2' ? 50u : 600u;
++        if (trace && ((data[2] & data[3]) != 0xFFu || (++reads % every) == 0u))
+             std::fprintf(stderr, "[pad2] read #%llu socket port %u buttons %02x%02x\n",
+                          static_cast<unsigned long long>(reads), socket.port, data[3], data[2]);
+         setReturnS32(ctx, static_cast<int32_t>(kPad2ReadBytes));
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp
+index dc975ed..873bd80 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/SIF.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "Common.h"
+ #include "SIF.h"
+ #include "../Syscalls/RPC.h"
+@@ -165,7 +166,7 @@ namespace ps2_stubs
+ 
+         bool canAccessEeRange(const uint8_t *rdram, uint32_t address, uint32_t sizeBytes)
+         {
+-            if (!rdram)
++            if (ps2RdramMissing(rdram))
+             {
+                 return false;
+             }
+@@ -232,7 +233,7 @@ namespace ps2_stubs
+                             const void *packet,
+                             size_t packetSize) noexcept
+     {
+-        if (!rdram || !runtime || !packet || packetSize < 16u || packetSize > 112u)
++        if (ps2RdramMissing(rdram) || !runtime || !packet || packetSize < 16u || packetSize > 112u)
+             return false;
+ 
+         SifCmdHandler registered{};
+@@ -303,7 +304,11 @@ namespace ps2_stubs
+     {
+         (void)rdram;
+         const uint32_t reqSize = getRegU32(ctx, 4);
+-        setReturnU32(ctx, runtime ? runtime->allocateIopMemory(reqSize, 64u) : 0u);
++        const uint32_t address = runtime ? runtime->allocateIopMemory(reqSize, 64u) : 0u;
++        if (address == 0u)
++            std::cerr << "[sceSifAllocIopHeap] " << reqSize << " bytes failed (ra=0x" << std::hex << getRegU32(ctx, 31)
++                      << std::dec << ")" << std::endl;
++        setReturnU32(ctx, address);
+     }
+ 
+     void sceSifAllocSysMemory(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/Common.h b/ps2xRuntime/src/lib/Kernel/Syscalls/Common.h
+index c0b13bf..a981e41 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/Common.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/Common.h
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "ps2_syscalls.h"
+ #include "ps2_log.h"
+ #include "ps2_runtime.h"
+@@ -66,7 +67,7 @@ inline const T *getEeGuestStruct(const uint8_t *rdram, uint32_t address)
+ {
+     uint32_t offset = 0;
+     bool scratch = false;
+-    if (!rdram || (address & (alignof(T) - 1u)) != 0u ||
++    if (ps2RdramMissing(rdram) || (address & (alignof(T) - 1u)) != 0u ||
+         !resolveEeGuestRange(address, sizeof(T), offset, scratch))
+     {
+         return nullptr;
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Loader.h b/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Loader.h
+index db46c5d..3b6dc92 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Loader.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Loader.h
+@@ -3,7 +3,7 @@ namespace
+     std::string readGuestCStringBounded(const uint8_t *rdram, uint32_t guestAddr, size_t maxBytes)
+     {
+         std::string out;
+-        if (!rdram || guestAddr == 0 || maxBytes == 0)
++        if (ps2RdramMissing(rdram) || guestAddr == 0 || maxBytes == 0)
+         {
+             return out;
+         }
+@@ -31,7 +31,7 @@ namespace
+         constexpr uint64_t kOffset = 1469598103934665603ull;
+         constexpr uint64_t kPrime = 1099511628211ull;
+ 
+-        if (!rdram || guestAddr == 0 || byteCount == 0)
++        if (ps2RdramMissing(rdram) || guestAddr == 0 || byteCount == 0)
+         {
+             return 0ull;
+         }
+@@ -57,7 +57,7 @@ namespace
+         {
+             return true;
+         }
+-        if (!rdram || guestAddr == 0u || byteCount > maxBytes)
++        if (ps2RdramMissing(rdram) || guestAddr == 0u || byteCount > maxBytes)
+         {
+             return false;
+         }
+@@ -274,7 +274,7 @@ namespace
+                                 GuestExecData &execDataOut,
+                                 std::string &errorOut)
+     {
+-        if (!rdram || hostPath.empty())
++        if (ps2RdramMissing(rdram) || hostPath.empty())
+         {
+             errorOut = "invalid path or RDRAM pointer";
+             return false;
+@@ -408,7 +408,7 @@ namespace
+                               const std::string &sectionName,
+                               uint32_t execDataAddr)
+     {
+-        if (!rdram || !ctx)
++        if (ps2RdramMissing(rdram) || !ctx)
+         {
+             return -1;
+         }
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h b/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h
+index 6204325..efe88f3 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/Helpers/Runtime.h
+@@ -7,7 +7,7 @@ static void setRegU32(R5900Context *ctx, int reg, uint32_t value)
+ 
+ static void rpcCopyToRdram(uint8_t *rdram, uint32_t dst, uint32_t src, size_t size)
+ {
+-    if (!rdram || size == 0)
++    if (ps2RdramMissing(rdram) || size == 0)
+         return;
+ 
+     ps2TraceGuestRangeWrite(rdram, dst, static_cast<uint32_t>(size), "rpcCopyToRdram", nullptr);
+@@ -43,7 +43,7 @@ static void rpcCopyToRdram(uint8_t *rdram, uint32_t dst, uint32_t src, size_t si
+ 
+ static void rpcZeroRdram(uint8_t *rdram, uint32_t dst, size_t size)
+ {
+-    if (!rdram || size == 0)
++    if (ps2RdramMissing(rdram) || size == 0)
+         return;
+ 
+     ps2TraceGuestRangeWrite(rdram, dst, static_cast<uint32_t>(size), "rpcZeroRdram", nullptr);
+@@ -320,6 +320,16 @@ static void ensureOsdConfigInitialized()
+     uint32_t ps1drvConfig = 0;
+     uint32_t version = 1;  // OSD2
+     uint32_t language = 1; // English
++    // PS2X_LANGUAGE: console language the game reads from the OSD config (a number, or en/fr/es/de/it/nl/pt/ja).
++    if (const char *value = std::getenv("PS2X_LANGUAGE"))
++    {
++        static const std::pair<const char *, uint32_t> kNames[] = {{"ja", 0u}, {"en", 1u}, {"fr", 2u}, {"es", 3u},
++                                                                   {"de", 4u}, {"it", 5u}, {"nl", 6u}, {"pt", 7u}};
++        language = static_cast<uint32_t>(std::strtoul(value, nullptr, 0)) & 0x1Fu;
++        for (const auto &[name, code] : kNames)
++            if (std::strcmp(value, name) == 0)
++                language = code;
++    }
+     g_osd_config_raw = packOsdConfig(spdifMode, screenType, videoOutput, japLanguage, ps1drvConfig, version, language, tz);
+     g_osd_config2_raw = packOsdConfig2(0, 0, 0, 0, version, language);
+     g_osd_config_initialized = true;
+@@ -327,7 +337,7 @@ static void ensureOsdConfigInitialized()
+ 
+ static uint32_t allocTlsAddr(uint8_t *rdram)
+ {
+-    if (!rdram || kTlsPoolCount == 0)
++    if (ps2RdramMissing(rdram) || kTlsPoolCount == 0)
+         return 0;
+ 
+     std::lock_guard<std::mutex> lock(g_tls_mutex);
+@@ -339,7 +349,7 @@ static uint32_t allocTlsAddr(uint8_t *rdram)
+ 
+ static uint32_t allocBootModeAddr(uint8_t *rdram, size_t bytes)
+ {
+-    if (!rdram)
++    if (ps2RdramMissing(rdram))
+         return 0;
+ 
+     size_t aligned = (bytes + 15u) & ~15u;
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp
+index 3e690a8..0e2af6d 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "Common.h"
+ #include "RPC.h"
+ #include "../../ps2_iop_transport.h"
+@@ -31,7 +32,7 @@ namespace ps2_syscalls
+         void fillRpcDebugPreview(const uint8_t *rdram, uint32_t addr, uint32_t size, uint8_t *preview, uint32_t &previewSize)
+         {
+             previewSize = 0u;
+-            if (!rdram || !addr || !preview || size == 0u)
++            if (ps2RdramMissing(rdram) || !addr || !preview || size == 0u)
+             {
+                 return;
+             }
+@@ -968,18 +969,10 @@ namespace ps2_syscalls
+         SifCallRpc(rdram, ctx, runtime);
+     }
+ 
+-    void sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    // Shared by sceSifSendCmd/isceSifSendCmd (public ABI) and _sceSifSendCmd (the libkernel core they call).
++    static void sendSifCommand(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime, uint32_t cid, uint32_t packetAddr,
++                               uint32_t packetSize, uint32_t srcExtra, uint32_t destExtra, uint32_t sizeExtra)
+     {
+-        uint32_t cid = getRegU32(ctx, 4);
+-        uint32_t packetAddr = getRegU32(ctx, 5);
+-        uint32_t packetSize = getRegU32(ctx, 6);
+-        uint32_t srcExtra = getRegU32(ctx, 7);
+-
+-        uint32_t sp = getRegU32(ctx, 29);
+-        uint32_t destExtra = 0;
+-        uint32_t sizeExtra = 0;
+-        readStackU32(rdram, sp, 0x10, destExtra);
+-        readStackU32(rdram, sp, 0x14, sizeExtra);
+ 
+         // The extra data goes EE -> IOP: copy it into IOP memory (the destination is an IOP address).
+         if (sizeExtra > 0 && sizeExtra <= 0x100000u && srcExtra && destExtra && runtime)
+@@ -1019,6 +1012,26 @@ namespace ps2_syscalls
+         setReturnS32(ctx, 1);
+     }
+ 
++    void sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        uint32_t sp = getRegU32(ctx, 29);
++        uint32_t destExtra = 0;
++        uint32_t sizeExtra = 0;
++        readStackU32(rdram, sp, 0x10, destExtra);
++        readStackU32(rdram, sp, 0x14, sizeExtra);
++        sendSifCommand(rdram, ctx, runtime, getRegU32(ctx, 4), getRegU32(ctx, 5), getRegU32(ctx, 6), getRegU32(ctx, 7),
++                       destExtra, sizeExtra);
++    }
++
++    // _sceSifSendCmd(cid, mode, packet, psize, src, dest, size): everything in registers, mode 1 when called from
++    // an interrupt handler (isceSifSendCmd). Needs its own entry: the leading-underscore alias would send it to
++    // sceSifSendCmd, which reads the packet from $a1 (the mode) and drops the command.
++    void _sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        sendSifCommand(rdram, ctx, runtime, getRegU32(ctx, 4), getRegU32(ctx, 6), getRegU32(ctx, 7), getRegU32(ctx, 8),
++                       getRegU32(ctx, 9), getRegU32(ctx, 10));
++    }
++
+     void sceRpcGetPacket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
+     {
+         uint32_t queuePtr = getRegU32(ctx, 4);
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h
+index 5e9a446..066708a 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/RPC.h
+@@ -16,5 +16,6 @@ namespace ps2_syscalls
+     void SifRemoveRpc(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifCallRpc(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void _sceSifSendCmd(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceRpcGetPacket(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+ }
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp b/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
+index ff757ac..0280f79 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/System.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "Common.h"
+ #include "System.h"
+ 
+@@ -290,7 +291,7 @@ namespace ps2_syscalls
+         const uint32_t bufferAddr = getRegU32(ctx, 4);   // $a0
+         const uint32_t argumentSize = getRegU32(ctx, 5); // $a1
+         const uint32_t argumentAddr = getRegU32(ctx, 6); // $a2
+-        if (!rdram || bufferAddr == 0u)
++        if (ps2RdramMissing(rdram) || bufferAddr == 0u)
+         {
+             setReturnS32(ctx, -1);
+             return;
+@@ -323,6 +324,37 @@ namespace ps2_syscalls
+         setReturnS32(ctx, loaded.moduleId);
+     }
+ 
++    // _sceSifLoadModuleBuffer(iop_addr, arglen, args, int *modres): the libkernel core of sceSifLoadModuleBuffer.
++    // Needs its own entry: the leading-underscore alias went to the public handler, which never writes *modres
++    // (the module's start() result). BT2's sceChk01 loads an IRX embedded in the ELF this way and exits main
++    // unless *modres says the module stayed resident.
++    void _sceSifLoadModuleBuffer(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime)
++    {
++        const uint32_t resultAddr = getRegU32(ctx, 7); // $a3
++        int32_t startResult = -1;
++        const uint32_t bufferAddr = getRegU32(ctx, 4);
++        std::vector<uint8_t> arguments;
++        constexpr uint32_t kMaxIopModuleArguments = 64u * 1024u;
++        if (ps2RdramMissing(rdram) || !runtime || bufferAddr == 0u ||
++            !copyGuestBytesBounded(rdram, getRegU32(ctx, 6), getRegU32(ctx, 5), kMaxIopModuleArguments, arguments))
++        {
++            setReturnS32(ctx, -1);
++            return;
++        }
++        const auto loaded = runtime->loadIopModuleBuffer(bufferAddr, arguments.empty() ? nullptr : arguments.data(),
++                                                         static_cast<uint32_t>(arguments.size()));
++        if (loaded.handled && loaded.moduleId > 0)
++        {
++            startResult = loaded.startResult;
++            trackSifModuleLoadExternal(makeSifModuleBufferTag(rdram, bufferAddr), loaded.moduleId);
++            logSifModuleAction("load-buffer-emulated", loaded.moduleId, makeSifModuleBufferTag(rdram, bufferAddr), 1u);
++        }
++        if (resultAddr != 0u)
++            if (uint8_t *out = getMemPtr(rdram, resultAddr))
++                std::memcpy(out, &startResult, sizeof(startResult));
++        setReturnS32(ctx, loaded.handled && loaded.moduleId > 0 ? loaded.moduleId : -1);
++    }
++
+     void TODO(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime, uint32_t encodedSyscallId)
+     {
+         // a bit more detail mayber reomve old logic, lets get it more raw
+@@ -439,7 +471,7 @@ namespace ps2_syscalls
+ 
+     static void writeGuestKernelWord(uint8_t *rdram, uint32_t guestAddr, uint32_t value)
+     {
+-        if (!rdram)
++        if (ps2RdramMissing(rdram))
+         {
+             return;
+         }
+diff --git a/ps2xRuntime/src/lib/Kernel/Syscalls/System.h b/ps2xRuntime/src/lib/Kernel/Syscalls/System.h
+index c9b9991..d28b400 100644
+--- a/ps2xRuntime/src/lib/Kernel/Syscalls/System.h
++++ b/ps2xRuntime/src/lib/Kernel/Syscalls/System.h
+@@ -21,6 +21,7 @@ namespace ps2_syscalls
+     void sceSifLoadElfPart(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifLoadModule(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void sceSifLoadModuleBuffer(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
++    void _sceSifLoadModuleBuffer(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+     void TODO(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime, uint32_t encodedSyscallId);
+     void initializeGuestKernelState(uint8_t *rdram, PS2Runtime *runtime);
+     void SetSyscall(uint8_t *rdram, R5900Context *ctx, PS2Runtime *runtime);
+diff --git a/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp b/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp
+index 3867438..e49a53d 100644
+--- a/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp
++++ b/ps2xRuntime/src/lib/gs/gs_cpu_backend.cpp
+@@ -9,6 +9,17 @@
+ #include "ps2_log.h"
+ #include <atomic>
+ #include <algorithm>
++#include <functional>
++#include <thread>
++
++// How much work the software rasterizer is being asked to do. Read by PS2X_FRAME_PROF=1 in ps2_runtime.cpp.
++std::atomic<uint64_t> g_statTriangles{0};
++std::atomic<uint64_t> g_statPixels{0};
++namespace GSMem
++{
++std::atomic<uint64_t> g_pageMisses{0};
++std::atomic<uint64_t> g_pageHits{0};
++} // namespace GSMem
+ #include <cmath>
+ #include <cstdio>
+ #include <cstring>
+@@ -18,6 +29,8 @@
+ 
+ using namespace GSInternal;
+ 
++std::atomic<uint64_t> GSCpuBackend::s_textureGeneration{1};
++
+ namespace
+ {
+     float fabsQ(float q)
+@@ -539,6 +552,7 @@ void GSCpuBackend::Reset()
+ 
+ void GSCpuBackend::ResetUnlocked()
+ {
++    s_textureGeneration.fetch_add(1u, std::memory_order_relaxed);
+     m_clut.fill(0u);
+     m_clutCbp.fill(0u);
+     m_texturePageCache.Invalidate();
+@@ -552,6 +566,11 @@ void GSCpuBackend::ResetUnlocked()
+ 
+ namespace
+ {
++    // Set by the drawing loops: staging a linear copy of the texture only pays off when the draw
++    // covers many more pixels than the texture has texels (big triangles); for small sprites the
++    // swizzled per-texel read is cheaper than a full detexture.
++    thread_local bool t_stageLinearTexture = false;
++
+     thread_local int t_bandIndex = 0;
+     thread_local int t_bandCount = 1;
+     thread_local GSMem::TexturePageCache *t_bandCache = nullptr;
+@@ -623,6 +642,12 @@ void GSCpuBackend::LoadClut(const GSTex0Reg &tex0, const GSTexClutReg &texclut)
+ 
+ void GSCpuBackend::LoadClutUnlocked(const GSTex0Reg &tex0, const GSTexClutReg &texclut)
+ {
++    if (std::getenv("PS2X_GS_GL_TEXLOG"))
++        std::fprintf(stderr, "[clut] hilo=%zu cbw=%u cou=%u cov=%u | tex0 cbp=%x cpsm=%u csm=%u csa=%u\n",
++                     std::hash<std::thread::id>{}(std::this_thread::get_id()), texclut.cbw, texclut.cou, texclut.cov,
++                     tex0.cbp, tex0.cpsm, tex0.csm, tex0.csa);
++
++    s_textureGeneration.fetch_add(1u, std::memory_order_relaxed);
+     const bool fourBit = isFourBitIndexedPsm(tex0.psm);
+     const bool sixteenBit = tex0.cpsm == GS_PSM_CT16 || tex0.cpsm == GS_PSM_CT16S;
+     const bool thirtyTwoBit = tex0.cpsm == GS_PSM_CT32 || tex0.cpsm == GS_PSM_CT24;
+@@ -676,6 +701,7 @@ void GSCpuBackend::Flush()
+ 
+ void GSCpuBackend::TextureFlush()
+ {
++    s_textureGeneration.fetch_add(1u, std::memory_order_relaxed);
+     std::lock_guard<std::mutex> lock(m_mutex);
+     m_texturePageCache.Invalidate();
+ }
+@@ -703,11 +729,17 @@ uint32_t GSCpuBackend::ReadTextureVramUnlocked(uint32_t psm, uint32_t base, uint
+     if (!m_vram)
+         return 0u;
+ 
+-    return GSMem::ReadTexture(t_bandCache ? *t_bandCache : m_texturePageCache, m_vram, psm, base, bw, x, y);
++    // PS2X_GS_NOCACHE=1: read straight out of VRAM. The page cache copies 8 KB on every miss to make the swizzled
++    // reads local, but if the miss rate is high that copy costs more than the locality it buys.
++    static const bool noCache = std::getenv("PS2X_GS_NOCACHE") != nullptr;
++    GSMem::TexturePageCache *cache =
++        noCache ? nullptr : (t_bandCache ? t_bandCache : &m_texturePageCache);
++    return GSMem::ReadTexture(cache, m_vram, psm, base, bw, x, y);
+ }
+ 
+ void GSCpuBackend::WriteVram(uint32_t psm, uint32_t base, uint32_t bw, uint32_t x, uint32_t y, uint32_t value)
+ {
++    s_textureGeneration.fetch_add(1u, std::memory_order_relaxed);
+     std::lock_guard<std::mutex> lock(m_mutex);
+     WriteVramUnlocked(psm, base, bw, x, y, value);
+ }
+@@ -1090,6 +1122,94 @@ uint32_t GSCpuBackend::LookupCLUT(const GSDrawState &state,
+     return 0xFFFF00FFu;
+ }
+ 
++const uint32_t *GSCpuBackend::linearTexture(const GSDrawState &state)
++{
++    static thread_local LinearTexture cache;
++    if (!t_stageLinearTexture || !state.prim.tme || state.textureWidth == 0u || state.textureHeight == 0u)
++        return nullptr;
++
++    const uint64_t clamp = state.context.clamp;
++    const uint8_t wrapU = static_cast<uint8_t>(clamp & 0x3u);
++    const uint8_t wrapV = static_cast<uint8_t>((clamp >> 2) & 0x3u);
++    if (wrapU > 1u || wrapV > 1u)
++    {
++        // REGION_CLAMP / REGION_REPEAT can address texels outside the texture; keep the swizzled
++        // path, which reads VRAM directly.
++        cache.valid = false;
++        return nullptr;
++    }
++
++    const GSTex0Reg &tex = state.context.tex0;
++    const uint32_t width = state.textureWidth;
++    const uint32_t height = state.textureHeight;
++    if (static_cast<uint64_t>(width) * height > 1024ull * 1024ull)
++        return nullptr;
++
++    const uint64_t generation = s_textureGeneration.load(std::memory_order_relaxed);
++    if (cache.valid && cache.width == width && cache.height == height && cache.tbp0 == tex.tbp0 &&
++        cache.tbw == tex.tbw && cache.psm == tex.psm && cache.cbp == tex.cbp && cache.cpsm == tex.cpsm &&
++        cache.csm == tex.csm && cache.csa == tex.csa && cache.ta0 == state.texa.ta0 &&
++        cache.ta1 == state.texa.ta1 && cache.aem == (state.texa.aem ? 1u : 0u) &&
++        cache.generation == generation)
++        return cache.rgba.data();
++
++    cache.rgba.resize(static_cast<size_t>(width) * height);
++    for (uint32_t y = 0; y < height; ++y)
++    {
++        for (uint32_t x = 0; x < width; ++x)
++        {
++            const u32 out = ReadTextureVramUnlocked(tex.psm, tex.tbp0, tex.tbw, x, y);
++            uint32_t texel = 0xFFFF00FFu;
++            switch (tex.psm)
++            {
++            case GS_PSM_CT32:
++            case GS_PSM_Z32:
++            case GS_PSM_CT24:
++            case GS_PSM_Z24:
++                texel = applyTexa(state.texa, tex.psm, out);
++                break;
++            case GS_PSM_CT16:
++            case GS_PSM_CT16S:
++            case GS_PSM_Z16:
++            case GS_PSM_Z16S:
++                texel = applyTexa(state.texa, tex.psm, Rgba5551ToRgba8888(out));
++                break;
++            case GS_PSM_T8:
++            case GS_PSM_T8H:
++            case GS_PSM_T4:
++            case GS_PSM_T4HL:
++            case GS_PSM_T4HH:
++                texel = LookupCLUT(state, static_cast<u8>(out), tex.cpsm, tex.csm, tex.csa, tex.psm);
++                break;
++            default:
++                break;
++            }
++            cache.rgba[static_cast<size_t>(y) * width + x] = texel;
++        }
++    }
++    cache.valid = true;
++    cache.width = width;
++    cache.height = height;
++    cache.tbp0 = tex.tbp0;
++    cache.tbw = tex.tbw;
++    cache.psm = tex.psm;
++    cache.cbp = tex.cbp;
++    cache.cpsm = tex.cpsm;
++    cache.csm = tex.csm;
++    cache.csa = tex.csa;
++    cache.ta0 = state.texa.ta0;
++    cache.ta1 = state.texa.ta1;
++    cache.aem = state.texa.aem ? 1u : 0u;
++    cache.generation = generation;
++    cache.regionWrap = false;
++    return cache.rgba.data();
++}
++
++void GSCpuBackend::invalidateLinearTexture(LinearTexture &cache)
++{
++    cache.valid = false;
++}
++
+ uint32_t GSCpuBackend::SampleTexture(const GSDrawState &state, float s, float t, float q, uint16_t u, uint16_t v)
+ {
+     const auto &ctx = state.context;
+@@ -1118,11 +1238,22 @@ uint32_t GSCpuBackend::SampleTexture(const GSDrawState &state, float s, float t,
+         texVf = t * invQ * static_cast<float>(texH);
+     }
+ 
++    const uint32_t *linear = linearTexture(state);
++
+     auto samplePoint = [&](int sampleU, int sampleV) -> uint32_t
+     {
+         sampleU = wrapTextureCoordinate(sampleU, texW, wrapU, minU, maxU);
+         sampleV = wrapTextureCoordinate(sampleV, texH, wrapV, minV, maxV);
+ 
++        if (linear)
++        {
++            // Region wrapping never lands here (linearTexture refuses it), so the coordinate is
++            // inside the texture after REPEAT/CLAMP and a plain linear read is equivalent.
++            if ((unsigned)sampleU < (unsigned)texW && (unsigned)sampleV < (unsigned)texH)
++                return linear[static_cast<uint32_t>(sampleV) * static_cast<uint32_t>(texW) + static_cast<uint32_t>(sampleU)];
++            return 0xFFFF00FFu;
++        }
++
+         u32 out = ReadTextureVramUnlocked(tex.psm, tex.tbp0, tex.tbw, sampleU, sampleV);
+ 
+         switch (tex.psm)
+@@ -1196,6 +1327,7 @@ uint32_t GSCpuBackend::SampleTexture(const GSDrawState &state, float s, float t,
+ 
+ void GSCpuBackend::DrawSprite(const GSPrimitiveBatch &batch)
+ {
++    g_statTriangles.fetch_add(1, std::memory_order_relaxed);
+     const GSDrawState &state = batch.state;
+     const GSVertex &v0 = batch.vertices[0];
+     const GSVertex &v1 = batch.vertices[1];
+@@ -1227,6 +1359,9 @@ void GSCpuBackend::DrawSprite(const GSPrimitiveBatch &batch)
+         unclippedY1 < ctx.scissor.y0 || unclippedY0 > ctx.scissor.y1)
+         return;
+ 
++    g_statPixels.fetch_add(static_cast<uint64_t>(spanX + 1) * static_cast<uint64_t>(spanY + 1),
++                           std::memory_order_relaxed);
++
+     const int drawX0 = clampInt(unclippedX0, ctx.scissor.x0, ctx.scissor.x1);
+     const int drawY0 = clampInt(unclippedY0, ctx.scissor.y0, ctx.scissor.y1);
+     const int drawX1 = clampInt(unclippedX1, ctx.scissor.x0, ctx.scissor.x1);
+@@ -1236,6 +1371,17 @@ void GSCpuBackend::DrawSprite(const GSPrimitiveBatch &batch)
+     const uint8_t alphaMode = static_cast<uint8_t>(alphaReg & 0xFFu);
+     const uint8_t alphaFix = static_cast<uint8_t>((alphaReg >> 32) & 0xFFu);
+ 
++    if (state.prim.tme)
++    {
++        const uint64_t covered = static_cast<uint64_t>(drawX1 - drawX0 + 1) * static_cast<uint64_t>(drawY1 - drawY0 + 1);
++        const uint64_t texels = static_cast<uint64_t>(state.textureWidth) * state.textureHeight;
++        t_stageLinearTexture = covered >= 2u * texels && texels != 0u;
++    }
++    else
++    {
++        t_stageLinearTexture = false;
++    }
++
+     uint8_t r = v1.r, g = v1.g, b = v1.b, a = v1.a;
+ 
+     if (state.prim.tme)
+@@ -1314,6 +1460,7 @@ void GSCpuBackend::DrawSprite(const GSPrimitiveBatch &batch)
+ 
+ void GSCpuBackend::DrawTriangle(const GSPrimitiveBatch &batch)
+ {
++    g_statTriangles.fetch_add(1, std::memory_order_relaxed);
+     const GSDrawState &state = batch.state;
+     const GSVertex &v0 = batch.vertices[0];
+     const GSVertex &v1 = batch.vertices[1];
+@@ -1344,10 +1491,28 @@ void GSCpuBackend::DrawTriangle(const GSPrimitiveBatch &batch)
+     if (std::fabs(denom) < 0.001f)
+         return;
+ 
++    // How much the rasterizer is really asked to do (bounding-box pixels, an upper bound on shaded ones): with
++    // the frame time this says whether the software path is merely slow or is being asked for an impossible
++    // amount of fill, which is what decides between tuning it and moving the GS to the GPU.
++    g_statPixels.fetch_add(static_cast<uint64_t>(std::max(0, maxX - minX + 1)) *
++                               static_cast<uint64_t>(std::max(0, maxY - minY + 1)),
++                           std::memory_order_relaxed);
++
+     const float winding = (denom < 0.0f) ? -1.0f : 1.0f;
+     const float invAbsDenom = 1.0f / std::fabs(denom);
+     constexpr float kEdgeEpsilon = 1.0e-4f;
+ 
++    if (state.prim.tme)
++    {
++        const uint64_t covered = static_cast<uint64_t>(maxX - minX + 1) * static_cast<uint64_t>(maxY - minY + 1);
++        const uint64_t texels = static_cast<uint64_t>(state.textureWidth) * state.textureHeight;
++        t_stageLinearTexture = covered >= 2u * texels && texels != 0u;
++    }
++    else
++    {
++        t_stageLinearTexture = false;
++    }
++
+     for (int y = minY; y <= maxY; ++y)
+     {
+         if (!ownsRow(y))
+@@ -1501,6 +1666,7 @@ void GSCpuBackend::DrawLine(const GSPrimitiveBatch &batch)
+ 
+ void GSCpuBackend::BeginTransfer(const GSTransferCommand &command)
+ {
++    s_textureGeneration.fetch_add(1u, std::memory_order_relaxed);
+     std::lock_guard<std::mutex> lock(m_mutex);
+     m_transfer = command;
+     m_transferState.x = command.trxpos.dsax;
+@@ -1518,6 +1684,7 @@ void GSCpuBackend::BeginTransfer(const GSTransferCommand &command)
+ 
+ void GSCpuBackend::UploadImage(const uint8_t *data, uint32_t sizeBytes)
+ {
++    s_textureGeneration.fetch_add(1u, std::memory_order_relaxed);
+     std::lock_guard<std::mutex> lock(m_mutex);
+     if (!data || sizeBytes == 0u || !m_vram || m_transferState.direction != 0u)
+         return;
+@@ -1529,6 +1696,14 @@ void GSCpuBackend::UploadImage(const uint8_t *data, uint32_t sizeBytes)
+     const uint8_t dpsm = m_transfer.bitbltbuf.dpsm;
+     const uint32_t rrw = m_transfer.trxreg.rrw;
+     const uint32_t dsax = m_transfer.trxpos.dsax;
++    {
++        static std::atomic<uint64_t> upN{0};
++        const uint64_t i = upN.fetch_add(1, std::memory_order_relaxed);
++        if (i % 20 == 0)
++            std::fprintf(stderr, "[up] #%llu dbp=%x dbw=%u dpsm=%u dsax=%u dsay=%u rrw=%u rrh=%u size=%u\n",
++                         static_cast<unsigned long long>(i), dbp, dbw, dpsm, dsax, m_transfer.trxpos.dsay, rrw,
++                         m_transfer.trxreg.rrh, sizeBytes);
++    }
+     uint32_t offset = 0u;
+ 
+     auto advancePixel = [&](uint32_t count)
+@@ -2017,3 +2192,67 @@ PresentationFrame GSCpuBackend::PresentFromLocalMemory(const GSPresentationReque
+     result.sourceFbp = selected.fbp;
+     return result;
+ }
++
++// ---------------------------------------------------------------------------------------------------------
++// Shared with GSGlBackend, so the GL path decodes exactly what this rasterizer would sample.
++
++void GSCpuBackend::DecodeTexture(const GSDrawState &state, uint32_t *dst, uint32_t width, uint32_t height)
++{
++    if (!dst || width == 0u || height == 0u)
++        return;
++
++    // Feed SampleTexture the same coordinates DrawSprite builds for a pixel, so FST and non-FST agree.
++    // PS2X_GS_GL_TEXLOG=1: is the VRAM read itself empty, or is SampleTexture losing it?
++    if (const char *v = std::getenv("PS2X_GS_GL_TEXLOG"))
++    {
++        const auto &t = state.context.tex0;
++        const uint32_t direct = ReadTextureVramUnlocked(t.psm, t.tbp0, t.tbw, 0, 0);
++        std::fprintf(stderr, "[dec] vram=%p tbp=%x tbw=%u psm=%x fst=%u direct(0,0)=%08x clut=%02x%02x%02x%02x\n",
++                     static_cast<const void *>(m_vram), t.tbp0, t.tbw, t.psm,
++                     state.prim.fst ? 1u : 0u, direct, m_clut[0], m_clut[1], m_clut[2], m_clut[3]);
++        (void)v;
++    }
++
++    for (uint32_t y = 0; y < height; ++y)
++    {
++        for (uint32_t x = 0; x < width; ++x)
++        {
++            uint32_t texel;
++            if (state.prim.fst)
++            {
++                const uint16_t fixedU = static_cast<uint16_t>(std::min<uint32_t>(x * 16u, 0xFFFFu));
++                const uint16_t fixedV = static_cast<uint16_t>(std::min<uint32_t>(y * 16u, 0xFFFFu));
++                texel = SampleTexture(state, 0.0f, 0.0f, 1.0f, fixedU, fixedV);
++            }
++            else
++            {
++                texel = SampleTexture(state, static_cast<float>(x) / static_cast<float>(width),
++                                      static_cast<float>(y) / static_cast<float>(height), 1.0f, 0u, 0u);
++            }
++            dst[static_cast<size_t>(y) * width + x] = texel;
++        }
++    }
++}
++
++void GSCpuBackend::WriteFramebufferRect(uint32_t psm, uint32_t base, uint32_t fbw, uint32_t x0, uint32_t y0,
++                                        uint32_t width, uint32_t height, const uint32_t *rgba)
++{
++    if (!rgba || width == 0u || height == 0u || !m_vram)
++        return;
++
++    const uint32_t psmBits = psm & 0x3Fu;
++    const bool sixteen = bitsPerPixel(psmBits) == 16;
++    for (uint32_t y = 0; y < height; ++y)
++    {
++        const uint32_t *row = rgba + static_cast<size_t>(y) * width;
++        for (uint32_t x = 0; x < width; ++x)
++        {
++            uint32_t pixel = row[x];
++            if (sixteen)
++                pixel = Rgba8888ToRgba5551(pixel);
++            else if (psmBits == GS_PSM_CT24)
++                pixel &= 0x00FFFFFFu;
++            WriteVramUnlocked(psmBits, base, fbw, x0 + x, y0 + y, pixel);
++        }
++    }
++}
+diff --git a/ps2xRuntime/src/lib/gs/gs_frontend.cpp b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+index 5c9fcec..c4e87fb 100644
+--- a/ps2xRuntime/src/lib/gs/gs_frontend.cpp
++++ b/ps2xRuntime/src/lib/gs/gs_frontend.cpp
+@@ -3,13 +3,19 @@
+ #include <cstdio>
+ #include <cstdlib>
+ #include "runtime/gs/gs_cpu_backend.h"
++#include "runtime/gs/gs_gl_backend.h"
+ #include "runtime/gs/gs_threaded_backend.h"
+ 
+ namespace
+ {
+-    // The software rasterizer runs on its own thread unless PS2X_GS_THREAD=0.
+     std::unique_ptr<GSRasterBackend> makeDefaultRasterBackend()
+     {
++        // PS2X_GS_GL=1: replay the draws on the GPU. GSGlBackend keeps a GSCpuBackend inside and falls back to it
++        // per primitive, so it is a replacement for the whole chain, not an addition to the threaded one.
++        if (GSGlBackend::enabled())
++            return std::make_unique<GSGlBackend>();
++
++        // The software rasterizer runs on its own thread unless PS2X_GS_THREAD=0.
+         const char *threaded = std::getenv("PS2X_GS_THREAD");
+         if (threaded && threaded[0] == '0')
+             return std::make_unique<GSCpuBackend>();
+diff --git a/ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp b/ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp
+index f8ac8d2..467eaa1 100644
+--- a/ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp
++++ b/ps2xRuntime/src/lib/gs/gs_threaded_backend.cpp
+@@ -2,6 +2,7 @@
+ #include "runtime/gs/gs_cpu_backend.h"
+ 
+ #include <algorithm>
++#include <chrono>
+ #include <cstdlib>
+ #include <utility>
+ 
+@@ -79,8 +80,13 @@ void GSThreadedBackend::helperLoop(int index)
+ 
+ void GSThreadedBackend::drawBanded(const std::vector<GSPrimitiveBatch> &batches)
+ {
+-    if (m_bands <= 1)
++    // A batch this small does not pay for waking the band threads (each one costs a mutex, a
++    // condition variable and a texture-cache invalidation, which for a handful of draws is far more
++    // than the drawing itself). Band 0 draws every row instead.
++    const bool tooSmallToSplit = batches.size() < 8u;
++    if (m_bands <= 1 || tooSmallToSplit)
+     {
++        GSCpuBackend::SetThreadBand(0, 1, nullptr);
+         for (const GSPrimitiveBatch &batch : batches)
+             m_cpu ? m_cpu->SubmitUnlocked(batch) : m_inner->Submit(batch);
+         return;
+@@ -154,6 +160,37 @@ void GSThreadedBackend::push(Item item)
+ {
+     {
+         std::unique_lock<std::mutex> lock(m_queueMutex);
++        // PS2X_GS_QDUMP=1: when the queue saturates, describe the primitives still waiting (once).
++        // Tells a flood of huge draws apart from a flood of many small ones.
++        static const bool qdump = std::getenv("PS2X_GS_QDUMP") != nullptr;
++        static bool dumped = false;
++        if (qdump && !dumped && m_queue.size() + 1u >= kMaxQueuedCommands)
++        {
++            dumped = true;
++            std::fprintf(stderr, "[qdump] cola llena (%zu en espera). Muestra de los primeros:\n", m_queue.size());
++            const size_t n = std::min<size_t>(m_queue.size(), 10u);
++            for (size_t i = 0; i < n; ++i)
++            {
++                const Item &it = m_queue[i];
++                if (!it.isDraw)
++                {
++                    std::fprintf(stderr, "  [%zu] comando (no dibujo)\n", i);
++                    continue;
++                }
++                const GSPrimitiveBatch &b = it.batch;
++                const auto &v = b.vertices;
++                std::fprintf(stderr,
++                             "  [%zu] vtx %u tipo %u tme %u fst %u abe %u | x %.0f %.0f %.0f y %.0f %.0f %.0f"
++                             " | scissor %u %u %u %u | frame fbp %u fbw %u psm %u | tex tbp %u tbw %u psm %u %ux%u\n",
++                             i, b.vertexCount, static_cast<unsigned>(b.state.prim.type), b.state.prim.tme ? 1u : 0u,
++                             b.state.prim.fst ? 1u : 0u, b.state.prim.abe ? 1u : 0u, v[0].x, v[1].x, v[2].x, v[0].y,
++                             v[1].y, v[2].y, b.state.context.scissor.x0, b.state.context.scissor.y0,
++                             b.state.context.scissor.x1, b.state.context.scissor.y1, b.state.context.frame.fbp,
++                             b.state.context.frame.fbw, b.state.context.frame.psm, b.state.context.tex0.tbp0,
++                             b.state.context.tex0.tbw, b.state.context.tex0.psm, b.state.textureWidth,
++                             b.state.textureHeight);
++            }
++        }
+         m_doneCv.wait(lock, [this]() { return m_queue.size() < kMaxQueuedCommands; });
+         m_queue.push_back(std::move(item));
+         ++m_enqueued;
+diff --git a/ps2xRuntime/src/lib/gs/ps2_gs_memory.cpp b/ps2xRuntime/src/lib/gs/ps2_gs_memory.cpp
+index a8f9fa8..d53cc16 100644
+--- a/ps2xRuntime/src/lib/gs/ps2_gs_memory.cpp
++++ b/ps2xRuntime/src/lib/gs/ps2_gs_memory.cpp
+@@ -220,36 +220,36 @@ namespace GSMem
+         PixelStorageTraits<P4>::InitPageLookupTable(PageTableP4, BlockTableP4, ColumnTable4);
+     }
+ 
+-    u32 ReadTexture(TexturePageCache& cache, const u8* data, u32 psm, u32 bp, u32 bw, u32 x, u32 y)
++    u32 ReadTexture(TexturePageCache* cache, const u8* data, u32 psm, u32 bp, u32 bw, u32 x, u32 y)
+     {
+         switch (static_cast<PixelStorageMode>(psm & 0x3Fu))
+         {
+         case C32:
+-            return PixelStorageTraits<C32>::Read(PageTableC32, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<C32>::Read(PageTableC32, data, bp, bw, x, y, cache);
+         case C24:
+-            return PixelStorageTraits<C24>::Read(PageTableC32, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<C24>::Read(PageTableC32, data, bp, bw, x, y, cache);
+         case C16:
+-            return PixelStorageTraits<C16>::Read(PageTableC16, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<C16>::Read(PageTableC16, data, bp, bw, x, y, cache);
+         case C16S:
+-            return PixelStorageTraits<C16S>::Read(PageTableC16S, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<C16S>::Read(PageTableC16S, data, bp, bw, x, y, cache);
+         case P8:
+-            return PixelStorageTraits<P8>::Read(PageTableP8, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<P8>::Read(PageTableP8, data, bp, bw, x, y, cache);
+         case P4:
+-            return PixelStorageTraits<P4>::Read(PageTableP4, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<P4>::Read(PageTableP4, data, bp, bw, x, y, cache);
+         case P8H:
+-            return PixelStorageTraits<P8H>::Read(PageTableC32, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<P8H>::Read(PageTableC32, data, bp, bw, x, y, cache);
+         case P4HL:
+-            return PixelStorageTraits<P4HL>::Read(PageTableC32, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<P4HL>::Read(PageTableC32, data, bp, bw, x, y, cache);
+         case P4HH:
+-            return PixelStorageTraits<P4HH>::Read(PageTableC32, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<P4HH>::Read(PageTableC32, data, bp, bw, x, y, cache);
+         case Z32:
+-            return PixelStorageTraits<Z32>::Read(PageTableZ32, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<Z32>::Read(PageTableZ32, data, bp, bw, x, y, cache);
+         case Z24:
+-            return PixelStorageTraits<Z24>::Read(PageTableZ32, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<Z24>::Read(PageTableZ32, data, bp, bw, x, y, cache);
+         case Z16:
+-            return PixelStorageTraits<Z16>::Read(PageTableZ16, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<Z16>::Read(PageTableZ16, data, bp, bw, x, y, cache);
+         case Z16S:
+-            return PixelStorageTraits<Z16S>::Read(PageTableZ16S, data, bp, bw, x, y, &cache);
++            return PixelStorageTraits<Z16S>::Read(PageTableZ16S, data, bp, bw, x, y, cache);
+         default:
+             return 0u;
+         }
+diff --git a/ps2xRuntime/src/lib/ps2_audio.cpp b/ps2xRuntime/src/lib/ps2_audio.cpp
+index 6bb6494..863594a 100644
+--- a/ps2xRuntime/src/lib/ps2_audio.cpp
++++ b/ps2xRuntime/src/lib/ps2_audio.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "runtime/ps2_audio.h"
+ #include "runtime/ps2_memory.h"
+ #include "ps2_host_backend.h"
+@@ -91,7 +92,7 @@ PS2AudioBackend::~PS2AudioBackend()
+ 
+ void PS2AudioBackend::onVagTransfer(const uint8_t *rdram, uint32_t srcAddr, uint32_t sizeBytes)
+ {
+-    if (!rdram || sizeBytes < 48)
++    if (ps2RdramMissing(rdram) || sizeBytes < 48)
+         return;
+ 
+     const uint32_t physAddr = srcAddr & PS2_RAM_MASK;
+diff --git a/ps2xRuntime/src/lib/ps2_debug_panel.cpp b/ps2xRuntime/src/lib/ps2_debug_panel.cpp
+index c9aa2c6..66751ad 100644
+--- a/ps2xRuntime/src/lib/ps2_debug_panel.cpp
++++ b/ps2xRuntime/src/lib/ps2_debug_panel.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "ps2_debug_panel.h"
+ #include "ps2_runtime.h"
+ #include "ps2_runtime_macros.h"
+@@ -188,7 +189,7 @@ namespace
+     template <typename T>
+     bool readGuestObjectNoThrow(uint8_t *rdram, uint32_t addr, T &out)
+     {
+-        if (!rdram || addr == 0u)
++        if (ps2RdramMissing(rdram) || addr == 0u)
+         {
+             return false;
+         }
+@@ -367,7 +368,7 @@ namespace
+ 
+     uint32_t readGuestU32NoThrow(uint8_t *rdram, uint32_t addr)
+     {
+-        if (!rdram || addr == 0u)
++        if (ps2RdramMissing(rdram) || addr == 0u)
+         {
+             return 0u;
+         }
+diff --git a/ps2xRuntime/src/lib/ps2_iop_host.cpp b/ps2xRuntime/src/lib/ps2_iop_host.cpp
+index 8d46e03..a31ab50 100644
+--- a/ps2xRuntime/src/lib/ps2_iop_host.cpp
++++ b/ps2xRuntime/src/lib/ps2_iop_host.cpp
+@@ -1,3 +1,4 @@
++#include "ps2_identity.h"
+ #include "ps2_iop_host.h"
+ 
+ #include "ps2_runtime.h"
+@@ -106,7 +107,7 @@ bool PS2IopHostAdapter::guestRange(uint32_t address, size_t size, uint8_t *&begi
+     uint8_t *const rdram = m_activeRdram
+                                ? m_activeRdram
+                                : m_runtime.memory().getRDRAM();
+-    if (!rdram)
++    if (ps2RdramMissing(rdram))
+     {
+         return false;
+     }
+@@ -225,7 +226,7 @@ uint32_t PS2IopHostAdapter::allocateIopHandle(ps2x::iop::IopHandleKind kind)
+     uint8_t *const rdram = m_activeRdram
+                                ? m_activeRdram
+                                : m_runtime.memory().getRDRAM();
+-    if (!rdram)
++    if (ps2RdramMissing(rdram))
+     {
+         return 0;
+     }
+diff --git a/ps2xRuntime/src/lib/ps2_memory.cpp b/ps2xRuntime/src/lib/ps2_memory.cpp
+index cfe1970..54de889 100644
+--- a/ps2xRuntime/src/lib/ps2_memory.cpp
++++ b/ps2xRuntime/src/lib/ps2_memory.cpp
+@@ -1,3 +1,9 @@
++#include "ps2_identity.h"
++#include <sys/mman.h>
++#include <cstdlib>
++
++bool g_ps2IdentityRdram = false;
++uint8_t g_ps2LowShadow[kPs2LowShadowSize] = {};
+ #include "runtime/ps2_memory.h"
+ #include "runtime/ps2_address.h"
+ #include "runtime/gs/gs_frontend.h"
+@@ -251,7 +257,11 @@ PS2Memory::PS2Memory()
+ PS2Memory::~PS2Memory()
+ {
+     stopVif1Worker();
+-    if (m_rdram)
++    if (g_ps2IdentityRdram)
++    {
++        munmap(reinterpret_cast<void *>(0x10000u), PS2_RAM_SIZE - 0x10000u);
++    }
++    else if (m_rdram)
+     {
+         delete[] m_rdram;
+         m_rdram = nullptr;
+@@ -340,9 +350,28 @@ bool PS2Memory::initialize(size_t ramSize)
+ 
+     try
+     {
+-        // Allocate main RAM
+-        m_rdram = new uint8_t[ramSize];
+-        std::memset(m_rdram, 0, ramSize);
++        // Allocate main RAM. PS2X_IDENTITY_RDRAM=1 (BT2 hybrid port): mapped at its own guest addresses, so a
++        // guest pointer is a host pointer and native C can share the memory; the first 64 KB (kernel area the game
++        // never touches, below the host's mmap_min_addr) stay unmapped, and rdram is then 0.
++        const char *identity = std::getenv("PS2X_IDENTITY_RDRAM");
++        if (identity && identity[0] == '1')
++        {
++            const uintptr_t lo = 0x10000u;
++            void *p = mmap(reinterpret_cast<void *>(lo), ramSize - lo, PROT_READ | PROT_WRITE,
++                           MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE, -1, 0);
++            if (p != reinterpret_cast<void *>(lo))
++            {
++                std::cerr << "PS2X_IDENTITY_RDRAM: cannot map guest RAM at 0x10000" << std::endl;
++                return false;
++            }
++            g_ps2IdentityRdram = true;
++            m_rdram = nullptr;
++        }
++        else
++        {
++            m_rdram = new uint8_t[ramSize];
++            std::memset(m_rdram, 0, ramSize);
++        }
+ 
+         // Allocate scratchpad
+         m_scratchpad = new uint8_t[PS2_SCRATCHPAD_SIZE];
+@@ -1144,6 +1173,11 @@ void PS2Memory::write128(uint32_t address, __m128i value)
+ bool PS2Memory::writeIORegister(uint32_t address, uint32_t value)
+ {
+     syncVif1ForAddress(address);
++    // D_ENABLEW (0x1000F590) and D_ENABLER (0x1000F520) are the write and read ports of the one DMAC suspend
++    // register (PCSX2 dmacWrite32 mirrors it too): without this a game that suspends the DMAC and waits to see the
++    // bit spins forever (upstream #257, Ridge Racer V).
++    if (address == 0x1000F590u)
++        m_ioRegisters[0x1000F520u] = value;
+     size_t timerIndex = 0u;
+     uint32_t timerOffset = 0u;
+     if (decodeEeTimerRegister(address, timerIndex, timerOffset))
+@@ -1949,8 +1983,9 @@ namespace
+     {
+         static const bool enabled = []()
+         {
++            // Off by default: with it on, Downhill Jam's pad task stops running (scePad2Read is never called).
+             const char *value = std::getenv("PS2X_VIF1_THREAD");
+-            return !value || std::strcmp(value, "0") != 0;
++            return value && std::strcmp(value, "0") != 0;
+         }();
+         return enabled;
+     }
+@@ -2204,7 +2239,7 @@ void PS2Memory::submitGifPacket(GifPathId pathId, const uint8_t *data, uint32_t
+ 
+ void PS2Memory::processGIFPacket(uint32_t srcPhysAddr, uint32_t qwCount)
+ {
+-    if (!m_rdram || qwCount == 0)
++    if (ps2RdramMissing(m_rdram) || qwCount == 0)
+         return;
+     const uint64_t bytes64 = static_cast<uint64_t>(qwCount) * 16ull;
+     uint32_t sizeBytes = (bytes64 > 0xFFFFFFFFull) ? 0xFFFFFFFFu : static_cast<uint32_t>(bytes64);
+@@ -2242,7 +2277,7 @@ bool PS2Memory::tryProcessNativeGifImageUploadChain(GS &gs, uint32_t tadr, uint3
+     static constexpr uint32_t D_STAT = 0x1000E010u;
+     static constexpr uint32_t D_CTRL = 0x1000E000u;
+ 
+-    if (!m_rdram || !m_gsVRAM || m_path3Masked)
++    if (ps2RdramMissing(m_rdram) || !m_gsVRAM || m_path3Masked)
+         return false;
+     if (m_gifArbiter && !m_gifArbiter->empty())
+         return false;
+@@ -2434,7 +2469,7 @@ bool PS2Memory::tryProcessNativeGifPackedChain(GS &gs, uint32_t tadr, uint32_t c
+     static constexpr uint32_t D_STAT = 0x1000E010u;
+     static constexpr uint32_t D_CTRL = 0x1000E000u;
+ 
+-    if (!m_rdram || !m_gsVRAM || m_path3Masked)
++    if (ps2RdramMissing(m_rdram) || !m_gsVRAM || m_path3Masked)
+         return false;
+     if (m_gifArbiter && !m_gifArbiter->empty())
+         return false;
+diff --git a/ps2xRuntime/src/lib/ps2_runtime.cpp b/ps2xRuntime/src/lib/ps2_runtime.cpp
+index 85b0022..fb75e25 100644
+--- a/ps2xRuntime/src/lib/ps2_runtime.cpp
++++ b/ps2xRuntime/src/lib/ps2_runtime.cpp
+@@ -1,3 +1,7 @@
++#include <cstdlib>
++#include <cstdio>
++#include <chrono>
++#include "ps2_identity.h"
+ #include "ps2_runtime.h"
+ #include "ps2_log.h"
+ #include "ps2_stubs.h"
+@@ -5,6 +9,8 @@
+ #include "game_overrides.h"
+ #include "ps2_runtime_macros.h"
+ #include "runtime/gs/gs_frontend.h"
++#include "runtime/gs/gs_gl_backend.h"
++#include "runtime/gs/gs_texture_page_cache.h"
+ #include "runtime/ee_scheduler.h"
+ #include "runtime/vu1_record.h"
+ #include "ThreadNaming.h"
+@@ -24,6 +30,7 @@
+ #include <limits>
+ #include <chrono>
+ #include <atomic>
++#include <string>
+ #include <thread>
+ #include <unordered_map>
+ #include <sstream>
+@@ -43,6 +50,49 @@ static constexpr int FB_HEIGHT = 512;
+ static constexpr int DEFAULT_DISPLAY_HEIGHT = 448;
+ static constexpr uint32_t DEFAULT_FB_SIZE = FB_WIDTH * FB_HEIGHT * 4;
+ static constexpr uint32_t DEFAULT_FB_ADDR = (PS2_RAM_SIZE - DEFAULT_FB_SIZE - 0x10000u);
++
++// Whether the host waits for the display refresh on swap (PS2X_VSYNC=1). Off by default: the guest's own VBlank
++// paces the display, and waiting for the monitor on top of it divides the frame rate (see the window setup below).
++static bool g_useVsyncHint = false;
++// The guest VSync tick of the frame last presented, so the present loop can idle between the guest's VBlanks.
++static uint64_t g_lastPresentedTick = 0;
++// PS2X_FRAME_PROF=1: milliseconds spent inside latchHostPresentationFrame (draining the GS thread and rendering
++// the frame out of VRAM), so it can be told apart from the raylib swap time.
++static double g_latchMs = 0.0;
++static uint64_t g_latchCount = 0;
++// The software GS rasterizer's workload (counters in gs_cpu_backend.cpp), so a merely slow frame can be told
++// apart from an impossible amount of fill: that is what decides between tuning the rasterizer and moving the
++// GS to the GPU.
++extern std::atomic<uint64_t> g_statTriangles;
++extern std::atomic<uint64_t> g_statPixels;
++static uint64_t g_statTriLast = 0;
++static uint64_t g_statPixLast = 0;
++static uint64_t g_statMissLast = 0;
++static uint64_t g_statGlLast = 0;
++static uint64_t g_statSoftLast = 0;
++
++// With PS2X_GS_GL=1, show how the primitives were actually split between the GPU and the software fallback.
++static std::string gsGlNote()
++{
++    extern std::atomic<uint64_t> g_statGlDraws;
++    extern std::atomic<uint64_t> g_statSoftDraws;
++    if (!GSGlBackend::enabled())
++        return std::string();
++
++    const uint64_t gl = g_statGlDraws.load(std::memory_order_relaxed);
++    const uint64_t soft = g_statSoftDraws.load(std::memory_order_relaxed);
++    const uint64_t dgl = gl - g_statGlLast;
++    const uint64_t dsoft = soft - g_statSoftLast;
++    g_statGlLast = gl;
++    g_statSoftLast = soft;
++    const uint64_t total = dgl + dsoft;
++    char buf[128];
++    std::snprintf(buf, sizeof buf, " | GL %llu prim/s, sw %llu prim/s (%.0f%% gpu)",
++                  static_cast<unsigned long long>(dgl), static_cast<unsigned long long>(dsoft),
++                  total ? 100.0 * static_cast<double>(dgl) / static_cast<double>(total) : 0.0);
++    return std::string(buf);
++}
++
+ #if defined(PLATFORM_VITA)
+ static constexpr int HOST_WINDOW_WIDTH = 960;
+ static constexpr int HOST_WINDOW_HEIGHT = 544;
+@@ -351,7 +401,7 @@ namespace
+     std::string readGuestPrintableString(const uint8_t *rdram, uint32_t addr, size_t maxLen)
+     {
+         std::string out;
+-        if (!rdram || maxLen == 0)
++        if (ps2RdramMissing(rdram) || maxLen == 0)
+         {
+             return out;
+         }
+@@ -394,7 +444,13 @@ static void UploadFrame(Texture2D &tex, PS2Runtime *rt, uint32_t &outWidth, uint
+     const bool needsLatch = !s_hasLatchedInitialFrame || currentTick != s_lastPresentationTick;
+     if (needsLatch)
+     {
++        // This is where the present actually costs something: latchHostPresentationFrame drains the GS thread's
++        // queue and renders the frame out of the emulated VRAM. PS2X_FRAME_PROF=1 splits the time so a slow
++        // present can be told apart from a slow raylib swap.
++        const auto latchStart = std::chrono::steady_clock::now();
+         rt->gs().latchHostPresentationFrame();
++        g_latchMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - latchStart).count();
++        ++g_latchCount;
+         s_lastPresentationTick = currentTick;
+         s_hasLatchedInitialFrame = true;
+     }
+@@ -665,7 +721,7 @@ bool PS2Runtime::syncCoreSubsystems()
+ {
+     uint8_t *const rdram = m_memory.getRDRAM();
+     uint8_t *const gsVram = m_memory.getGSVRAM();
+-    if (!rdram || !gsVram)
++    if (ps2RdramMissing(rdram) || !gsVram)
+     {
+         return false;
+     }
+@@ -769,12 +825,40 @@ bool PS2Runtime::initialize(const char *title)
+ #if defined(PLATFORM_VITA)
+         InitWindow(HOST_WINDOW_WIDTH, HOST_WINDOW_HEIGHT, title); // raylib vita does not support audio
+ #else
+-        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
++        // PS2X_FULLSCREEN=1: borderless fullscreen at the desktop resolution (the frame is scaled to fit).
++        // Present pacing, the way Tenkaichi3Decomp does it (port/src/gs/gs_gpu.c:356-360): the GUEST's VBlank
++        // paces the display (the guest runs at ~60 Hz on its own; UploadFrame below only presents a new frame when
++        // the guest's VSync tick changes), so the host must NOT also wait for the monitor's refresh on top of that
++        // — the swap's vsync "costs up to a refresh period per frame" and divides the real rate by ~2-4 (measured
++        // ~15-22 fps on a real GPU instead of 60). Present immediately (raylib without FLAG_VSYNC_HINT ~ the
++        // "immediate/mailbox" mode BT3 prefers). PS2X_VSYNC=1 re-enables the monitor wait; PS2X_NO_VSYNC kept as a
++        // deprecated alias. This only affects the host present; the guest timing is untouched.
++        const char *fs = std::getenv("PS2X_FULLSCREEN");
++        const char *wantsVsync = std::getenv("PS2X_VSYNC");
++        const char *noVsync = std::getenv("PS2X_NO_VSYNC");
++        const bool useVsyncHint = (wantsVsync != nullptr && wantsVsync[0] == '1' && noVsync == nullptr);
++        g_useVsyncHint = useVsyncHint;
++        SetConfigFlags(FLAG_WINDOW_RESIZABLE | (useVsyncHint ? FLAG_VSYNC_HINT : 0u) |
++                       ((fs && fs[0] == '1') ? FLAG_FULLSCREEN_MODE : 0u));
+         InitWindow(HOST_WINDOW_WIDTH, HOST_WINDOW_HEIGHT, title);
++        SetExitKey(KEY_NULL); // Esc is a pad button (ps2_pad.cpp: CIRCLE); the window closes from its title bar
+         InitAudioDevice();
+         m_audioBackend.setAudioReady(IsAudioDeviceReady());
+ #endif
+-        SetTargetFPS(60);
++        // Pacing: the present loop already only uploads a new frame when the guest's VSync tick changes
++        // (UploadFrame), so the guest's own 60 Hz VBlank paces the display. raylib's SetTargetFPS(60) would add a
++        // SECOND wait on top of the swap's vsync (EndDrawing waits target-frame after SwapScreenBuffer), which
++        // divides the real rate by ~2-4 (observed 15-22 fps). So: only set a target when there is no vsync hint
++        // to pace us. PS2X_TARGET_FPS=<n> forces it anyway.
++        const char *targetEnv = std::getenv("PS2X_TARGET_FPS");
++        if (targetEnv != nullptr && targetEnv[0] != '\0')
++        {
++            SetTargetFPS(static_cast<int>(std::atoi(targetEnv)));
++        }
++        else if (!g_useVsyncHint)
++        {
++            SetTargetFPS(60);
++        }
+         if (m_debugUiInitCallback)
+         {
+             m_debugUiInitCallback(*this, m_debugUiUserData);
+@@ -929,7 +1013,7 @@ bool PS2Runtime::loadELF(const std::string &elfPath)
+         }
+ 
+         uint8_t *destBase = scratch ? m_memory.getScratchpad() : m_memory.getRDRAM();
+-        if (!destBase)
++        if (ps2RdramMissing(destBase))
+         {
+             std::cerr << "ELF segment " << i << " has no destination memory backing." << std::endl;
+             return false;
+@@ -1183,13 +1267,47 @@ const char *describeGuestBranchKind(PS2Runtime::GuestBranchKind kind)
+     }
+ }
+ 
++// PS2X_COVERAGE=path: which guest functions get dispatched (one address per line, rewritten every 10 s).
++// Used to order the C-writing queue by what the game actually runs (docs/PLAN_NATIVO.md).
++namespace
++{
++    std::atomic<uint8_t> *g_coverageHits = nullptr;
++
++    void coverageInit()
++    {
++        const char *path = std::getenv("PS2X_COVERAGE");
++        if (!path || !*path || g_ps2RecompiledFunctionTableSlotCount == 0u)
++            return;
++        g_coverageHits = new std::atomic<uint8_t>[g_ps2RecompiledFunctionTableSlotCount]();
++        std::string out(path);
++        std::thread([out]() {
++            for (;;)
++            {
++                std::this_thread::sleep_for(std::chrono::seconds(10));
++                std::string tmp = out + ".tmp";
++                if (FILE *f = std::fopen(tmp.c_str(), "w"))
++                {
++                    for (uint32_t i = 0; i < g_ps2RecompiledFunctionTableSlotCount; ++i)
++                        if (g_coverageHits[i].load(std::memory_order_relaxed))
++                            std::fprintf(f, "0x%08X\n", g_ps2RecompiledFunctionTableBase + i * 4u);
++                    std::fclose(f);
++                    std::rename(tmp.c_str(), out.c_str());
++                }
++            }
++        }).detach();
++    }
++}
++
+ PS2Runtime::RecompiledFunction PS2Runtime::lookupFunction(uint32_t address)
+ {
++    static const bool coverageOn = (coverageInit(), g_coverageHits != nullptr);
+     pushDispatchPc(address);
+ 
+     uint32_t slot = 0u;
+     if (generatedFunctionTableSlot(address, slot))
+     {
++        if (coverageOn)
++            g_coverageHits[slot].store(1, std::memory_order_relaxed);
+         RecompiledFunction fn = g_ps2RecompiledFunctionTable[slot];
+         if (fn != nullptr)
+         {
+@@ -1258,8 +1376,10 @@ void PS2Runtime::reportMissingFunction(uint8_t *rdram,
+ 
+     auto readGuestU32At = [rdram](uint32_t addr, uint32_t &out) -> bool
+     {
+-        // TODO this !rdram exist only because of test fix those test later
+-        if (!rdram || addr > PS2_RAM_SIZE - sizeof(uint32_t))
++        // TODO this ps2RdramMissing(rdram) exist only because of test fix those test later
++        // identity mode: rdram is nullptr and the first 64 KB are not mapped on the host
++        if (ps2RdramMissing(rdram) || addr > PS2_RAM_SIZE - sizeof(uint32_t) ||
++            (g_ps2IdentityRdram && addr < 0x10000u))
+         {
+             out = 0u;
+             return false;
+@@ -1889,7 +2009,7 @@ uint32_t PS2Runtime::guestCalloc(uint32_t count, uint32_t size, uint32_t alignme
+     if (guestAddr != 0u)
+     {
+         uint8_t *rdram = m_memory.getRDRAM();
+-        if (rdram)
++        if (!ps2RdramMissing(rdram))
+         {
+             uint32_t physAddr = guestAddr & PS2_RAM_MASK;
+             if (physAddr + totalSize <= PS2_RAM_SIZE)
+@@ -1982,7 +2102,7 @@ uint32_t PS2Runtime::guestRealloc(uint32_t guestAddr, uint32_t newSize, uint32_t
+     }
+ 
+     uint8_t *rdram = m_memory.getRDRAM();
+-    if (rdram)
++    if (!ps2RdramMissing(rdram))
+     {
+         const uint32_t copyBytes = std::min(oldSize, newSize);
+         uint32_t dstPhys = newAddr & PS2_RAM_MASK;
+@@ -2255,6 +2375,11 @@ const EeScheduler &PS2Runtime::eeScheduler() const
+     return *m_eeScheduler;
+ }
+ 
++uint32_t PS2Runtime::cop0Count() const
++{
++    return static_cast<uint32_t>(m_eeScheduler->eeCycle());
++}
++
+ void PS2Runtime::postEeEvent(EeEvent event)
+ {
+     m_eeScheduler->postEvent(event);
+@@ -2330,7 +2455,7 @@ void PS2Runtime::setEeSyscallOverride(uint8_t *rdram, uint32_t syscallNumber, ui
+     {
+         m_eeSyscallOverrides[syscallNumber] = handler;
+     }
+-    if (!rdram || address < 0 || address + 4 > kMirrorLimit)
++    if (ps2RdramMissing(rdram) || address < 0 || address + 4 > kMirrorLimit)
+     {
+         return;
+     }
+@@ -2348,7 +2473,7 @@ void PS2Runtime::setEeSyscallOverride(uint8_t *rdram, uint32_t syscallNumber, ui
+ 
+ void PS2Runtime::initializeEeKernelState(uint8_t *rdram)
+ {
+-    if (!rdram)
++    if (ps2RdramMissing(rdram))
+     {
+         return;
+     }
+@@ -2366,10 +2491,15 @@ void PS2Runtime::initializeEeKernelState(uint8_t *rdram)
+     m_eeSyscallMirrorAddresses.clear();
+     const uint32_t high = kTableGuestBase >> 16;
+     const uint32_t low = kTableGuestBase & 0xFFFFu;
+-    std::memcpy(rdram + kProbeBase, &high, sizeof(high));
+-    std::memcpy(rdram + kProbeBase + 8u, &low, sizeof(low));
+-    m_eeSyscallMirrorAddresses.insert(kProbeBase);
+-    m_eeSyscallMirrorAddresses.insert(kProbeBase + 8u);
++    // Identity-mapped RAM (ps2_identity.h) starts at 0x10000: the host does not let a process map the first
++    // 64 KB, so the kernel probe words there are not written (only games that patch the kernel read them).
++    if (!g_ps2IdentityRdram)
++    {
++        std::memcpy(rdram + kProbeBase, &high, sizeof(high));
++        std::memcpy(rdram + kProbeBase + 8u, &low, sizeof(low));
++        m_eeSyscallMirrorAddresses.insert(kProbeBase);
++        m_eeSyscallMirrorAddresses.insert(kProbeBase + 8u);
++    }
+ 
+     for (const auto &[syscallNumber, handler] : m_eeSyscallOverrides)
+     {
+@@ -2437,8 +2567,17 @@ void PS2Runtime::run()
+         gameThreadFinished.store(true, std::memory_order_release); });
+ 
+     uint64_t tick = 0;
++    // PS2X_FRAME_PROF=1: where the host loop spends its time per frame (the watchdog saw ~0.2 fps, i.e. ~5 s per
++    // frame). Prints the milliseconds of UploadFrame / the draw+present block, every second.
++    const char *frameProfEnv = std::getenv("PS2X_FRAME_PROF");
++    const bool frameProf = frameProfEnv != nullptr && frameProfEnv[0] == '1';
++    uint64_t profFrames = 0;
++    double profUploadMs = 0.0, profPresentMs = 0.0, profWindowStart = 0.0;
+     while (!isStopRequested() && !gameThreadFinished.load(std::memory_order_acquire))
+     {
++        const auto profFrameStart = std::chrono::steady_clock::now();
++        if (frameProf && profWindowStart == 0.0)
++            profWindowStart = std::chrono::duration<double>(profFrameStart.time_since_epoch()).count();
+         PS2_IF_AGRESSIVE_LOGS({
+             tick++;
+             if ((tick % 120) == 0)
+@@ -2474,6 +2613,7 @@ void PS2Runtime::run()
+         uint32_t presentWidth = FB_WIDTH;
+         uint32_t presentHeight = DEFAULT_DISPLAY_HEIGHT;
+         UploadFrame(frameTex, this, presentWidth, presentHeight);
++        const auto profAfterUploadMark = std::chrono::steady_clock::now();
+ 
+         BeginDrawing();
+         ClearBackground(BLACK);
+@@ -2481,15 +2621,22 @@ void PS2Runtime::run()
+         const float srcHeight = static_cast<float>(std::max<uint32_t>(1u, presentHeight));
+         const float screenWidth = static_cast<float>(GetScreenWidth());
+         const float screenHeight = static_cast<float>(GetScreenHeight());
+-        const float scale = std::min(screenWidth / srcWidth, screenHeight / srcHeight);
++        // PS2X_PRESENT=scale (default): fit the frame to the window, the GPU scales the texture (fast on a real
++        // GPU). PS2X_PRESENT=stretch: fill the window ignoring the aspect ratio. Under a software GL (llvmpipe,
++        // e.g. headless Xvfb) the scaling is done on the CPU and dominates the frame (~1 s); stretch keeps the
++        // same fragment count, so it does not help there, but nearest filtering and a smaller window do.
++        const char *presentMode = std::getenv("PS2X_PRESENT");
++        const bool stretch = presentMode != nullptr && presentMode[0] == 's';
++        const float scale = stretch ? std::max(screenWidth / srcWidth, screenHeight / srcHeight)
++                                    : std::min(screenWidth / srcWidth, screenHeight / srcHeight);
+         const float dstWidth = srcWidth * scale;
+         const float dstHeight = srcHeight * scale;
+         const Rectangle srcRect{0.0f, 0.0f, srcWidth, srcHeight};
+         const Rectangle dstRect{
+-            (screenWidth - dstWidth) * 0.5f,
+-            (screenHeight - dstHeight) * 0.5f,
+-            dstWidth,
+-            dstHeight};
++            stretch ? 0.0f : (screenWidth - dstWidth) * 0.5f,
++            stretch ? 0.0f : (screenHeight - dstHeight) * 0.5f,
++            stretch ? screenWidth : dstWidth,
++            stretch ? screenHeight : dstHeight};
+         DrawTexturePro(frameTex, srcRect, dstRect, Vector2{0.0f, 0.0f}, 0.0f, WHITE);
+         if (m_debugUiInitialized && m_debugUiDrawCallback)
+         {
+@@ -2497,6 +2644,59 @@ void PS2Runtime::run()
+         }
+         EndDrawing();
+ 
++        // No vsync and no target fps (the default, see the window flags above) means nothing paces this loop, so it
++        // would spin presenting the same latched frame until the guest produces the next one. Idle a little when
++        // the guest's VBlank has not ticked: 60 Hz is a tick every 16.7 ms, so this never costs a visible frame and
++        // it leaves the executor thread the CPU. Tenkaichi3Decomp's equivalent is vblank_wait() in plat_stub.c,
++        // which sleeps on an absolute grid instead of the display refresh.
++        {
++            const uint64_t vtick = eeScheduler().currentVSyncTick();
++            if (vtick == g_lastPresentedTick && !g_useVsyncHint)
++            {
++                std::this_thread::sleep_for(std::chrono::microseconds(500));
++            }
++            else
++            {
++                g_lastPresentedTick = vtick;
++            }
++        }
++
++        if (frameProf)
++        {
++            const auto profEnd = std::chrono::steady_clock::now();
++            profUploadMs += std::chrono::duration<double, std::milli>(profAfterUploadMark - profFrameStart).count();
++            profPresentMs += std::chrono::duration<double, std::milli>(profEnd - profAfterUploadMark).count();
++            ++profFrames;
++            const double nowS = std::chrono::duration<double>(profEnd.time_since_epoch()).count();
++            if (nowS - profWindowStart >= 2.0)
++            {
++                const double win = nowS - profWindowStart;
++                const uint64_t tri = g_statTriangles.load(std::memory_order_relaxed);
++                const uint64_t pix = g_statPixels.load(std::memory_order_relaxed);
++                const uint64_t miss = GSMem::g_pageMisses.load(std::memory_order_relaxed);
++                const uint64_t hit = GSMem::g_pageHits.load(std::memory_order_relaxed);
++                const double hitRate = (miss + hit) > 0 ? 100.0 * hit / static_cast<double>(miss + hit) : 0.0;
++                std::fprintf(stderr,
++                             "[frame-prof] %.1f fps | latch %.1f ms (n=%llu) | raylib %.2f ms/frame | "
++                             "raster: %.0f prim/s, %.1f Mpix/s, texcache hit %.1f%% (%.0f miss/s = %.0f MB/s)%s\n",
++                             profFrames / win, g_latchMs / std::max<uint64_t>(1, g_latchCount),
++                             static_cast<unsigned long long>(g_latchCount), profPresentMs / profFrames,
++                             (tri - g_statTriLast) / win, (pix - g_statPixLast) / win / 1.0e6, hitRate,
++                             (miss - g_statMissLast) / win, (miss - g_statMissLast) / win * 8192.0 / 1.0e6,
++                             gsGlNote());
++                g_statMissLast = miss;
++                std::fflush(stderr);
++                profFrames = 0;
++                profUploadMs = 0.0;
++                profPresentMs = 0.0;
++                g_latchMs = 0.0;
++                g_latchCount = 0;
++                g_statTriLast = tri;
++                g_statPixLast = pix;
++                profWindowStart = nowS;
++            }
++        }
++
+         if (WindowShouldClose())
+         {
+             RUNTIME_LOG("[run] window close requested, breaking out of loop");

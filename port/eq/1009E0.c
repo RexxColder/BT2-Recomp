@@ -1,0 +1,21 @@
+#include "common.h"
+
+s32 func_002EAFA8(s32 arg0);
+void func_002EF218();
+extern s32 D_00387F20[];
+
+void func_001009E0(s32 arg0) {
+    s32 var_s0;
+
+    var_s0 = 0;
+    do {
+        var_s0 += 1;
+        if (!(var_s0 < 0x960)) {
+            break;
+        }
+        if (func_002EAFA8(D_00387F20[arg0]) == 3) {
+            break;
+        }
+        func_002EF218(arg0);
+    } while (1);
+}

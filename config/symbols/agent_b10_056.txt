@@ -1,0 +1,1 @@
+EftBolt_AddFlash = 0x0017EE40; // type:func

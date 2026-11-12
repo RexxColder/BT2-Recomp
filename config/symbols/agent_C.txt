@@ -1,0 +1,142 @@
+// Agent C (batch 1): names for [0x1B0298, 0x207BF0).
+
+// Second copy of BT3's "chain" effect module (eft_s.c chain part; the first BT2 copy is at 0x1A4818). Same code
+// and interface as BT3 EftChain_*; prefix EftChain2 because the interface exists more than once in BT2.
+EftChain2_SetTex = 0x001B0DC0;
+EftChain2_Update = 0x001B2FD0;
+EftChain2_Create = 0x001B3378;
+EftChain2_Stop = 0x001B33E8;
+EftChain2_Kill = 0x001B3440;
+EftChain2_IsAlive = 0x001B3498;
+EftChain2_SetPos = 0x001B34E0;
+EftChain2_Warp = 0x001B3538;
+EftChain2_SetSize = 0x001B3630;
+EftChain2_SetParam3 = 0x001B3678;
+EftChain2_SetParam5 = 0x001B36E8;
+EftChain2_SetParam6 = 0x001B3730;
+EftChain2_SetRes = 0x001B3778;
+EftChain2_SetViewOnly = 0x001B37D0;
+EftChain2_SetType = 0x001B3828;
+gEftChain2List = 0x00387874;
+gEftChain2Class = 0x003427E8;
+
+// Ray burst (BT3 eft_s.c ray part, same code). EftRay_Create .. _Term already named in bt3_funcs.txt.
+EftRay_SetPos = 0x001B38F0;
+EftRay_StartHitDefault = 0x001B3A98;
+EftRay_StartHit = 0x001B3AC0;
+EftRay_StartScreen = 0x001B3BB0;
+EftRayMgr_Init = 0x001B3CF0;
+EftRayMgr_Term = 0x001B3D60;
+EftRay_Update = 0x001B3E68;
+EftRay_Setup = 0x001B4278;
+gEftRay = 0x00387878;
+gEftRayClass = 0x00342818;
+
+// Particle emitter, third of five BT2 copies (0x194928, 0x1A4590, here, 0x1C05D8, 0x1C6E20 have the same Term) (BT2 counterpart of BT3's EftPtcl, eft_u_b.c; same interface, older 0x290-byte work, see
+// include/battle/xc_eft_ptcl.h). Task class 0x3428F0, manager class 0x3428D8; BT3 names where the role is the same.
+EftPtcl3_UploadTexture = 0x001BC010;
+EftPtcl3_Init = 0x001BC0D0;
+EftPtcl3_Term = 0x001BC168;
+EftPtcl3_Update = 0x001BC188;
+gEftPtcl3Class = 0x003428F0;
+gEftPtcl3Mgr = 0x00387884;
+gEftPtcl3List = 0x00387888;
+EftPtcl3_Draw = 0x001BC230;
+EftPtcl3Mgr_Init = 0x001BC358;
+EftPtcl3Mgr_Term = 0x001BC3E8;
+EftPtcl3_Create = 0x001BC440;
+EftPtcl3_Stop = 0x001BC4B8;
+EftPtcl3_Kill = 0x001BC508;
+EftPtcl3_IsAlive = 0x001BC558;
+EftPtcl3_SetPos = 0x001BC598;
+EftPtcl3_Warp = 0x001BC5F0;
+EftPtcl3_SetTarget = 0x001BC688; // type:func
+EftPtcl3_SetDir = 0x001BC778;
+EftPtcl3_SetSize = 0x001BC840;
+EftPtcl3_SetStartDelay = 0x001BC888; // type:func
+EftPtcl3_SetStopDelay = 0x001BC8D0; // type:func
+EftPtcl3_SetTexture = 0x001BC918;
+EftPtcl3_SetFront = 0x001BC970;
+EftPtcl3_SetFlag80 = 0x001BC9C0;
+EftPtcl3_SetFlag100 = 0x001BCA28;
+EftPtcl3_SetType = 0x001BCA90;
+EftPtcl3_SetPolys = 0x001BCAE0; // type:func
+EftPtcl3_PickTexture = 0x001B8C08;
+
+// Second emitter module (0x1BCB48..0x1C0D18, same interface as EftPtcl3, nodes from its own 200-node pool;
+// include/battle/xc_eft_ptcl4.h). Task class 0x342920, manager class 0x342908.
+EftPtcl4_UploadTexture = 0x001C0488;
+EftPtcl4_Init = 0x001C0540;
+EftPtcl4_Term = 0x001C05D8;
+EftPtcl4_Update = 0x001C05F8;
+EftPtcl4_Draw = 0x001C06A0;
+EftPtcl4Mgr_Init = 0x001C07D8;
+EftPtcl4Mgr_Term = 0x001C0860;
+EftPtcl4_Create = 0x001C08B8;
+EftPtcl4_Stop = 0x001C0930;
+EftPtcl4_Kill = 0x001C0980;
+EftPtcl4_IsAlive = 0x001C09D0;
+EftPtcl4_SetPos = 0x001C0A10;
+EftPtcl4_SetDir = 0x001C0A68;
+EftPtcl4_SetSize = 0x001C0B30;
+EftPtcl4_SetStartDelay = 0x001C0B78; // type:func
+EftPtcl4_SetStopDelay = 0x001C0BC0; // type:func
+EftPtcl4_SetViewObj = 0x001C0C08; // type:func
+EftPtcl4_SetType = 0x001C0C60;
+EftPtcl4_SetPolys = 0x001C0CB0; // type:func
+gEftPtcl4Class = 0x00342920;
+gEftPtcl4Mgr = 0x0038788C;
+gEftPtcl4List = 0x00387890;
+
+// Ribbon (BT3 eft_ab_c.c EftRibbon, same interface; BT2 work 0x170 bytes, include/battle/xc_eft_ribbon.h).
+// Task class 0x3429B0, manager class 0x342998.
+EftRibbon_Term = 0x001C6E20;
+EftRibbon_Update = 0x001C6E40;
+EftRibbon_SetTexPair = 0x001C4F00;
+gEftRibbonClass = 0x003429B0;
+gEftRibbonMgr = 0x0038789C;
+gEftRibbonList = 0x003878A0;
+EftRibbon_Draw = 0x001C6F90;
+EftRibbonMgr_Init = 0x001C7040;
+EftRibbonMgr_Term = 0x001C70F0;
+EftRibbonMgr_Update = 0x001C7138;
+EftRibbon_Create = 0x001C7150;
+EftRibbon_Stop = 0x001C71C0;
+EftRibbon_Kill = 0x001C71F0;
+EftRibbon_StopAndKill = 0x001C7220;
+EftRibbon_IsAlive = 0x001C7250;
+EftRibbon_SetPos = 0x001C7290;
+EftRibbon_SetEnd = 0x001C72E8;
+EftRibbon_SetSize = 0x001C73A0;
+EftRibbon_SetUnk5C = 0x001C73E8;
+EftRibbon_SetFadeTime = 0x001C7438; // type:func
+EftRibbon_SetTexFrame = 0x001C74A0;
+EftRibbon_SetUnk58 = 0x001C74F8;
+
+// Unidentified effect module, task class 0x342C68, manager class 0x342C50 (include/battle/xc_eft_1cb.h).
+EftMod1CB_Init = 0x001CAF98;
+EftMod1CB_Term = 0x001CB048;
+EftMod1CB_Update = 0x001CB078;
+EftMod1CB_Draw = 0x001CB140;
+EftMod1CBMgr_Init = 0x001CB198;
+EftMod1CBMgr_Term = 0x001CB2B0;
+EftMod1CBMgr_Update = 0x001CB2F8;
+gEftMod1CBClass = 0x00342C68;
+gEftMod1CBMgr = 0x003878B8;
+gEftMod1CBList = 0x003878BC;
+EftMod1CB_Create = 0x001CB350;
+EftMod1CB_Stop = 0x001CB3C0;
+EftMod1CB_Kill = 0x001CB3F8;
+EftMod1CB_IsAlive = 0x001CB430;
+EftMod1CB_SetPos = 0x001CB470;
+EftMod1CB_SetSize = 0x001CB4C8;
+EftMod1CB_SetUnk64 = 0x001CB510;
+EftMod1CB_SetUnk68 = 0x001CB558;
+EftMod1CB_SetType = 0x001CB5A0;
+
+// Unidentified effect module 0x1CB5F0..0x1CCD60, task class 0x342D98 (include/battle/xc_eft_1cc.h).
+EftMod1CC_SetTex = 0x001CB5F0;
+EftMod1CC_BuildTex = 0x001CB628;
+EftMod1CC_Init = 0x001CC590;
+EftMod1CC_Term = 0x001CC760;
+EftMod1CC_Update = 0x001CC770;

@@ -1,0 +1,6 @@
+// Agent E (batch 1): names for BT2 functions in [0x25DF98, 0x2B7B38). BT3 names where the code is BT3's.
+// col_b (collision primitives, src/battle/col_b.c in BT3): ColSeg_Set has the same code as ColSeg_Set2 (BT3 has both,
+// in this order); BT2 keeps two private VU0 routines inside the module (squared length, distance of two points).
+ColSeg_Set = 0x00295CC0;
+ColB_Vec3LengthSq = 0x00293BE0; // type:func
+ColB_Vec3Dist = 0x00294750;

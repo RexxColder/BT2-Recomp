@@ -1,0 +1,3 @@
+adxf_SetFileInfoRange = 0x002EB730; // type:func
+Vu0Cur_ProjectPoints = 0x001294B0; // type:func
+EftBlastObj_Create = 0x00191600; // type:func

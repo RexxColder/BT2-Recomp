@@ -1,0 +1,1442 @@
+From 56760b37b8412c54aec5174b3e64e5b0826629ba Mon Sep 17 00:00:00 2001
+From: RexxColder <palettafacundo@gmail.com>
+Date: Thu, 8 Oct 2026 16:00:55 -0300
+Subject: [PATCH 9/9] VIF1/VU1 on its own thread; faster VU1 pipeline model;
+ VU1 record/replay check
+
+- PS2Memory runs VIF1 DMA transfers on a worker thread (PS2X_VIF1_THREAD=0 keeps
+  them inline). The EE waits for it before touching VIF/GIF registers and FIFOs,
+  VU1 memory, GS privileged registers, GIF/VIF0 DMA or the GS from HLE stubs, and
+  applies the completion (STR, D_STAT, DMAC handlers) on its own thread.
+  GS SIGNAL/FINISH raised by a worker transfer are held and raised before that
+  transfer's DMAC completion: queued after it, Downhill Jam drew broken text.
+  PS2X_VIF1_STATS=1 reports jobs and EE wait time.
+- VU1 interpreter: valid-entry bit masks for every pipeline (commit visits only
+  live entries), FMAC flag classification in double with a long double fallback
+  only for results that round to FLT_MAX. Results are bit-identical.
+- PS2X_VU1_RECORD=<dir> (PS2X_VU1_RECORD_COUNT, PS2X_VU1_RECORD_EVERY) saves the
+  VU1 state and memories at MSCAL/MSCNT; ps2x_vu1_replay re-runs them and prints a
+  hash of registers, data memory, XGKICK packets and cycles, to check interpreter
+  changes against a reference. VU1Interpreter::setPacketSink receives XGKICKs.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ ps2xRuntime/CMakeLists.txt                    |   4 +
+ ps2xRuntime/include/runtime/ps2_memory.h      |  40 ++
+ ps2xRuntime/include/runtime/ps2_vu1.h         |  12 +
+ ps2xRuntime/include/runtime/vu1_record.h      | 100 +++++
+ ps2xRuntime/src/lib/Kernel/EeScheduler.cpp    |   2 +
+ ps2xRuntime/src/lib/Kernel/Stubs/GS.cpp       |   3 +
+ .../src/lib/Kernel/Stubs/Helpers/Support.h    |   3 +
+ ps2xRuntime/src/lib/ps2_memory.cpp            | 217 ++++++++++
+ ps2xRuntime/src/lib/ps2_runtime.cpp           |  30 +-
+ ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp       | 401 ++++++++++++------
+ ps2xRuntime/src/tools/vu1_replay.cpp          |  81 ++++
+ 11 files changed, 754 insertions(+), 139 deletions(-)
+ create mode 100644 ps2xRuntime/include/runtime/vu1_record.h
+ create mode 100644 ps2xRuntime/src/tools/vu1_replay.cpp
+
+diff --git a/ps2xRuntime/CMakeLists.txt b/ps2xRuntime/CMakeLists.txt
+index 5109c65..7dcbec5 100644
+--- a/ps2xRuntime/CMakeLists.txt
++++ b/ps2xRuntime/CMakeLists.txt
+@@ -508,6 +508,10 @@ target_include_directories(ps2_runtime PUBLIC
+ )
+ 
+ target_link_libraries(ps2_runtime PUBLIC ps2_host_backend ffmpeg ps2_iop)
++
++# Replays VU1 microprograms recorded with PS2X_VU1_RECORD (interpreter regression check).
++add_executable(ps2x_vu1_replay EXCLUDE_FROM_ALL src/tools/vu1_replay.cpp)
++target_link_libraries(ps2x_vu1_replay PRIVATE ps2_runtime)
+ target_link_libraries(ps2EntryRunner
+     PRIVATE
+     ps2_runtime
+diff --git a/ps2xRuntime/include/runtime/ps2_memory.h b/ps2xRuntime/include/runtime/ps2_memory.h
+index 8d8c852..0bd1445 100644
+--- a/ps2xRuntime/include/runtime/ps2_memory.h
++++ b/ps2xRuntime/include/runtime/ps2_memory.h
+@@ -10,6 +10,9 @@
+ #include <atomic>
+ #include <iostream>
+ #include <mutex>
++#include <condition_variable>
++#include <deque>
++#include <thread>
+ 
+ #include "gs/ps2_gif_arbiter.h"
+ #if defined(_MSC_VER)
+@@ -349,6 +352,22 @@ public:
+     void processPendingTransfers();
+     std::vector<uint32_t> consumeCompletedDmacCauses();
+ 
++    // VIF1 DMA runs on its own thread (as VIF1/VU1 run beside the EE on the console; PS2X_VIF1_THREAD=0 keeps it
++    // on the caller). The EE thread waits for it before touching what it changes (VIF/GIF registers and FIFOs,
++    // VU1 memory, the GS, GIF/VIF0 DMA) and applies its completion (STR, D_STAT, DMAC handler) itself.
++    void waitVif1Idle();
++    // EE thread: applies the completion of finished VIF1 transfers. Returns true if any finished.
++    bool pollVif1();
++    bool vif1Busy() const { return m_vif1Outstanding.load(std::memory_order_acquire) != 0u; }
++    bool onVif1Worker() const { return std::this_thread::get_id() == m_vif1WorkerId; }
++    // Called on the worker thread after a transfer finishes, to wake the EE thread.
++    void setVif1CompletionCallback(std::function<void()> cb) { m_vif1CompletionCallback = std::move(cb); }
++    // A GS interrupt (SIGNAL/FINISH) raised by a VIF1 transfer on the worker is held and raised on the EE thread
++    // (by `raise`) before that transfer's completion: games expect the GS handler to be queued before the
++    // VIF1 DMAC handler, as when the transfer runs inline.
++    void deferGsInterrupt() { m_vif1GsIrqs.fetch_add(1u, std::memory_order_acq_rel); }
++    void setDeferredGsInterruptRaiser(std::function<void()> raise) { m_raiseDeferredGsInterrupt = std::move(raise); }
++
+     int pollDmaRegisters();
+ 
+     // Track code modifications for self-modifying code
+@@ -428,6 +447,27 @@ public:
+     std::mutex m_completedDmacMutex;
+     std::vector<uint32_t> m_completedDmacCauses;
+ 
++    struct Vif1Job
++    {
++        std::vector<std::vector<uint8_t>> chunks;
++    };
++    bool startVif1Job();
++    void vif1WorkerLoop();
++    void stopVif1Worker();
++    void syncVif1ForAddress(uint32_t address);
++    std::thread m_vif1Worker;
++    std::thread::id m_vif1WorkerId;
++    std::mutex m_vif1Mutex;
++    std::condition_variable m_vif1Cv;
++    std::condition_variable m_vif1IdleCv;
++    std::deque<Vif1Job> m_vif1Jobs;
++    std::atomic<uint32_t> m_vif1Outstanding{0};
++    std::atomic<uint32_t> m_vif1Finished{0};
++    bool m_vif1Stop = false;
++    std::function<void()> m_vif1CompletionCallback;
++    std::atomic<uint32_t> m_vif1GsIrqs{0};
++    std::function<void()> m_raiseDeferredGsInterrupt;
++
+     struct CodeRegion
+     {
+         uint32_t start;
+diff --git a/ps2xRuntime/include/runtime/ps2_vu1.h b/ps2xRuntime/include/runtime/ps2_vu1.h
+index 139f5c0..b2662bd 100644
+--- a/ps2xRuntime/include/runtime/ps2_vu1.h
++++ b/ps2xRuntime/include/runtime/ps2_vu1.h
+@@ -3,6 +3,7 @@
+ 
+ #include <array>
+ #include <cstdint>
++#include <functional>
+ 
+ class GS;
+ class PS2Memory;
+@@ -59,6 +60,9 @@ public:
+                 GS &gs, PS2Memory *memory = nullptr,
+                 uint32_t top = 0, uint32_t itop = 0, uint32_t maxCycles = 65536);
+ 
++    // Receives XGKICK packets instead of the GIF arbiter / GS (VU1 replay and tests).
++    void setPacketSink(std::function<void(const uint8_t *, uint32_t)> sink) { m_packetSink = std::move(sink); }
++
+     VU1State &state() { return m_state; }
+     const VU1State &state() const { return m_state; }
+ 
+@@ -201,6 +205,7 @@ private:
+     static constexpr uint32_t kMaxDecodedPairs = 0x4000u / 8u;
+ 
+     Unit m_unit;
++    std::function<void(const uint8_t *, uint32_t)> m_packetSink;
+     VU1State m_state;
+     std::array<DecodedInstructionPair, kMaxDecodedPairs> m_decodedCodeCache{};
+     const uint8_t *m_cachedVuCode = nullptr;
+@@ -218,6 +223,13 @@ private:
+     std::array<PendingAccWrite, kMaxPendingAccWrites> m_accWritePipeline{};
+     XgkickPipeline m_xgkick{};
+     uint64_t m_pipelineWake = 0; // earliest readyCycle among pending pipeline entries
++    // Bit n set = entry n of the matching pipeline array is valid, so commits only visit live entries.
++    uint32_t m_flagValid = 0;
++    uint32_t m_efuValid = 0;
++    uint32_t m_storeValid = 0;
++    uint32_t m_vfWriteValid = 0;
++    uint32_t m_viWriteValid = 0;
++    uint32_t m_accWriteValid = 0;
+     std::array<std::array<uint64_t, 4>, 32> m_vfReady{};
+     std::array<uint64_t, 16> m_viReady{};
+     std::array<uint64_t, 4> m_accReady{};
+diff --git a/ps2xRuntime/include/runtime/vu1_record.h b/ps2xRuntime/include/runtime/vu1_record.h
+new file mode 100644
+index 0000000..4bd10a9
+--- /dev/null
++++ b/ps2xRuntime/include/runtime/vu1_record.h
+@@ -0,0 +1,100 @@
++#ifndef PS2_VU1_RECORD_H
++#define PS2_VU1_RECORD_H
++
++#include "runtime/ps2_vu1.h"
++
++#include <algorithm>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <string>
++#include <vector>
++
++// Snapshot of one VU1 microprogram start (MSCAL) or continuation (MSCNT): registers, micro memory and data memory. Recorded by the
++// runtime with PS2X_VU1_RECORD=<dir> (PS2X_VU1_RECORD_COUNT=n, default 2000; PS2X_VU1_RECORD_EVERY=k keeps every
++// k-th program, default 1) and replayed by ps2x_vu1_replay to
++// check that interpreter changes keep the same results (registers, data memory, XGKICK packets, cycles).
++struct Vu1Record
++{
++    static constexpr uint32_t kMagic = 0x52315556u; // "VU1R"
++    static constexpr uint32_t kVersion = 2u;
++
++    bool resume = false; // MSCNT: continue at state.pc
++    uint32_t startPC = 0;
++    uint32_t top = 0;
++    uint32_t itop = 0;
++    VU1State state{};
++    std::vector<uint8_t> code;
++    std::vector<uint8_t> data;
++
++    bool save(const std::string &path) const
++    {
++        FILE *file = std::fopen(path.c_str(), "wb");
++        if (!file)
++            return false;
++        const uint32_t header[8] = {kMagic, kVersion, startPC, top, itop,
++                                    static_cast<uint32_t>(code.size()), static_cast<uint32_t>(data.size()),
++                                    resume ? 1u : 0u};
++        bool ok = std::fwrite(header, sizeof(header), 1, file) == 1 &&
++                  std::fwrite(&state, sizeof(state), 1, file) == 1 &&
++                  std::fwrite(code.data(), 1, code.size(), file) == code.size() &&
++                  std::fwrite(data.data(), 1, data.size(), file) == data.size();
++        return std::fclose(file) == 0 && ok;
++    }
++
++    bool load(const std::string &path)
++    {
++        FILE *file = std::fopen(path.c_str(), "rb");
++        if (!file)
++            return false;
++        uint32_t header[8]{};
++        bool ok = std::fread(header, sizeof(header), 1, file) == 1 && header[0] == kMagic && header[1] == kVersion &&
++                  std::fread(&state, sizeof(state), 1, file) == 1;
++        if (ok)
++        {
++            startPC = header[2];
++            top = header[3];
++            itop = header[4];
++            resume = header[7] != 0u;
++            code.resize(header[5]);
++            data.resize(header[6]);
++            ok = std::fread(code.data(), 1, code.size(), file) == code.size() &&
++                 std::fread(data.data(), 1, data.size(), file) == data.size();
++        }
++        std::fclose(file);
++        return ok;
++    }
++};
++
++// Called before each VU1 MSCAL/MSCNT; records the first PS2X_VU1_RECORD_COUNT programs.
++inline void recordVu1Program(const VU1State &state, const uint8_t *code, uint32_t codeSize,
++                             const uint8_t *data, uint32_t dataSize, uint32_t startPC, uint32_t top, uint32_t itop, bool resume)
++{
++    static const char *directory = std::getenv("PS2X_VU1_RECORD");
++    if (!directory)
++        return;
++    static const uint32_t limit = std::getenv("PS2X_VU1_RECORD_COUNT")
++                                      ? static_cast<uint32_t>(std::strtoul(std::getenv("PS2X_VU1_RECORD_COUNT"), nullptr, 0))
++                                      : 2000u;
++    static const uint32_t every = std::getenv("PS2X_VU1_RECORD_EVERY")
++                                      ? std::max(1ul, std::strtoul(std::getenv("PS2X_VU1_RECORD_EVERY"), nullptr, 0))
++                                      : 1u;
++    static uint32_t count = 0;
++    static uint64_t seen = 0;
++    if (count >= limit || (seen++ % every) != 0u)
++        return;
++    Vu1Record record;
++    record.resume = resume;
++    record.startPC = startPC;
++    record.top = top;
++    record.itop = itop;
++    record.state = state;
++    record.code.assign(code, code + codeSize);
++    record.data.assign(data, data + dataSize);
++    char name[32];
++    std::snprintf(name, sizeof(name), "/mscal_%06u.bin", count++);
++    record.save(std::string(directory) + name);
++}
++
++#endif
+diff --git a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+index 3444d3f..97fbe54 100644
+--- a/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
++++ b/ps2xRuntime/src/lib/Kernel/EeScheduler.cpp
+@@ -1966,6 +1966,8 @@ void EeScheduler::processEvent(const EeEvent &event)
+         dispatchIrq(false, 3u);
+         break;
+     case EeEventType::Dmac:
++        // A VIF1 transfer finished on its thread: clear STR, set D_STAT and run the DMAC handlers here.
++        m_runtime.drainCompletedDmacHandlers(m_rdram);
+         break;
+     case EeEventType::GsInterrupt:
+         // INTC cause 0: GS SIGNAL/FINISH/HSYNC/VSYNC/EDW when not masked by GS IMR.
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/GS.cpp b/ps2xRuntime/src/lib/Kernel/Stubs/GS.cpp
+index 9c54919..e96b698 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/GS.cpp
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/GS.cpp
+@@ -114,6 +114,7 @@ namespace ps2_stubs
+                 return;
+             }
+ 
++            runtime->memory().waitVif1Idle();
+             runtime->gs().writeRegister(static_cast<uint8_t>(clear.testa.reg & 0xFFu), clear.testa.value);
+             runtime->gs().writeRegister(static_cast<uint8_t>(clear.prim.reg & 0xFFu), clear.prim.value);
+             runtime->gs().writeRegister(static_cast<uint8_t>(clear.rgbaq.reg & 0xFFu), clear.rgbaq.value);
+@@ -1167,6 +1168,7 @@ namespace ps2_stubs
+             if (hasSeededGsClearPacket(db.clear0))
+             {
+                 const uint32_t clearContext = static_cast<uint32_t>((db.clear0.prim.value >> 9) & 0x1u);
++                runtime->memory().waitVif1Idle();
+                 runtime->gs().clearFramebufferContext(clearContext, static_cast<uint32_t>(db.clear0.rgbaq.value));
+             }
+             applyGsClearPacket(runtime, db.clear0);
+@@ -1178,6 +1180,7 @@ namespace ps2_stubs
+             if (hasSeededGsClearPacket(db.clear1))
+             {
+                 const uint32_t clearContext = static_cast<uint32_t>((db.clear1.prim.value >> 9) & 0x1u);
++                runtime->memory().waitVif1Idle();
+                 runtime->gs().clearFramebufferContext(clearContext, static_cast<uint32_t>(db.clear1.rgbaq.value));
+             }
+             applyGsClearPacket(runtime, db.clear1);
+diff --git a/ps2xRuntime/src/lib/Kernel/Stubs/Helpers/Support.h b/ps2xRuntime/src/lib/Kernel/Stubs/Helpers/Support.h
+index b1bb6d8..46d7324 100644
+--- a/ps2xRuntime/src/lib/Kernel/Stubs/Helpers/Support.h
++++ b/ps2xRuntime/src/lib/Kernel/Stubs/Helpers/Support.h
+@@ -1376,6 +1376,8 @@ namespace
+         mem.writeIORegister(channelBase + 0x30u, tadr);
+         mem.writeIORegister(channelBase + 0x00u, chcr);
+         mem.processPendingTransfers();
++        mem.waitVif1Idle(); // this HLE send reports completion synchronously
++        mem.pollVif1();
+ 
+         std::vector<uint32_t> completedCauses = mem.consumeCompletedDmacCauses();
+         if (completedCauses.empty() && (mem.readIORegister(channelBase + 0x00u) & 0x100u) == 0u)
+@@ -1894,6 +1896,7 @@ namespace
+             return;
+         for (size_t i = 0; i < pairCount; ++i)
+         {
++            runtime->memory().waitVif1Idle();
+             runtime->gs().writeRegister(static_cast<uint8_t>(pairs[i].reg & 0xFFu), pairs[i].value);
+         }
+     }
+diff --git a/ps2xRuntime/src/lib/ps2_memory.cpp b/ps2xRuntime/src/lib/ps2_memory.cpp
+index ee1817e..cfe1970 100644
+--- a/ps2xRuntime/src/lib/ps2_memory.cpp
++++ b/ps2xRuntime/src/lib/ps2_memory.cpp
+@@ -3,6 +3,8 @@
+ #include "runtime/gs/gs_frontend.h"
+ #include "ps2_log.h"
+ #include <atomic>
++#include <chrono>
++#include <cstring>
+ #include <cstdio>
+ #include <cstdlib>
+ #include <cstring>
+@@ -248,6 +250,7 @@ PS2Memory::PS2Memory()
+ 
+ PS2Memory::~PS2Memory()
+ {
++    stopVif1Worker();
+     if (m_rdram)
+     {
+         delete[] m_rdram;
+@@ -673,6 +676,7 @@ int32_t PS2Memory::tlbProbe(uint32_t vpn) const
+ 
+ uint8_t PS2Memory::read8(uint32_t address)
+ {
++    syncVif1ForAddress(address);
+     const bool scratch = isScratchpad(address);
+     uint32_t physAddr = translateAddress(address);
+ 
+@@ -704,6 +708,7 @@ uint8_t PS2Memory::read8(uint32_t address)
+ 
+ uint16_t PS2Memory::read16(uint32_t address)
+ {
++    syncVif1ForAddress(address);
+     if (address & 1)
+     {
+         throw std::runtime_error("Unaligned 16-bit read at address: 0x" + std::to_string(address));
+@@ -739,6 +744,7 @@ uint16_t PS2Memory::read16(uint32_t address)
+ 
+ uint32_t PS2Memory::read32(uint32_t address)
+ {
++    syncVif1ForAddress(address);
+     if (address & 3)
+     {
+         throw std::runtime_error("Unaligned 32-bit read at address: 0x" + std::to_string(address));
+@@ -787,6 +793,7 @@ uint32_t PS2Memory::read32(uint32_t address)
+ 
+ uint64_t PS2Memory::read64(uint32_t address)
+ {
++    syncVif1ForAddress(address);
+     if (address & 7)
+     {
+         throw std::runtime_error("Unaligned 64-bit read at address: 0x" + std::to_string(address));
+@@ -834,6 +841,7 @@ uint64_t PS2Memory::read64(uint32_t address)
+ 
+ __m128i PS2Memory::read128(uint32_t address)
+ {
++    syncVif1ForAddress(address);
+     if (address & 15)
+     {
+         throw std::runtime_error("Unaligned 128-bit read at address: 0x" + std::to_string(address));
+@@ -867,6 +875,7 @@ __m128i PS2Memory::read128(uint32_t address)
+ 
+ void PS2Memory::write8(uint32_t address, uint8_t value)
+ {
++    syncVif1ForAddress(address);
+     const bool scratch = isScratchpad(address);
+     uint32_t physAddr = translateAddress(address);
+ 
+@@ -906,6 +915,7 @@ void PS2Memory::write8(uint32_t address, uint8_t value)
+ 
+ void PS2Memory::write16(uint32_t address, uint16_t value)
+ {
++    syncVif1ForAddress(address);
+     if (address & 1)
+     {
+         throw std::runtime_error("Unaligned 16-bit write at address: 0x" + std::to_string(address));
+@@ -948,6 +958,7 @@ void PS2Memory::write16(uint32_t address, uint16_t value)
+ 
+ void PS2Memory::write32(uint32_t address, uint32_t value)
+ {
++    syncVif1ForAddress(address);
+     if (address & 3)
+     {
+         throw std::runtime_error("Unaligned 32-bit write at address: 0x" + std::to_string(address));
+@@ -1010,6 +1021,7 @@ void PS2Memory::write32(uint32_t address, uint32_t value)
+ 
+ void PS2Memory::write64(uint32_t address, uint64_t value)
+ {
++    syncVif1ForAddress(address);
+     if (address & 7)
+     {
+         throw std::runtime_error("Unaligned 64-bit write at address: 0x" + std::to_string(address));
+@@ -1068,6 +1080,7 @@ void PS2Memory::write64(uint32_t address, uint64_t value)
+ 
+ void PS2Memory::write128(uint32_t address, __m128i value)
+ {
++    syncVif1ForAddress(address);
+     if (address & 15)
+     {
+         throw std::runtime_error("Unaligned 128-bit write at address: 0x" + std::to_string(address));
+@@ -1130,6 +1143,7 @@ void PS2Memory::write128(uint32_t address, __m128i value)
+ 
+ bool PS2Memory::writeIORegister(uint32_t address, uint32_t value)
+ {
++    syncVif1ForAddress(address);
+     size_t timerIndex = 0u;
+     uint32_t timerOffset = 0u;
+     if (decodeEeTimerRegister(address, timerIndex, timerOffset))
+@@ -1681,6 +1695,11 @@ void PS2Memory::completeDmacChannel(uint32_t channelBase, uint32_t cause)
+ 
+ void PS2Memory::processPendingTransfers()
+ {
++    if (startVif1Job())
++        return;
++    // GIF/VIF0 work (and the arbiter drain below) touches the GS: let a running VIF1 transfer finish first.
++    waitVif1Idle();
++
+     const bool hadGif = !m_pendingGifTransfers.empty();
+     uint32_t observedGifQwc = 0u;
+     for (const auto &transfer : m_pendingGifTransfers)
+@@ -1924,6 +1943,203 @@ void PS2Memory::processPendingTransfers()
+     }
+ }
+ 
++namespace
++{
++    bool vif1ThreadEnabled()
++    {
++        static const bool enabled = []()
++        {
++            const char *value = std::getenv("PS2X_VIF1_THREAD");
++            return !value || std::strcmp(value, "0") != 0;
++        }();
++        return enabled;
++    }
++
++    // PS2X_VIF1_STATS=1: every 5 s, how many VIF1 transfers ran on the worker and how often (and how long)
++    // the EE thread had to wait for one.
++    struct Vif1Stats
++    {
++        std::atomic<uint64_t> jobs{0};
++        std::atomic<uint64_t> waits{0};
++        std::atomic<uint64_t> waitNs{0};
++        void report()
++        {
++            static const bool enabled = std::getenv("PS2X_VIF1_STATS") != nullptr;
++            static auto last = std::chrono::steady_clock::now();
++            if (!enabled || std::chrono::steady_clock::now() - last < std::chrono::seconds(5))
++                return;
++            last = std::chrono::steady_clock::now();
++            std::fprintf(stderr, "[vif1 thread] jobs %llu waits %llu wait-ms %llu\n",
++                         static_cast<unsigned long long>(jobs.load()), static_cast<unsigned long long>(waits.load()),
++                         static_cast<unsigned long long>(waitNs.load() / 1000000u));
++        }
++    };
++    Vif1Stats g_vif1Stats;
++}
++
++// Hands the pending VIF1 transfers to the worker thread when they are the only pending DMA work. The data is
++// copied now (chains already are), so the EE may reuse its buffers once the channel reports completion.
++bool PS2Memory::startVif1Job()
++{
++    if (m_pendingVif1Transfers.empty() || !m_pendingGifTransfers.empty() || !m_pendingVif0Transfers.empty() ||
++        !vif1ThreadEnabled() || onVif1Worker())
++        return false;
++    // One VIF1 transfer at a time, as the channel runs one chain at a time.
++    waitVif1Idle();
++
++    Vif1Job job;
++    for (auto &p : m_pendingVif1Transfers)
++    {
++        if (!p.chainData.empty())
++        {
++            job.chunks.push_back(std::move(p.chainData));
++            continue;
++        }
++        if (p.qwc == 0u)
++            continue;
++        uint32_t srcPhys = 0;
++        try
++        {
++            srcPhys = translateAddress(p.srcAddr);
++        }
++        catch (const std::exception &)
++        {
++            continue;
++        }
++        const uint8_t *base = p.fromScratchpad ? m_scratchpad : m_rdram;
++        const uint32_t limit = p.fromScratchpad ? PS2_SCRATCHPAD_SIZE : PS2_RAM_SIZE;
++        uint32_t bytesLeft = static_cast<uint32_t>(std::min<uint64_t>(static_cast<uint64_t>(p.qwc) * 16ull, 0xFFFFFFFFull));
++        while (bytesLeft > 0u)
++        {
++            if (srcPhys >= limit)
++                srcPhys = 0;
++            const uint32_t chunk = std::min(bytesLeft, limit - srcPhys);
++            if (chunk == 0u)
++                break;
++            job.chunks.emplace_back(base + srcPhys, base + srcPhys + chunk);
++            bytesLeft -= chunk;
++            srcPhys += chunk;
++        }
++    }
++    m_pendingVif1Transfers.clear();
++
++    {
++        std::lock_guard<std::mutex> lock(m_vif1Mutex);
++        if (!m_vif1Worker.joinable())
++        {
++            m_vif1Stop = false;
++            m_vif1Worker = std::thread([this]()
++                                       { vif1WorkerLoop(); });
++            m_vif1WorkerId = m_vif1Worker.get_id();
++        }
++        m_vif1Jobs.push_back(std::move(job));
++        m_vif1Outstanding.fetch_add(1u, std::memory_order_acq_rel);
++    }
++    g_vif1Stats.jobs.fetch_add(1u, std::memory_order_relaxed);
++    g_vif1Stats.report();
++    m_vif1Cv.notify_one();
++    return true;
++}
++
++void PS2Memory::vif1WorkerLoop()
++{
++    for (;;)
++    {
++        Vif1Job job;
++        {
++            std::unique_lock<std::mutex> lock(m_vif1Mutex);
++            m_vif1Cv.wait(lock, [this]()
++                          { return m_vif1Stop || !m_vif1Jobs.empty(); });
++            if (m_vif1Jobs.empty())
++                return;
++            job = std::move(m_vif1Jobs.front());
++            m_vif1Jobs.pop_front();
++        }
++        for (const std::vector<uint8_t> &chunk : job.chunks)
++            processVIF1Data(chunk.data(), static_cast<uint32_t>(chunk.size()));
++        if (m_gifArbiter)
++            m_gifArbiter->drain();
++        m_vif1Finished.fetch_add(1u, std::memory_order_acq_rel);
++        {
++            std::lock_guard<std::mutex> lock(m_vif1Mutex);
++            m_vif1Outstanding.fetch_sub(1u, std::memory_order_acq_rel);
++        }
++        m_vif1IdleCv.notify_all();
++        if (m_vif1CompletionCallback)
++            m_vif1CompletionCallback();
++    }
++}
++
++void PS2Memory::stopVif1Worker()
++{
++    {
++        std::lock_guard<std::mutex> lock(m_vif1Mutex);
++        m_vif1Stop = true;
++    }
++    m_vif1Cv.notify_all();
++    if (m_vif1Worker.joinable())
++        m_vif1Worker.join();
++}
++
++void PS2Memory::waitVif1Idle()
++{
++    if (onVif1Worker() || m_vif1Outstanding.load(std::memory_order_acquire) == 0u)
++        return;
++    const auto start = std::chrono::steady_clock::now();
++    {
++        std::unique_lock<std::mutex> lock(m_vif1Mutex);
++        m_vif1IdleCv.wait(lock, [this]()
++                          { return m_vif1Outstanding.load(std::memory_order_acquire) == 0u; });
++    }
++    g_vif1Stats.waits.fetch_add(1u, std::memory_order_relaxed);
++    g_vif1Stats.waitNs.fetch_add(static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
++                                                           std::chrono::steady_clock::now() - start)
++                                                           .count()),
++                                 std::memory_order_relaxed);
++}
++
++bool PS2Memory::pollVif1()
++{
++    if (onVif1Worker() || m_vif1Finished.load(std::memory_order_acquire) == 0u)
++        return false;
++    static constexpr uint32_t VIF1_CHANNEL = 0x10009000u;
++    for (uint32_t irqs = m_vif1GsIrqs.exchange(0u, std::memory_order_acq_rel); irqs != 0u; --irqs)
++        if (m_raiseDeferredGsInterrupt)
++            m_raiseDeferredGsInterrupt();
++    for (uint32_t finished = m_vif1Finished.exchange(0u, std::memory_order_acq_rel); finished != 0u; --finished)
++    {
++        completeDmacChannel(VIF1_CHANNEL, 1u);
++        m_ioRegisters[VIF1_CHANNEL + 0x20] = 0;
++    }
++    // A later transfer started before this completion was applied is still running: keep STR set for it.
++    if (vif1Busy())
++        m_ioRegisters[VIF1_CHANNEL] |= 0x100u;
++    return true;
++}
++
++// Guest accesses that see what a VIF1 transfer changes wait for it; DMAC register reads only pick up a
++// finished one (a running channel still reads as busy, as on the console).
++void PS2Memory::syncVif1ForAddress(uint32_t address)
++{
++    if (m_vif1Outstanding.load(std::memory_order_relaxed) == 0u && m_vif1Finished.load(std::memory_order_relaxed) == 0u)
++        return;
++    if (onVif1Worker() || isScratchpad(address))
++        return;
++    const uint32_t phys = address & 0x1FFFFFFFu;
++    if (phys >= 0x10008000u && phys < 0x1000F000u)
++    {
++        pollVif1();
++        return;
++    }
++    if ((phys >= 0x10003000u && phys < 0x10008000u) || // GIF/VIF registers and FIFOs
++        (phys >= 0x11008000u && phys < 0x11010000u) || // VU1 micro and data memory
++        (phys >= 0x12000000u && phys < 0x12002000u))   // GS privileged registers
++    {
++        waitVif1Idle();
++        pollVif1();
++    }
++}
++
+ void PS2Memory::queueCompletedDmacCause(uint32_t cause)
+ {
+     std::lock_guard<std::mutex> lock(m_completedDmacMutex);
+@@ -2299,6 +2515,7 @@ int PS2Memory::pollDmaRegisters()
+ 
+ uint32_t PS2Memory::readIORegister(uint32_t address)
+ {
++    syncVif1ForAddress(address);
+     size_t timerIndex = 0u;
+     uint32_t timerOffset = 0u;
+     if (decodeEeTimerRegister(address, timerIndex, timerOffset))
+diff --git a/ps2xRuntime/src/lib/ps2_runtime.cpp b/ps2xRuntime/src/lib/ps2_runtime.cpp
+index b6dbfee..85b0022 100644
+--- a/ps2xRuntime/src/lib/ps2_runtime.cpp
++++ b/ps2xRuntime/src/lib/ps2_runtime.cpp
+@@ -6,6 +6,7 @@
+ #include "ps2_runtime_macros.h"
+ #include "runtime/gs/gs_frontend.h"
+ #include "runtime/ee_scheduler.h"
++#include "runtime/vu1_record.h"
+ #include "ThreadNaming.h"
+ #include "Kernel/Stubs/Audio.h"
+ #include "Kernel/Stubs/GS.h"
+@@ -678,15 +679,32 @@ bool PS2Runtime::syncCoreSubsystems()
+     m_memory.setGsPrivWriteCallback([this]() { m_gs.recheckInterrupt(); });
+     m_gs.setInterruptCallback([this]()
+                               {
+-                                  if (m_eeScheduler)
++                                  if (m_memory.onVif1Worker())
++                                      m_memory.deferGsInterrupt();
++                                  else if (m_eeScheduler)
+                                       m_eeScheduler->raiseGsInterrupt();
+                               });
++    m_memory.setDeferredGsInterruptRaiser([this]()
++                                          {
++                                              if (m_eeScheduler)
++                                                  m_eeScheduler->raiseGsInterrupt();
++                                          });
+     m_gifArbiter.setProcessPacketFn([this](const uint8_t *data, uint32_t size)
+                                     { m_gs.processGIFPacket(data, size); });
+     m_memory.setGifArbiter(&m_gifArbiter);
++    // VIF1 transfers run on the memory's VIF1 thread: wake the EE thread to report their completion.
++    m_memory.setVif1CompletionCallback([this]()
++                                       {
++                                           if (m_eeScheduler)
++                                           {
++                                               EeEvent event{};
++                                               event.type = EeEventType::Dmac;
++                                               m_eeScheduler->postEvent(event);
++                                           } });
++    // On the VIF1 thread the running EE thread's context is not ours to read: VPU_STAT/FBRST use the boot one.
+     m_memory.setVu1MscalCallback([this](uint32_t startPC, uint32_t top, uint32_t itop)
+                                  {
+-                                     R5900Context *cpuContext = m_eeScheduler ? m_eeScheduler->currentContext() : nullptr;
++                                     R5900Context *cpuContext = m_eeScheduler && !m_memory.onVif1Worker() ? m_eeScheduler->currentContext() : nullptr;
+                                      if (!cpuContext)
+                                      {
+                                          cpuContext = &m_cpuContext;
+@@ -695,6 +713,8 @@ bool PS2Runtime::syncCoreSubsystems()
+                                          (cpuContext->vu0_fbrst & (1u << 10)) != 0u;
+                                      m_vu1.state().tBitEnabled =
+                                          (cpuContext->vu0_fbrst & (1u << 11)) != 0u;
++                                     recordVu1Program(m_vu1.state(), m_memory.getVU1Code(), PS2_VU1_CODE_SIZE,
++                                                      m_memory.getVU1Data(), PS2_VU1_DATA_SIZE, startPC, top, itop, false);
+                                      m_vu1.execute(m_memory.getVU1Code(), PS2_VU1_CODE_SIZE,
+                                                    m_memory.getVU1Data(), PS2_VU1_DATA_SIZE,
+                                                    m_gs, &m_memory, startPC, top, itop, 65536);
+@@ -704,7 +724,7 @@ bool PS2Runtime::syncCoreSubsystems()
+                                          (m_vu1.state().stoppedByT ? 0x0400u : 0u); });
+     m_memory.setVu1MscntCallback([this](uint32_t top, uint32_t itop)
+                                  {
+-                                     R5900Context *cpuContext = m_eeScheduler ? m_eeScheduler->currentContext() : nullptr;
++                                     R5900Context *cpuContext = m_eeScheduler && !m_memory.onVif1Worker() ? m_eeScheduler->currentContext() : nullptr;
+                                      if (!cpuContext)
+                                      {
+                                          cpuContext = &m_cpuContext;
+@@ -713,6 +733,8 @@ bool PS2Runtime::syncCoreSubsystems()
+                                          (cpuContext->vu0_fbrst & (1u << 10)) != 0u;
+                                      m_vu1.state().tBitEnabled =
+                                          (cpuContext->vu0_fbrst & (1u << 11)) != 0u;
++                                     recordVu1Program(m_vu1.state(), m_memory.getVU1Code(), PS2_VU1_CODE_SIZE,
++                                                      m_memory.getVU1Data(), PS2_VU1_DATA_SIZE, 0u, top, itop, true);
+                                      m_vu1.resume(m_memory.getVU1Code(), PS2_VU1_CODE_SIZE,
+                                                   m_memory.getVU1Data(), PS2_VU1_DATA_SIZE,
+                                                   m_gs, &m_memory, top, itop, 65536);
+@@ -1512,6 +1534,7 @@ void PS2Runtime::handleBreak(uint8_t *rdram, R5900Context *ctx)
+ 
+ void PS2Runtime::drainCompletedDmacHandlers(uint8_t *rdram)
+ {
++    m_memory.pollVif1();
+     for (uint32_t cause : m_memory.consumeCompletedDmacCauses())
+     {
+         ps2_syscalls::dispatchDmacHandlersForCause(rdram, this, cause);
+@@ -2192,6 +2215,7 @@ void PS2Runtime::kickGifDmaChainFromMMIO(uint8_t *rdram,
+     ps2TraceGuestWrite(rdram, GIF_TADR, 4u, tadr, 0u, "WRITE32", ctx);
+     m_memory.writeIORegister(GIF_TADR, tadr);
+     ps2TraceGuestWrite(rdram, GIF_CHCR, 4u, chcr, 0u, "WRITE32", ctx);
++    m_memory.waitVif1Idle();
+     if (m_memory.tryProcessNativeGifImageUploadChain(m_gs, tadr, chcr))
+     {
+         drainCompletedDmacHandlers(rdram);
+diff --git a/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp b/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
+index 7abccaa..d1f3cb6 100644
+--- a/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
++++ b/ps2xRuntime/src/lib/vu/ps2_vu1_core.cpp
+@@ -20,6 +20,174 @@ namespace
+     {
+         return static_cast<uint8_t>(1u << (3u - component));
+     }
++
++    float normalizeVuOperand(float value)
++    {
++        uint32_t bits = 0;
++        std::memcpy(&bits, &value, sizeof(bits));
++        const uint32_t exponent = (bits >> 23) & 0xFFu;
++        if (exponent == 0u)
++            bits &= 0x80000000u;
++        else if (exponent == 0xFFu)
++            bits = (bits & 0x80000000u) | 0x7F7FFFFFu;
++        std::memcpy(&value, &bits, sizeof(value));
++        return value;
++    }
++
++    // Operands of an FMAC instruction as the exact-result model (calculateFmacExactResult) combines them.
++    // Products of two floats and sums of floats/products are computed in double: the product is exact and the
++    // sum is rounded once (toward zero) like the long double model, so zero, sign, underflow (< FLT_MIN) and
++    // overflow come out the same, except a result that rounds to exactly FLT_MAX (see classifyFmacExact).
++    struct FmacOperands
++    {
++        enum Kind : uint8_t
++        {
++            None,
++            Sum,       // s + t
++            Product,   // s * t
++            ProductSum // acc + s * t
++        };
++        Kind kind = None;
++        bool negate = false;   // Sum: s - t, ProductSum: acc - s * t
++        bool zeroW = false;    // outer products: the w lane is 0
++        float s[4]{};
++        float t[4]{};
++        float acc[4]{};
++
++        double exact(uint32_t lane) const
++        {
++            if (zeroW && lane == 3u)
++                return 0.0;
++            const double right = negate ? -static_cast<double>(t[lane]) : static_cast<double>(t[lane]);
++            switch (kind)
++            {
++            case Sum:
++                return static_cast<double>(s[lane]) + right;
++            case Product:
++                return static_cast<double>(s[lane]) * static_cast<double>(t[lane]);
++            default:
++                return static_cast<double>(acc[lane]) + static_cast<double>(s[lane]) * right;
++            }
++        }
++    };
++
++    FmacOperands decodeFmacOperands(uint32_t upper, const VU1State &state)
++    {
++        FmacOperands operands;
++        const uint8_t op = static_cast<uint8_t>(upper & 0x3Fu);
++        const bool accDest = op >= 0x3Cu;
++        const uint8_t code = accDest ? static_cast<uint8_t>((upper & 3u) | ((upper >> 4) & 0x7Cu)) : op;
++        const float *vs = state.vf[FS(upper)];
++        const float *vt = state.vf[FT(upper)];
++
++        enum Right : uint8_t
++        {
++            RightBc,
++            RightQ,
++            RightI,
++            RightVt,
++            RightCross
++        } right = RightVt;
++        using K = FmacOperands::Kind;
++        if (code <= 0x0Fu)
++        {
++            static constexpr K kinds[4] = {K::Sum, K::Sum, K::ProductSum, K::ProductSum};
++            operands.kind = kinds[code >> 2];
++            operands.negate = (code & 4u) != 0u;
++            right = RightBc;
++        }
++        else if (code >= 0x18u && code <= 0x1Bu)
++        {
++            operands.kind = K::Product;
++            right = RightBc;
++        }
++        else
++        {
++            switch (code)
++            {
++            case 0x1Cu: operands.kind = K::Product; right = RightQ; break;
++            case 0x1Eu: operands.kind = K::Product; right = RightI; break;
++            case 0x20u: operands.kind = K::Sum; right = RightQ; break;
++            case 0x21u: operands.kind = K::ProductSum; right = RightQ; break;
++            case 0x22u: operands.kind = K::Sum; right = RightI; break;
++            case 0x23u: operands.kind = K::ProductSum; right = RightI; break;
++            case 0x24u: operands.kind = K::Sum; operands.negate = true; right = RightQ; break;
++            case 0x25u: operands.kind = K::ProductSum; operands.negate = true; right = RightQ; break;
++            case 0x26u: operands.kind = K::Sum; operands.negate = true; right = RightI; break;
++            case 0x27u: operands.kind = K::ProductSum; operands.negate = true; right = RightI; break;
++            case 0x28u: operands.kind = K::Sum; break;
++            case 0x29u: operands.kind = K::ProductSum; break;
++            case 0x2Au: operands.kind = K::Product; break;
++            case 0x2Cu: operands.kind = K::Sum; operands.negate = true; break;
++            case 0x2Du: operands.kind = K::ProductSum; operands.negate = true; break;
++            case 0x2Eu: // OPMSUB: acc - s.yzx * t.zxy; OPMULA: s.yzx * t.zxy
++                operands.kind = accDest ? K::Product : K::ProductSum;
++                operands.negate = !accDest;
++                operands.zeroW = true;
++                right = RightCross;
++                break;
++            default:
++                return operands;
++            }
++        }
++
++        static constexpr uint8_t crossLeft[4] = {1u, 2u, 0u, 3u};
++        static constexpr uint8_t crossRight[4] = {2u, 0u, 1u, 3u};
++        const float q = normalizeVuOperand(state.q);
++        const float i = normalizeVuOperand(state.i);
++        for (uint32_t lane = 0; lane < 4u; ++lane)
++        {
++            operands.s[lane] = normalizeVuOperand(vs[right == RightCross ? crossLeft[lane] : lane]);
++            operands.acc[lane] = normalizeVuOperand(state.acc[lane]);
++            switch (right)
++            {
++            case RightBc: operands.t[lane] = normalizeVuOperand(vt[code & 3u]); break;
++            case RightQ: operands.t[lane] = q; break;
++            case RightI: operands.t[lane] = i; break;
++            case RightVt: operands.t[lane] = normalizeVuOperand(vt[lane]); break;
++            case RightCross: operands.t[lane] = normalizeVuOperand(vt[crossRight[lane]]); break;
++            }
++        }
++        return operands;
++    }
++
++    // Z/S/U/O lane flags of an exact result, and the clamped value (normalizeFmacExactResult with a double).
++    // Returns false when the result rounded to exactly FLT_MAX: the long double model may still see an overflow.
++    bool classifyFmacExact(double exact, float &value, uint8_t &flags)
++    {
++        const bool negative = std::signbit(exact);
++        const double magnitude = std::fabs(exact);
++        constexpr double maximum = static_cast<double>(std::numeric_limits<float>::max());
++        constexpr double minimum = static_cast<double>(std::numeric_limits<float>::min());
++        flags = negative ? 0x2u : 0u;
++        uint32_t bits = negative ? 0x80000000u : 0u;
++        if (magnitude == 0.0)
++        {
++            flags |= 0x1u;
++            std::memcpy(&value, &bits, sizeof(value));
++        }
++        else if (magnitude == maximum)
++            return false;
++        else if (magnitude > maximum)
++        {
++            flags |= 0x8u;
++            bits |= 0x7F7FFFFFu;
++            std::memcpy(&value, &bits, sizeof(value));
++        }
++        else if (magnitude < minimum)
++        {
++            flags |= 0x5u;
++            std::memcpy(&value, &bits, sizeof(value));
++        }
++        return true;
++    }
++
++    // Index of the first clear bit below `count`, or -1 when all are set.
++    inline int firstFree(uint32_t validMask, uint32_t count)
++    {
++        const uint32_t freeMask = ~validMask & ((count >= 32u) ? ~0u : ((1u << count) - 1u));
++        return freeMask ? __builtin_ctz(freeMask) : -1;
++    }
+ }
+ 
+ void VU1Interpreter::addVfRead(InstructionUsage &usage, uint8_t reg, uint8_t lanes)
+@@ -80,6 +248,8 @@ void VU1Interpreter::resetScheduler()
+     m_vfLatestWrite = {};
+     m_viLatestWrite = {};
+     m_accLatestWrite = {};
++    m_flagValid = m_efuValid = m_storeValid = 0u;
++    m_vfWriteValid = m_viWriteValid = m_accWriteValid = 0u;
+     m_nextWriteSequence = 0;
+     m_efuResourceReady = 0;
+     m_workingClip = m_state.clip;
+@@ -198,15 +368,19 @@ void VU1Interpreter::applyDestAcc(const float *result, uint8_t dest)
+ void VU1Interpreter::normalizeFmacResult(float *result, uint8_t dest,
+                                          uint8_t laneFlags[4])
+ {
++    const FmacOperands operands = decodeFmacOperands(m_currentUpperInstruction, m_state);
+     for (uint32_t component = 0; component < 4u; ++component)
+     {
+         laneFlags[component] = 0u;
+         if ((dest & laneForComponent(component)) == 0u)
+             continue;
+ 
+-        long double exactResult = 0.0L;
+-        if (calculateFmacExactResult(component, exactResult))
++        if (operands.kind != FmacOperands::None)
+         {
++            if (classifyFmacExact(operands.exact(component), result[component], laneFlags[component]))
++                continue;
++            long double exactResult = 0.0L;
++            calculateFmacExactResult(component, exactResult);
+             laneFlags[component] = normalizeFmacExactResult(result[component], exactResult);
+             continue;
+         }
+@@ -432,58 +606,21 @@ uint8_t VU1Interpreter::normalizeFmacExactResult(float &value,
+ 
+ uint32_t VU1Interpreter::calculateFmacProductSticky(uint8_t dest) const
+ {
+-    uint32_t extraSticky = 0u;
+-    const uint32_t upper = m_currentUpperInstruction;
+-    const uint8_t op = static_cast<uint8_t>(upper & 0x3Fu);
+-    const uint8_t special = op >= 0x3Cu ? static_cast<uint8_t>((upper & 3u) | ((upper >> 4) & 0x7Cu)) : 0xFFu;
+-    const bool productSum =
+-        (op >= 0x08u && op <= 0x0Fu) ||
+-        op == 0x21u || op == 0x23u || op == 0x25u || op == 0x27u ||
+-        op == 0x29u || op == 0x2Du || op == 0x2Eu ||
+-        (special >= 0x08u && special <= 0x0Fu) ||
+-        special == 0x21u || special == 0x23u || special == 0x25u ||
+-        special == 0x27u || special == 0x29u || special == 0x2Du;
+-    if (!productSum)
++    // Product-sum instructions report Z/S/U/O from the add/subtract result as current flags, while every
++    // product condition accumulates into the corresponding sticky flag. The product of two floats is exact in
++    // a double, so its classification never needs the long double fallback.
++    const FmacOperands operands = decodeFmacOperands(m_currentUpperInstruction, m_state);
++    if (operands.kind != FmacOperands::ProductSum)
+         return 0u;
+-
+-    const uint8_t fs = FS(upper);
+-    const uint8_t ft = FT(upper);
++    uint32_t extraSticky = 0u;
+     for (uint32_t component = 0; component < 4u; ++component)
+     {
+         if ((dest & laneForComponent(component)) == 0u)
+             continue;
+-        static constexpr uint8_t crossLeft[4] = {1u, 2u, 0u, 3u};
+-        static constexpr uint8_t crossRight[4] = {2u, 0u, 1u, 3u};
+-        const uint8_t leftComponent = op == 0x2Eu ? crossLeft[component] : static_cast<uint8_t>(component);
+-        const float left = normalizeOperand(m_state.vf[fs][leftComponent]);
+-        float right = 0.0f;
+-        if ((op >= 0x08u && op <= 0x0Fu) || (special >= 0x08u && special <= 0x0Fu))
+-        {
+-            right = normalizeOperand(m_state.vf[ft][(op >= 0x08u && op <= 0x0Fu ? op : special) & 3u]);
+-        }
+-        else if (op == 0x21u || op == 0x25u || special == 0x21u || special == 0x25u)
+-        {
+-            right = normalizeOperand(m_state.q);
+-        }
+-        else if (op == 0x23u || op == 0x27u || special == 0x23u || special == 0x27u)
+-        {
+-            right = normalizeOperand(m_state.i);
+-        }
+-        else if (op == 0x2Eu)
+-        {
+-            right = normalizeOperand(m_state.vf[ft][crossRight[component]]);
+-        }
+-        else
+-        {
+-            right = normalizeOperand(m_state.vf[ft][component]);
+-        }
+-
+-        float product = left * right;
+-        const long double exactProduct = static_cast<long double>(left) * static_cast<long double>(right);
+-        const uint8_t productFlags = normalizeFmacExactResult(product, exactProduct);
+-        // Product-sum instructions report Z/S/U/O from the add/subtract result
+-        // as current flags, while every product condition accumulates into the
+-        // corresponding sticky flag.
++        float product = operands.s[component] * operands.t[component];
++        uint8_t productFlags = 0u;
++        classifyFmacExact(static_cast<double>(operands.s[component]) * static_cast<double>(operands.t[component]),
++                          product, productFlags);
+         extraSticky |= productFlags & 0xFu;
+     }
+     return extraSticky;
+@@ -515,20 +652,14 @@ void VU1Interpreter::updateFmacFlags(const uint8_t laneFlags[4], uint8_t dest,
+         status |= flags;
+     }
+ 
+-    FlagPipelineEntry *entry = nullptr;
+-    for (FlagPipelineEntry &candidate : m_flagPipeline)
+-    {
+-        if (!candidate.valid)
+-        {
+-            entry = &candidate;
+-            break;
+-        }
+-    }
+-    if (!entry)
++    const int slot = firstFree(m_flagValid, kMaxFlagEntries);
++    if (slot < 0)
+     {
+         reportReservedInstruction(true, 0xFFFFFFFFu);
+         return;
+     }
++    m_flagValid |= 1u << slot;
++    FlagPipelineEntry *entry = &m_flagPipeline[slot];
+ 
+     *entry = {};
+     entry->valid = true;
+@@ -565,9 +696,10 @@ void VU1Interpreter::queueFsset(uint16_t immediate)
+             entry.writesStatus = false;
+     }
+ 
+-    for (FlagPipelineEntry &entry : m_flagPipeline)
++    if (const int slot = firstFree(m_flagValid, kMaxFlagEntries); slot >= 0)
+     {
+-        if (!entry.valid)
++        m_flagValid |= 1u << slot;
++        FlagPipelineEntry &entry = m_flagPipeline[slot];
+         {
+             entry = {};
+             entry.valid = true;
+@@ -584,9 +716,10 @@ void VU1Interpreter::queueFsset(uint16_t immediate)
+ void VU1Interpreter::queueClip(uint32_t clip)
+ {
+     m_workingClip = ((m_workingClip << 6) | (clip & 0x3Fu)) & 0xFFFFFFu;
+-    for (FlagPipelineEntry &entry : m_flagPipeline)
++    if (const int slot = firstFree(m_flagValid, kMaxFlagEntries); slot >= 0)
+     {
+-        if (!entry.valid)
++        m_flagValid |= 1u << slot;
++        FlagPipelineEntry &entry = m_flagPipeline[slot];
+         {
+             entry = {};
+             entry.valid = true;
+@@ -608,9 +741,10 @@ void VU1Interpreter::queueFcset(uint32_t clip)
+         if (entry.valid && entry.issueCycle == m_cycle)
+             entry.writesClip = false;
+     }
+-    for (FlagPipelineEntry &entry : m_flagPipeline)
++    if (const int slot = firstFree(m_flagValid, kMaxFlagEntries); slot >= 0)
+     {
+-        if (!entry.valid)
++        m_flagValid |= 1u << slot;
++        FlagPipelineEntry &entry = m_flagPipeline[slot];
+         {
+             entry = {};
+             entry.valid = true;
+@@ -638,9 +772,10 @@ void VU1Interpreter::queueP(float value, uint32_t latency)
+ {
+     uint32_t ignoredFlags = 0u;
+     value = normalizeResult(value, ignoredFlags);
+-    for (ScalarPipelineEntry &entry : m_efu)
++    if (const int slot = firstFree(m_efuValid, static_cast<uint32_t>(m_efu.size())); slot >= 0)
+     {
+-        if (!entry.valid)
++        m_efuValid |= 1u << slot;
++        ScalarPipelineEntry &entry = m_efu[slot];
+         {
+             entry.valid = true;
+             entry.readyCycle = m_cycle + latency; noteReady(entry.readyCycle);
+@@ -655,9 +790,10 @@ void VU1Interpreter::queueP(float value, uint32_t latency)
+ 
+ void VU1Interpreter::queueStore(uint32_t address, const uint32_t words[4], uint8_t laneMask)
+ {
+-    for (PendingStore &store : m_storePipeline)
++    if (const int slot = firstFree(m_storeValid, kMaxPendingStores); slot >= 0)
+     {
+-        if (!store.valid)
++        m_storeValid |= 1u << slot;
++        PendingStore &store = m_storePipeline[slot];
+         {
+             store.valid = true;
+             store.readyCycle = m_cycle + 1u; noteReady(store.readyCycle);
+@@ -675,9 +811,10 @@ void VU1Interpreter::queueVfWrite(uint8_t reg, uint8_t laneMask,
+ {
+     if (reg == 0u || laneMask == 0u)
+         return;
+-    for (PendingVfWrite &write : m_vfWritePipeline)
++    if (const int slot = firstFree(m_vfWriteValid, kMaxPendingVfWrites); slot >= 0)
+     {
+-        if (!write.valid)
++        m_vfWriteValid |= 1u << slot;
++        PendingVfWrite &write = m_vfWritePipeline[slot];
+         {
+             write = {};
+             write.valid = true;
+@@ -701,9 +838,10 @@ void VU1Interpreter::queueViWrite(uint8_t reg, int32_t value, uint32_t latency)
+ {
+     if (reg == 0u)
+         return;
+-    for (PendingViWrite &write : m_viWritePipeline)
++    if (const int slot = firstFree(m_viWriteValid, kMaxPendingViWrites); slot >= 0)
+     {
+-        if (!write.valid)
++        m_viWriteValid |= 1u << slot;
++        PendingViWrite &write = m_viWritePipeline[slot];
+         {
+             write = {};
+             write.valid = true;
+@@ -722,9 +860,10 @@ void VU1Interpreter::queueAccWrite(uint8_t laneMask, const float value[4], uint3
+ {
+     if (laneMask == 0u)
+         return;
+-    for (PendingAccWrite &write : m_accWritePipeline)
++    if (const int slot = firstFree(m_accWriteValid, kMaxPendingAccWrites); slot >= 0)
+     {
+-        if (!write.valid)
++        m_accWriteValid |= 1u << slot;
++        PendingAccWrite &write = m_accWritePipeline[slot];
+         {
+             write = {};
+             write.valid = true;
+@@ -745,13 +884,24 @@ void VU1Interpreter::queueAccWrite(uint8_t laneMask, const float value[4], uint3
+ 
+ void VU1Interpreter::commitReadyPipelines()
+ {
+-    // Called every VU cycle: skip the scan until the earliest pending result is due.
++    // Called every VU cycle: skip until the earliest pending result is due, then visit only valid entries
++    // (in array order, as before) and note when the next one is due.
+     if (m_cycle < m_pipelineWake)
+         return;
+-    m_pipelineWake = UINT64_MAX;
+-    for (FlagPipelineEntry &entry : m_flagPipeline)
++    uint64_t wake = UINT64_MAX;
++    const auto pending = [&](uint64_t readyCycle)
+     {
+-        if (!entry.valid || entry.readyCycle > m_cycle)
++        if (readyCycle <= m_cycle)
++            return false;
++        wake = std::min(wake, readyCycle);
++        return true;
++    };
++
++    for (uint32_t mask = m_flagValid; mask != 0u; mask &= mask - 1u)
++    {
++        const uint32_t slot = static_cast<uint32_t>(__builtin_ctz(mask));
++        FlagPipelineEntry &entry = m_flagPipeline[slot];
++        if (pending(entry.readyCycle))
+             continue;
+ 
+         if (entry.writesMac)
+@@ -768,9 +918,10 @@ void VU1Interpreter::commitReadyPipelines()
+         if (entry.writesClip)
+             m_state.clip = entry.clip;
+         entry = {};
++        m_flagValid &= ~(1u << slot);
+     }
+ 
+-    if (m_fdiv.valid && m_fdiv.readyCycle <= m_cycle)
++    if (m_fdiv.valid && !pending(m_fdiv.readyCycle))
+     {
+         m_state.q = m_fdiv.value;
+         const uint32_t currentDi = m_fdiv.statusDi & 0x30u;
+@@ -778,18 +929,22 @@ void VU1Interpreter::commitReadyPipelines()
+         m_fdiv = {};
+     }
+ 
+-    for (ScalarPipelineEntry &entry : m_efu)
++    for (uint32_t mask = m_efuValid; mask != 0u; mask &= mask - 1u)
+     {
+-        if (entry.valid && entry.readyCycle <= m_cycle)
+-        {
+-            m_state.p = entry.value;
+-            entry = {};
+-        }
++        const uint32_t slot = static_cast<uint32_t>(__builtin_ctz(mask));
++        ScalarPipelineEntry &entry = m_efu[slot];
++        if (pending(entry.readyCycle))
++            continue;
++        m_state.p = entry.value;
++        entry = {};
++        m_efuValid &= ~(1u << slot);
+     }
+ 
+-    for (PendingStore &store : m_storePipeline)
++    for (uint32_t mask = m_storeValid; mask != 0u; mask &= mask - 1u)
+     {
+-        if (!store.valid || store.readyCycle > m_cycle)
++        const uint32_t slot = static_cast<uint32_t>(__builtin_ctz(mask));
++        PendingStore &store = m_storePipeline[slot];
++        if (pending(store.readyCycle))
+             continue;
+         if (m_activeVuData && store.address + 16u <= m_activeVuDataSize)
+         {
+@@ -803,11 +958,14 @@ void VU1Interpreter::commitReadyPipelines()
+             std::memcpy(m_activeVuData + store.address, oldWords, sizeof(oldWords));
+         }
+         store = {};
++        m_storeValid &= ~(1u << slot);
+     }
+ 
+-    for (PendingVfWrite &write : m_vfWritePipeline)
++    for (uint32_t mask = m_vfWriteValid; mask != 0u; mask &= mask - 1u)
+     {
+-        if (!write.valid || write.readyCycle > m_cycle)
++        const uint32_t slot = static_cast<uint32_t>(__builtin_ctz(mask));
++        PendingVfWrite &write = m_vfWritePipeline[slot];
++        if (pending(write.readyCycle))
+             continue;
+         for (uint32_t component = 0; component < 4u; ++component)
+         {
+@@ -818,20 +976,26 @@ void VU1Interpreter::commitReadyPipelines()
+             }
+         }
+         write = {};
++        m_vfWriteValid &= ~(1u << slot);
+     }
+ 
+-    for (PendingViWrite &write : m_viWritePipeline)
++    for (uint32_t mask = m_viWriteValid; mask != 0u; mask &= mask - 1u)
+     {
+-        if (!write.valid || write.readyCycle > m_cycle)
++        const uint32_t slot = static_cast<uint32_t>(__builtin_ctz(mask));
++        PendingViWrite &write = m_viWritePipeline[slot];
++        if (pending(write.readyCycle))
+             continue;
+         if (m_viLatestWrite[write.reg] == write.sequence)
+             m_state.vi[write.reg] = static_cast<int16_t>(write.value);
+         write = {};
++        m_viWriteValid &= ~(1u << slot);
+     }
+ 
+-    for (PendingAccWrite &write : m_accWritePipeline)
++    for (uint32_t mask = m_accWriteValid; mask != 0u; mask &= mask - 1u)
+     {
+-        if (!write.valid || write.readyCycle > m_cycle)
++        const uint32_t slot = static_cast<uint32_t>(__builtin_ctz(mask));
++        PendingAccWrite &write = m_accWritePipeline[slot];
++        if (pending(write.readyCycle))
+             continue;
+         for (uint32_t component = 0; component < 4u; ++component)
+         {
+@@ -842,27 +1006,9 @@ void VU1Interpreter::commitReadyPipelines()
+             }
+         }
+         write = {};
++        m_accWriteValid &= ~(1u << slot);
+     }
+-    for (const FlagPipelineEntry &entry : m_flagPipeline)
+-        if (entry.valid)
+-            noteReady(entry.readyCycle);
+-    if (m_fdiv.valid)
+-        noteReady(m_fdiv.readyCycle);
+-    for (const ScalarPipelineEntry &entry : m_efu)
+-        if (entry.valid)
+-            noteReady(entry.readyCycle);
+-    for (const PendingStore &store : m_storePipeline)
+-        if (store.valid)
+-            noteReady(store.readyCycle);
+-    for (const PendingVfWrite &write : m_vfWritePipeline)
+-        if (write.valid)
+-            noteReady(write.readyCycle);
+-    for (const PendingViWrite &write : m_viWritePipeline)
+-        if (write.valid)
+-            noteReady(write.readyCycle);
+-    for (const PendingAccWrite &write : m_accWritePipeline)
+-        if (write.valid)
+-            noteReady(write.readyCycle);
++    m_pipelineWake = wake;
+ }
+ 
+ void VU1Interpreter::progressXgkick()
+@@ -944,7 +1090,9 @@ void VU1Interpreter::finishXgkick()
+     if (!m_xgkick.active)
+         return;
+ 
+-    if (m_activeMemory)
++    if (m_packetSink)
++        m_packetSink(m_xgkick.packet.data(), m_xgkick.totalBytes);
++    else if (m_activeMemory)
+         m_activeMemory->submitGifPacket(GifPathId::Path1, m_xgkick.packet.data(), m_xgkick.totalBytes);
+     else if (m_activeGs)
+         m_activeGs->processGIFPacket(m_xgkick.packet.data(), m_xgkick.totalBytes);
+@@ -990,27 +1138,8 @@ void VU1Interpreter::advanceTo(uint64_t targetCycle)
+ 
+ bool VU1Interpreter::pipelinesPending() const
+ {
+-    if (m_fdiv.valid || m_xgkick.active)
+-        return true;
+-    for (const ScalarPipelineEntry &entry : m_efu)
+-        if (entry.valid)
+-            return true;
+-    for (const FlagPipelineEntry &entry : m_flagPipeline)
+-        if (entry.valid)
+-            return true;
+-    for (const PendingStore &store : m_storePipeline)
+-        if (store.valid)
+-            return true;
+-    for (const PendingVfWrite &write : m_vfWritePipeline)
+-        if (write.valid)
+-            return true;
+-    for (const PendingViWrite &write : m_viWritePipeline)
+-        if (write.valid)
+-            return true;
+-    for (const PendingAccWrite &write : m_accWritePipeline)
+-        if (write.valid)
+-            return true;
+-    return false;
++    return m_fdiv.valid || m_xgkick.active ||
++           (m_flagValid | m_efuValid | m_storeValid | m_vfWriteValid | m_viWriteValid | m_accWriteValid) != 0u;
+ }
+ 
+ void VU1Interpreter::flushPipelines()
+diff --git a/ps2xRuntime/src/tools/vu1_replay.cpp b/ps2xRuntime/src/tools/vu1_replay.cpp
+new file mode 100644
+index 0000000..eeae2c5
+--- /dev/null
++++ b/ps2xRuntime/src/tools/vu1_replay.cpp
+@@ -0,0 +1,81 @@
++// Replays VU1 microprograms recorded with PS2X_VU1_RECORD and prints one line per record:
++//   <file> <hash> <cycles> <packets>
++// The hash covers the final registers, VU1 data memory and every XGKICK packet, so two builds of the
++// interpreter that print the same lines produced the same results with the same timing.
++#include "runtime/gs/gs_frontend.h"
++#include "runtime/ps2_vu1.h"
++#include "runtime/vu1_record.h"
++
++#include <cstdio>
++#include <cstring>
++
++namespace
++{
++    struct Hasher
++    {
++        uint64_t value = 1469598103934665603ull;
++        void add(const void *bytes, size_t size)
++        {
++            const uint8_t *p = static_cast<const uint8_t *>(bytes);
++            for (size_t i = 0; i < size; ++i)
++                value = (value ^ p[i]) * 1099511628211ull;
++        }
++        template <typename T>
++        void addValue(const T &item) { add(&item, sizeof(item)); }
++    };
++}
++
++int main(int argc, char **argv)
++{
++    if (argc < 2)
++    {
++        std::fprintf(stderr, "usage: %s mscal_*.bin...\n", argv[0]);
++        return 2;
++    }
++    GS gs;
++    int failures = 0;
++    for (int index = 1; index < argc; ++index)
++    {
++        Vu1Record record;
++        if (!record.load(argv[index]))
++        {
++            std::printf("%s unreadable\n", argv[index]);
++            ++failures;
++            continue;
++        }
++        Hasher hasher;
++        uint32_t packets = 0;
++        VU1Interpreter vu(VU1Interpreter::Unit::VU1);
++        vu.setPacketSink([&](const uint8_t *data, uint32_t size)
++                         {
++                             ++packets;
++                             hasher.addValue(size);
++                             hasher.add(data, size); });
++        vu.state() = record.state;
++        if (record.resume)
++            vu.resume(record.code.data(), static_cast<uint32_t>(record.code.size()),
++                      record.data.data(), static_cast<uint32_t>(record.data.size()),
++                      gs, nullptr, record.top, record.itop, 65536);
++        else
++            vu.execute(record.code.data(), static_cast<uint32_t>(record.code.size()),
++                       record.data.data(), static_cast<uint32_t>(record.data.size()),
++                       gs, nullptr, record.startPC, record.top, record.itop, 65536);
++        const VU1State &s = vu.state();
++        hasher.add(s.vf, sizeof(s.vf));
++        hasher.add(s.vi, sizeof(s.vi));
++        hasher.add(s.acc, sizeof(s.acc));
++        for (const auto value : {s.q, s.p, s.i})
++            hasher.addValue(value);
++        for (const auto value : {s.r, s.pc, s.mac, s.clip, s.status})
++            hasher.addValue(value);
++        hasher.addValue(s.cycles);
++        for (const bool value : {s.ebit, s.stoppedByD, s.stoppedByT, s.branchPending})
++            hasher.addValue(value);
++        hasher.add(record.data.data(), record.data.size());
++        const char *name = std::strrchr(argv[index], '/');
++        std::printf("%s %c %016llx %llu %u\n", name ? name + 1 : argv[index], record.resume ? 'c' : 's',
++                    static_cast<unsigned long long>(hasher.value),
++                    static_cast<unsigned long long>(s.cycles), packets);
++    }
++    return failures == 0 ? 0 : 1;
++}
+-- 
+2.56.0
+
