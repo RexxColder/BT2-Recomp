@@ -18,6 +18,19 @@ Port nativo a PC de *Dragon Ball Z: Budokai Tenkaichi 2* (PS2), **por recompilac
 > peleas por equipos, la memory card, los videos y el audio. Todavía faltan el build de Windows y varios arreglos
 > de traducción/renderer (ver [Estado](#estado--limitaciones-conocidas)). Si algo se rompe, es parte del proceso.
 
+## Próximos pasos (roadmap)
+
+El orden es intencional: primero el decomp matching (elimina bugs de traducción), después la paridad con
+Tenkaichi3Decomp, y sobre esa base las opciones propias y el netplay.
+
+1. **Terminar el decompilado matching**: llevar el C del juego a byte-idéntico contra el ELF original.
+2. **Port total con paridad funcional con Tenkaichi3Decomp**: completar el C nativo (sin el relleno de PS2Recomp),
+   plataformas y features hasta que el port sea equivalente.
+3. **Entradas de menú nativas** para las opciones del port y un **menú de netplay sencillo**.
+4. **Acercar el juego al vanilla**: fidelidad de gameplay, renderer, audio y tiempos; menos bugs y diferencias.
+5. **Recuperar contenido descartado de la versión japonesa** (personajes, escenas, opciones y datos que no
+   llegaron a las demás regiones).
+
 ## Requisitos
 
 - **Tu propia copia del juego.** Edición NTSC-U (`SLUS_214.41` / `SLUS-21441`). Opcional: edición PAL
