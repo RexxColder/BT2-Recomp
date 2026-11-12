@@ -76,3 +76,9 @@ core.*
 *.BIN
 SLUS_214.41
 SLES_541.64
+
+# Documentación de trabajo (sólo source al repo)
+/docs/
+/staging/
+/play.sh
+/setup/ENTREGA.md
