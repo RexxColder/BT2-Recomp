@@ -40,6 +40,26 @@ Tenkaichi3Decomp, y sobre esa base las opciones propias y el netplay.
 - **Para compilar:** clang, Python 3.11+, SDL3, ffmpeg (libav*), zstd, ninja/cmake, pkg-config y el toolchain
   MIPS del decomp. El detalle está en [Build](#build).
 
+### Versiones probadas (Linux x86-64)
+
+| Dependencia | Versión probada | Nota |
+|---|---:|---|
+| clang | 23.1.4 | |
+| Python | 3.14.9 | mínimo 3.11 |
+| SDL3 | 3.4.18 | |
+| ffmpeg | 9.0.2 (libavcodec 63.1.102, libavformat 63.1.102, libswscale 10.1.102, libavutil 61.1.102) | |
+| zstd | 1.5.7 | |
+| ninja | 1.13.2 | |
+| cmake | 4.4.5 | |
+| pkg-config | 3.0.10 | |
+| gcc | 16.2.1 | sólo para el relleno de PS2Recomp |
+| binutils MIPS | 2.40 (kit); 2.47 probado en el build limpio | |
+| splat64 | 0.50.0 | en `.venv` |
+| systemd | 262 | opcional para `scripts/capped.sh` |
+| ImGui | vendorizado | `port/third_party/imgui` |
+
+Otras versiones pueden funcionar; estas son las probadas.
+
 ## Cómo se juega hoy
 
 La **app de setup (F7)** está en `setup/`: ventana SDL3 + ImGui y el mismo instalador en modo consola. Lee tu
@@ -64,7 +84,7 @@ opcional para el multiidioma, ver el progreso por archivo, **cancelar** y **reto
 al terminar ofrece **Jugar**, que lanza `port/build/full/bt2full` desde la raíz con `BT2_DATA`/`BT2_ELF` ya
 apuntando a la carpeta instalada. El modo consola tiene `--check` (revisa la ISO y/o la instalación), `--list`
 (muestra el disco), `--play` y `--force`; sale con 0 si todo bien, 1 si hay error y 3 si el programa del disco no
-es el de la edición USA. El detalle está en `setup/ENTREGA.md`.
+es el de la edición USA. El código y los tests están en `setup/`.
 
 `setup/install.py` sigue estando como alternativa de fase 1 y comparte el mismo formato de datos y de marcador.
 La vía manual `7z x -ogamedata "<iso>"` ya no hace falta.
@@ -80,19 +100,20 @@ En la copia de pruebas se usa un `jugar.sh [gl|vulkan]` que agrega logs y volcad
 
 ### Linux (soportado)
 
-Requisitos: clang (probado con 23.1.4), Python 3.11+, SDL3, ffmpeg (libavformat/libavcodec/libswscale/libavutil),
-zstd, ninja/cmake y pkg-config. La parte de decomp necesita además splat y ee-gcc 2.96 + binutils MIPS (el
-ps2-decomp-kit los deja en `tools/`; ver `game.toml` y `port/tools/`).
+Requisitos: las versiones de la tabla de arriba. La parte de decomp necesita además splat y ee-gcc 2.96 +
+binutils MIPS (el ps2-decomp-kit los deja en `tools/`; ver `game.toml` y `port/tools/`).
 
 **Necesitás tu copia del ELF en `disc/SLUS_214.41`.** Las tablas del enlace (`build/SLUS_214.41.ld`, símbolos,
-`link.ld`) se generan de ahí. **No hacen falta la ISO ni los AFS para compilar**; si tenés la ISO, `configure.py`
-puede extraer el ELF solo.
+`link.ld`) se generan de ahí. **No hacen falta la ISO ni los AFS para el port nativo**; el paso de `recomp.py`
+pide además el overlay `disc/DBZP.BIN` y `asm_ovl/` (ver abajo). Si tenés la ISO, `configure.py` puede extraer el ELF solo.
 
 ```sh
-# base decomp/recomp: parte el ELF, genera build.ninja y las tablas
-python3 configure.py && ninja
+# 1) tablas del decomp (splat en un venv; el matching es otro proyecto)
+python3 -m venv .venv
+.venv/bin/pip install 'splat64[mips]==0.50.0'
+.venv/bin/python configure.py
 
-# port nativo: compila el C del juego a x86-64 y enlaza
+# 2) port nativo: compila el C del juego a x86-64 y enlaza
 python3 port/tools/build_full.py --jobs 4
 python3 port/tools/link_full.py
 ```
@@ -101,8 +122,14 @@ La salida es `port/build/full/bt2full`. `build_full.py` deja `port/build/gen/ful
 cada unidad; `link_full.py` informa errores y símbolos faltantes.
 
 El enlace usa el relleno de **PS2Recomp**: hace falta el checkout en `third_party/PS2Recomp` (commit `2c5fbb9` +
-la serie de parches del kit) y haber corrido `python3 scripts/recomp.py` para generar `port/build/recomp/`. Ese
+la serie de parches del kit; los scripts buscan `tools/PS2Recomp`, así que enlazá uno al otro), `disc/DBZP.BIN`
+(overlay) y `asm_ovl/` (splat split de `config/overlay/DBZP.yaml`), y correr
+`python3 scripts/recomp.py --keep-funcmap` para generar `port/build/recomp/` sin degradar el funcmap. Ese
 código es GPL y no se versiona en este repo; cuando el relleno llegue a cero, deja de ser necesario.
+
+`ninja` es del proyecto de decomp matching (BT2-Decomp), no de este port: el C de `src/` usa asm x86 (`jmp`) y
+el assembler MIPS lo rechaza. Para el port alcanza con `.venv/bin/python configure.py` (genera las tablas) +
+`build_full`/`link_full`.
 
 Para builds pesados, `scripts/capped.sh` corre un paso con tope de memoria (systemd-run), así el build no se lleva
 puesto el escritorio:
@@ -130,8 +157,8 @@ No planificadas por ahora. El port es x86-64 solamente.
   clang, SDL3 y ffmpeg.
 - **`bt3_pipelines.txt` va versionado:** son los overrides de pipelines del renderer; se leen del directorio
   actual o de `$BT3_PIPELINES`.
-- **Sin rutas absolutas de una máquina concreta en el build:** los scripts resuelven todo desde la raíz del repo
-  (no hay rutas del tipo `/home/rexx`). Los datos del juego se buscan en `gamedata/` o en `$BT2_DATA`; el
+- **El build del port no usa rutas absolutas:** los scripts resuelven todo desde la raíz del repo. El
+  `game.toml` de referencia del matching apunta al linker del kit y hay que ajustarlo a tu `tools/binutils/...`. Los datos del juego se buscan en `gamedata/` o en `$BT2_DATA`; el
   directorio actual (`$PWD`) es el que usa el binario para `bt2_settings.txt` y `bt3_pipelines.txt`.
 - **Qué se verifica:** el decomp termina con `CHECK` byte-idéntico contra el ELF; el port deja `report.csv` por
   unidad y el enlace reporta los faltantes. El `link.ld` se genera en cada máquina.
