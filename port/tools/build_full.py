@@ -77,6 +77,12 @@ def sources():
     return srcs + eqs
 
 
+# Headers comunes (tipos, compatibilidad del port): si cambia uno, todo el C del juego se recompila. Antes el caché
+# sólo miraba la fecha del .c y un cambio de tipos (s64 = long long, build de Windows) dejaba objetos viejos.
+HDR_MTIME = max([p.stat().st_mtime for d in ("include", "port/include") for p in (ROOT / d).rglob("*.h")]
+                + [(ROOT / "port/tools/ptr32.py").stat().st_mtime])
+
+
 def build(path):
     rel = path.relative_to(ROOT)
     key = str(rel).replace("/", "__")[:-2]
@@ -84,7 +90,7 @@ def build(path):
     pre = OUT / "src" / f"{key}.i"
     c = OUT / "src" / f"{key}.nat.c"
     o = OUT / "obj" / f"{key}.o"
-    if o.exists() and o.stat().st_mtime > path.stat().st_mtime:
+    if o.exists() and o.stat().st_mtime > max(path.stat().st_mtime, HDR_MTIME):
         return str(rel), "OK", "cached"
     # permuter outputs carry their own `asm(".include \"labels.inc\"")` for the MIPS assembler: not for the PC
     text = re.sub(r'^\s*(__)?asm(__)?\s*\(\s*"\.include[^;]*;+', "", path.read_text(errors="replace"), flags=re.M)
