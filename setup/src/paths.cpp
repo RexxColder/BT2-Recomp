@@ -58,6 +58,14 @@ std::string bt2_root()
     if (env != nullptr && env[0] != '\0') {
         candidates.push_back(bt2_absolute(env));
     }
+    /* BT2_SETUP_ROOT manda (AppImage: el setup vive en la imagen de sólo lectura y la carpeta del juego es la del
+       .AppImage, que fija AppRun). */
+    if (env != nullptr && env[0] != '\0') {
+        char resolved[PATH_MAX];
+        if (realpath(env, resolved) != nullptr) {
+            return std::string(resolved);
+        }
+    }
     std::string exe = bt2_exe_dir();
     /* Producto: BT2-setup al lado del juego (BT2/BT2, BT2/BT2-setup, BT2/gamedata). Esa carpeta es la raíz. */
     {

@@ -195,6 +195,7 @@ int Ui_Init(SDL_Window *window, SDL_GPUDevice *device, void *gl_context) {
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = NULL; // no window-layout file next to the game
+    io.ConfigDebugHighlightIdConflicts = false; // ImGui debug tooltip: not for players
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     style();
     for (size_t i = 0; i < sizeof(fonts) / sizeof(fonts[0]); i++) {

@@ -4,7 +4,10 @@ Every kit script imports this instead of carrying the game's paths and addresses
 BT3-Decompiled's scripts did). The project root is the nearest folder, from this file upward, holding game.toml.
 """
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python < 3.11 (contenedor del AppImage)
+    import tomli as tomllib
 from pathlib import Path
 
 

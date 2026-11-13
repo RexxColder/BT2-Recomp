@@ -9,4 +9,8 @@
 set -u
 MAX=$1
 shift
+# Sin systemd de usuario (contenedor del AppImage, package/appimage): sin tope, el comando tal cual.
+if ! command -v systemd-run >/dev/null 2>&1 || [ -n "${BT2_NO_CAP:-}" ]; then
+    exec "$@"
+fi
 exec systemd-run --user --scope --quiet -p MemoryMax="$MAX" -p MemorySwapMax=0 -- "$@"

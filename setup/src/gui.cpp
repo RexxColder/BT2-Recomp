@@ -29,7 +29,7 @@
 
 namespace {
 
-enum Page { PAGE_PICK, PAGE_RUN, PAGE_DONE, PAGE_FAILED };
+enum Page { PAGE_PICK, PAGE_RUN, PAGE_DONE, PAGE_FAILED, PAGE_EU };
 enum RowState { ROW_PENDING, ROW_RUNNING, ROW_OK, ROW_SKIPPED, ROW_FAILED };
 enum DialogTarget { DLG_NONE, DLG_ISO, DLG_EU, DLG_DEST };
 
@@ -68,6 +68,7 @@ char gEuIso[4096] = "";
 char gDest[4096] = "";
 bool gEuEnabled = false;
 bool gForce = false;
+bool gEuRun = false; /* la corrida en curso es la de idiomas (bt2_install_eu) */
 
 Bt2Preflight gPre;
 int gPreCode = 0;
@@ -259,17 +260,48 @@ void start_install()
     gRunEnd = 0;
     std::string iso(gIso);
     std::string dest(gDest);
-    std::string eu = (gEuEnabled && gEuIso[0] != '\0') ? std::string(gEuIso) : std::string();
     bool force = gForce;
-    gWorker = std::thread([iso, dest, eu, force]() {
-        int rc = bt2_install(iso.c_str(), dest.c_str(), eu.empty() ? nullptr : eu.c_str(), force, cancel_cb, &gCancel,
-                             event_cb, nullptr);
+    gEuRun = false;
+    gWorker = std::thread([iso, dest, force]() {
+        int rc = bt2_install(iso.c_str(), dest.c_str(), nullptr, force, cancel_cb, &gCancel, event_cb, nullptr);
         Msg m;
         m.kind = MSG_RESULT;
         m.code = rc;
         std::lock_guard<std::mutex> lock(gMsgLock);
         gMsgs.push_back(std::move(m));
     });
+}
+
+/* Paso opcional: los idiomas de la ISO PAL sobre una instalación que ya está. */
+void start_install_eu()
+{
+    if (gEuIso[0] == '\0' || gDest[0] == '\0') {
+        return;
+    }
+    if (gWorker.joinable()) {
+        gWorker.join();
+    }
+    reset_run_state();
+    gPage = PAGE_RUN;
+    gRunStart = SDL_GetTicks();
+    gRunEnd = 0;
+    gEuRun = true;
+    std::string eu(gEuIso);
+    std::string dest(gDest);
+    gWorker = std::thread([eu, dest]() {
+        int rc = bt2_install_eu(eu.c_str(), dest.c_str(), 0, cancel_cb, &gCancel, event_cb, nullptr);
+        Msg m;
+        m.kind = MSG_RESULT;
+        m.code = rc;
+        std::lock_guard<std::mutex> lock(gMsgLock);
+        gMsgs.push_back(std::move(m));
+    });
+}
+
+bool eu_installed()
+{
+    std::string p = std::string(gDest) + "/" + BT2_EU_AFS;
+    return file_exists(p);
 }
 
 void mark_running_ok()
@@ -303,7 +335,7 @@ void pump_events()
         if (m.kind == MSG_RESULT) {
             gWorkerDone = true;
             if (m.code == 2) {
-                gPage = PAGE_PICK;
+                gPage = gEuRun ? PAGE_DONE : PAGE_PICK;
                 gNotice = "Instalación cancelada. Los archivos ya copiados se conservan y se pueden retomar.";
             } else if (m.code == 0) {
                 if (gPage != PAGE_DONE) {
@@ -473,7 +505,6 @@ void pump_dialog()
         snprintf(gIso, sizeof(gIso), "%s", path.c_str());
     } else if (target == DLG_EU) {
         snprintf(gEuIso, sizeof(gEuIso), "%s", path.c_str());
-        gEuEnabled = true;
     } else if (target == DLG_DEST) {
         snprintf(gDest, sizeof(gDest), "%s", path.c_str());
     }
@@ -533,6 +564,7 @@ void step_list()
 void row_input(const char *label, const char *hint, char *buf, size_t bufsz, DialogTarget target, bool folder)
 {
     static const SDL_DialogFileFilter filters[] = {{"Imagen de disco PS2", "iso;bin;img"}, {"Todos los archivos", "*"}};
+    ImGui::PushID((int)target); /* cada fila con su ID: con el mismo, el botón de la ISO PAL no respondía */
     ImGui::TextUnformatted(label);
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 150.0f);
     ImGui::InputTextWithHint("##input", hint, buf, bufsz);
@@ -550,6 +582,7 @@ void row_input(const char *label, const char *hint, char *buf, size_t bufsz, Dia
             SDL_ShowOpenFileDialog(dialog_cb, (void *)(intptr_t)target, gWindow, filters, 2, nullptr, false);
         }
     }
+    ImGui::PopID();
 }
 
 void page_pick()
@@ -557,7 +590,7 @@ void page_pick()
     heading("BT2 Setup", "Instalá los datos de tu propio disco de PlayStation 2 y jugá. No se descarga nada.");
 
     ImGui::TextWrapped("Elegí la imagen .iso de la edición USA de Dragon Ball Z: Budokai Tenkaichi 2 "
-                       "(SLUS-21441). Los archivos se copian a la carpeta que elijas; la ISO no se modifica.");
+                       "(SLUS-21441). Los archivos se copian a gamedata/, al lado del juego; la ISO no se modifica.");
     ImGui::Dummy(ImVec2(0.0f, 6.0f));
 
     row_input("Imagen de disco (ISO)", "arrastrá el archivo a esta ventana, o usá Examinar...", gIso, sizeof(gIso),
@@ -592,17 +625,9 @@ void page_pick()
     }
 
     ImGui::Dummy(ImVec2(0.0f, 6.0f));
-    ImGui::Checkbox("Agregar los datos multiidioma de una ISO PAL (opcional)", &gEuEnabled);
-    if (gEuEnabled) {
-        row_input("ISO PAL (para textos y menús en español, francés, alemán o italiano)", "ISO de la edición europea",
-                  gEuIso, sizeof(gEuIso), DLG_EU, false);
-    }
-
-    row_input("Carpeta de destino", "por defecto gamedata/ al lado del port", gDest, sizeof(gDest), DLG_DEST, true);
-    ImGui::Checkbox("Volver a copiar todo (ignorar archivos ya presentes)", &gForce);
-
-    if (gIso[0] == '\0') {
-        ImGui::TextColored(kDim, "El puerto lee la carpeta de datos; podés moverla y apuntar BT2_DATA a ella.");
+    ImGui::TextColored(kDim, "Se instala en: %s", gDest);
+    if (gInstalled.marker) {
+        ImGui::Checkbox("Volver a copiar todo (ignorar archivos ya presentes)", &gForce);
     }
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
     if (!gNotice.empty()) {
@@ -673,17 +698,24 @@ void page_done()
     step_list();
     ImGui::Dummy(ImVec2(0.0f, 4.0f));
     ImGui::TextColored(kDim, "En el juego, F1 abre la configuración: resolución, widescreen, controles y sonido.");
+    ImGui::Dummy(ImVec2(0.0f, 4.0f));
+    if (eu_installed()) {
+        ImGui::TextColored(kGreen, "✓ Idiomas extra instalados (español, francés, alemán, italiano).");
+    } else {
+        ImGui::TextWrapped("Opcional: si tenés también la edición europea (PAL), podés agregar los textos y menús en "
+                           "español, francés, alemán e italiano.");
+        if (ImGui::Button("Agregar idiomas (ISO europea)...")) {
+            gPage = PAGE_EU;
+        }
+    }
     char game[4096];
     bool have_game = bt2_find_game(gRoot.c_str(), game, sizeof(game)) != 0;
-    if (have_game) {
-        ImGui::TextColored(kDim, "Juego: %s", game);
-    } else {
+    if (!have_game) {
         ImGui::TextColored(kRed, "No encontré el binario del juego (port/build/full/bt2full). Compilá el port o definí BT2_GAME.");
     }
     if (!gPlayError.empty()) {
         ImGui::TextColored(kRed, "%s", gPlayError.c_str());
     }
-    ImGui::TextColored(kDim, "Podés cerrar esta ventana y ejecutar el juego desde una terminal.");
     bottom_buttons_start(4);
     if (big_button("Salir", false, true, 130.0f)) {
         gQuit = true;
@@ -710,6 +742,27 @@ void page_done()
     }
 }
 
+void page_eu()
+{
+    heading("Idiomas extra", "Opcional: textos y menús en español, francés, alemán e italiano.");
+    ImGui::TextWrapped("Elegí la imagen .iso de la edición europea (PAL) de Budokai Tenkaichi 2. Sólo se copia el archivo "
+                       "de idiomas (unos 400 MB) a gamedata/; el juego sigue siendo el de la edición USA.");
+    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+    row_input("ISO europea (PAL)", "arrastrá el archivo a esta ventana, o usá Examinar...", gEuIso, sizeof(gEuIso),
+              DLG_EU, false);
+    if (gEuIso[0] != '\0' && !file_exists(gEuIso)) {
+        ImGui::TextColored(kRed, "Ese archivo no existe.");
+    }
+    bottom_buttons_start(2);
+    if (big_button("Volver", false)) {
+        gPage = PAGE_DONE;
+    }
+    ImGui::SameLine();
+    if (big_button("Agregar idiomas", true, file_exists(gEuIso))) {
+        start_install_eu();
+    }
+}
+
 void page_failed()
 {
     heading("No se pudo instalar", "La instalación no terminó; podés reintentar o elegir otra imagen.");
@@ -729,11 +782,15 @@ void page_failed()
     }
     ImGui::SameLine();
     if (big_button("Volver", false)) {
-        gPage = PAGE_PICK;
+        gPage = gEuRun ? PAGE_EU : PAGE_PICK;
     }
     ImGui::SameLine();
-    if (big_button("Reintentar", true, gIso[0] != '\0' && gDest[0] != '\0')) {
-        start_install();
+    if (big_button("Reintentar", true, gEuRun ? gEuIso[0] != '\0' : (gIso[0] != '\0' && gDest[0] != '\0'))) {
+        if (gEuRun) {
+            start_install_eu();
+        } else {
+            start_install();
+        }
     }
 }
 
@@ -750,6 +807,7 @@ void build_ui()
     case PAGE_RUN: page_run(); break;
     case PAGE_DONE: page_done(); break;
     case PAGE_FAILED: page_failed(); break;
+    case PAGE_EU: page_eu(); break;
     }
     ImGui::End();
 }
@@ -823,6 +881,7 @@ bool setup_window()
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = nullptr;
+    io.ConfigDebugHighlightIdConflicts = false; /* aviso de depuración de ImGui: no es para el jugador */
     style();
     static const char *fonts[] = {
         "/usr/share/fonts/TTF/DejaVuSans.ttf",
@@ -888,7 +947,7 @@ int bt2_gui_run(const std::string &root, const std::string &initial_iso, const s
         gAlreadyInstalled = true;
         gPage = PAGE_DONE;
         gSummary = gInstalled.summary;
-    } else if (gInstalled.marker || gInstalled.files > 0) {
+    } else if (gInstalled.marker) {
         if (check_rc != 0) {
             gNotice = "Hay datos incompletos o distintos en " + check_dest + ": " + gInstalled.summary + ".";
         }
@@ -913,17 +972,12 @@ int bt2_gui_run(const std::string &root, const std::string &initial_iso, const s
                     gCancel.store(1);
                 }
                 gQuit = true;
-            } else if (ev.type == SDL_EVENT_DROP_FILE && ev.drop.data != nullptr && gPage == PAGE_PICK) {
-                std::string dropped(ev.drop.data);
-                std::string lower = dropped;
-                for (char &ch : lower) {
-                    ch = (char)tolower((unsigned char)ch);
-                }
-                bool euish = lower.find("europe") != std::string::npos || lower.find("pal") != std::string::npos;
-                if (gEuEnabled && gIso[0] != '\0' && euish) {
-                    snprintf(gEuIso, sizeof(gEuIso), "%s", dropped.c_str());
-                } else {
-                    snprintf(gIso, sizeof(gIso), "%s", dropped.c_str());
+            } else if (ev.type == SDL_EVENT_DROP_FILE && ev.drop.data != nullptr) {
+                /* cada página recibe su ISO: la USA en la principal, la PAL en la de idiomas */
+                if (gPage == PAGE_EU) {
+                    snprintf(gEuIso, sizeof(gEuIso), "%s", ev.drop.data);
+                } else if (gPage == PAGE_PICK) {
+                    snprintf(gIso, sizeof(gIso), "%s", ev.drop.data);
                 }
             }
         }

@@ -1,0 +1,37 @@
+# Entorno de enlace del AppImage: Ubuntu 22.04 (glibc 2.35), así el binario corre en distros de 2022 en adelante.
+# Acá se compila el código del host (port/full, renderer, ImGui, relleno C++) y se enlaza; el C del juego se compila
+# fuera (no depende de glibc). SDL3 y un ffmpeg mínimo (sólo lo que usan los videos: MPEG-PS, MPEG-2, ADX) se
+# compilan acá y viajan dentro del AppImage.
+#   podman build -t bt2-appimage package/appimage
+FROM docker.io/library/ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential gcc-12 g++-12 cmake ninja-build python3 pkg-config nasm git ca-certificates wget file xz-utils \
+      libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libxfixes-dev libxtst-dev \
+      libwayland-dev libxkbcommon-dev wayland-protocols libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev libgles2-mesa-dev \
+      libvulkan-dev libasound2-dev libpulse-dev libpipewire-0.3-dev libdbus-1-dev libudev-dev libdrm-dev libgbm-dev \
+      libfuse2 desktop-file-utils \
+ && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ g++ /usr/bin/g++-12 \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG SDL3_VERSION=3.4.18
+RUN wget -q https://github.com/libsdl-org/SDL/releases/download/release-${SDL3_VERSION}/SDL3-${SDL3_VERSION}.tar.gz \
+ && tar xzf SDL3-${SDL3_VERSION}.tar.gz && cd SDL3-${SDL3_VERSION} \
+ && cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF \
+ && cmake --build build && cmake --install build && cd / && rm -rf SDL3-*
+
+ARG FFMPEG_VERSION=8.0
+RUN wget -q https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz && tar xJf ffmpeg-${FFMPEG_VERSION}.tar.xz \
+ && cd ffmpeg-${FFMPEG_VERSION} \
+ && ./configure --prefix=/usr/local --enable-shared --disable-static --disable-programs --disable-doc --disable-everything \
+      --disable-autodetect --disable-network --disable-avdevice --disable-avfilter --disable-swresample \
+      --enable-demuxer=mpegps,mpegvideo --enable-parser=mpegvideo \
+      --enable-decoder=mpeg2video,mpeg1video,adpcm_adx --enable-protocol=file \
+ && make -j"$(nproc)" && make install && cd / && rm -rf ffmpeg-* && ldconfig
+
+RUN wget -q -O /usr/local/bin/appimagetool \
+      https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-x86_64.AppImage \
+ && chmod +x /usr/local/bin/appimagetool
+
+# Python 3.10: gamecfg.py usa tomli en lugar de tomllib
+RUN apt-get update && apt-get install -y --no-install-recommends python3-tomli && rm -rf /var/lib/apt/lists/*

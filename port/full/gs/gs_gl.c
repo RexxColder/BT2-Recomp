@@ -803,7 +803,7 @@ static int gl_init(void) {
     static const uint32_t white = 0xFFFFFFFFu;
     int i;
     gsDateLiveAux = 0; /* DATE draws read the alpha snapshot (native 5), one copy of the draw's scissor per DATE
-                          run up to BT2_DATE_CAP (200) per target per frame, then a full-picture copy
+                          run up to BT2_DATE_CAP (4000) per target per frame, then a full-picture copy
                           (date_snapshot): the live-aux path left the HUD with a frame-old alpha */
 
     sWindow = GsDraw_WindowCreate(1);

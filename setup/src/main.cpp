@@ -33,6 +33,7 @@ struct Options {
     bool check = false;
     bool list = false;
     bool play = false;
+    std::string add_eu; /* --add-eu <iso>: sólo los idiomas de la ISO PAL */
     bool force = false;
     bool help = false;
     bool version = false;
@@ -50,6 +51,7 @@ void usage(FILE *out)
             "  bt2-setup --check [--iso <iso>] [--dest <carpeta>]\n"
             "  bt2-setup --list <iso>\n"
             "  bt2-setup --play [--dest <carpeta>]\n"
+            "  bt2-setup --add-eu <iso PAL> [--dest <carpeta>]   agrega los idiomas ES/FR/DE/IT a una instalación\n"
             "\n"
             "Opciones:\n"
             "  --dest <carpeta>   carpeta de datos (por defecto: gamedata/ junto al juego)\n"
@@ -103,6 +105,11 @@ int parse_args(int argc, char **argv, Options *o)
             o->check = true;
         } else if (a == "--list") {
             o->list = true;
+        } else if (a == "--add-eu") {
+            o->add_eu = value("--add-eu");
+            if (o->add_eu.empty()) {
+                return 1;
+            }
         } else if (a == "--play") {
             o->play = true;
         } else if (a == "--force") {
@@ -298,6 +305,19 @@ int cmd_install(const Options &o, const std::string &root)
     return rc == 3 ? 3 : 1;
 }
 
+int cmd_add_eu(const Options &o, const std::string &root)
+{
+    std::string dest = with_default_dest(o.dest, root);
+    CliProgress prog;
+    signal(SIGINT, on_sigint);
+    signal(SIGTERM, on_sigint);
+    int rc = bt2_install_eu(o.add_eu.c_str(), dest.c_str(), o.force ? 1 : 0, cli_cancel, nullptr, cli_event, &prog);
+    if (rc == 0) {
+        printf("\nIdiomas agregados en: %s\n", dest.c_str());
+    }
+    return rc == 0 ? 0 : 1;
+}
+
 int cmd_play(const Options &o, const std::string &root)
 {
     std::string dest = with_default_dest(o.dest, root);
@@ -353,6 +373,9 @@ int main(int argc, char **argv)
     }
     if (o.check) {
         return cmd_check(o, root);
+    }
+    if (!o.add_eu.empty()) {
+        return cmd_add_eu(o, root);
     }
     if (o.install) {
         return cmd_install(o, root);

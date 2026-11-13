@@ -1283,3 +1283,85 @@ int bt2_install(const char *iso_path, const char *dest, const char *eu_iso_path,
     iso_close(&iso);
     return 0;
 }
+
+/* Paso opcional, aparte de la instalación: agrega los datos multiidioma (DATA/ZS2EU_1.AFS de la ISO PAL) a una
+   instalación que ya existe. No pide la ISO USA otra vez. Mismos eventos que bt2_install (2 pasos). */
+int bt2_install_eu(const char *eu_iso_path, const char *dest, int force, Bt2CancelFn cancel, void *cancel_user,
+                   Bt2EventFn fn, void *user)
+{
+    Iso eu;
+    Plan plan;
+    Ctx c;
+    Bt2Event ev;
+    char err[512], elf_hex[41] = "";
+    const IsoFile *afs;
+    double t0 = now_seconds();
+    int rc;
+
+    memset(&eu, 0, sizeof(eu));
+    memset(&plan, 0, sizeof(plan));
+    memset(&c, 0, sizeof(c));
+    c.fn = fn;
+    c.user = user;
+    c.cancel = cancel;
+    c.cancel_user = cancel_user;
+    c.steps = 2;
+
+    memset(&ev, 0, sizeof(ev));
+    ev.kind = BT2_EV_STEP;
+    ev.step = 1;
+    ev.steps = 2;
+    ev.step_name = "Validar ISO PAL";
+    if (fn != NULL) {
+        fn(&ev, user);
+    }
+    if (iso_open(&eu, eu_iso_path, err, sizeof(err)) != 0) {
+        emit_error(&c, 1, "No se pudo abrir la ISO PAL: %s", err);
+        return 1;
+    }
+    afs = iso_find(&eu, BT2_EU_AFS);
+    if (afs == NULL) {
+        emit_error(&c, 1, "Esa ISO no tiene %s: tiene que ser la edición europea (PAL) de Budokai Tenkaichi 2.",
+                   BT2_EU_AFS);
+        iso_close(&eu);
+        return 1;
+    }
+    plan.items[0].f = afs;
+    plan.items[0].iso = &eu;
+    plan.items[0].eu = 1;
+    plan.count = 1;
+    c.files_total = 1;
+    c.total_bytes = afs->size;
+
+    memset(&ev, 0, sizeof(ev));
+    ev.kind = BT2_EV_STEP;
+    ev.step = 2;
+    ev.steps = 2;
+    ev.step_name = "Multiidioma (PAL)";
+    if (fn != NULL) {
+        fn(&ev, user);
+    }
+    rc = copy_plan_item(&c, dest, &plan.items[0], force, elf_hex);
+    iso_close(&eu);
+    if (rc != 0) {
+        if (rc == 2) {
+            emit_error(&c, 1, "Cancelado. Se puede retomar.");
+        }
+        return rc;
+    }
+    memset(&ev, 0, sizeof(ev));
+    ev.kind = BT2_EV_DONE;
+    ev.files_done = c.files_done;
+    ev.files_total = 1;
+    ev.done_bytes = c.done_bytes;
+    ev.total_bytes = c.total_bytes;
+    {
+        static char msg[256];
+        snprintf(msg, sizeof(msg), "Idiomas agregados (español, francés, alemán e italiano) en %.1f s.", now_seconds() - t0);
+        ev.message = msg;
+    }
+    if (fn != NULL) {
+        fn(&ev, user);
+    }
+    return 0;
+}

@@ -96,6 +96,8 @@ int bt2_check_dest(const char *dest, int verify_hash, Bt2Check *out);
 
 /* Instala. `cancel` puede ser NULL; si devuelve distinto de cero se corta al próximo bloque.
  * Devuelve 0 ok, 1 error, 2 cancelado, 3 hash distinto. */
+int bt2_install_eu(const char *eu_iso_path, const char *dest, int force, Bt2CancelFn cancel, void *cancel_user,
+                   Bt2EventFn fn, void *user);
 int bt2_install(const char *iso_path, const char *dest, const char *eu_iso_path, int force,
                 Bt2CancelFn cancel, void *cancel_user, Bt2EventFn fn, void *user);
 

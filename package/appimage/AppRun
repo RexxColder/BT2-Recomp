@@ -1,0 +1,19 @@
+#!/bin/sh
+# BT2.AppImage: el juego y el instalador en un archivo. Los datos van al lado del .AppImage (la imagen es de sólo
+# lectura): gamedata/, saves/, textos/, logs/. Sin datos instalados abre el instalador; --setup lo fuerza.
+HERE="$(dirname "$(readlink -f "$0")")"
+DATA="$(dirname "$(readlink -f "${APPIMAGE:-$0}")")"
+export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+cd "$DATA" || exit 1
+mkdir -p gamedata saves textos logs
+# textos del port: se copian la primera vez (después son del usuario y se pueden editar)
+for f in "$HERE"/usr/share/bt2/textos/*.txt; do
+    [ -e "textos/$(basename "$f")" ] || cp "$f" textos/
+done
+[ -e LEEME.txt ] || cp "$HERE/usr/share/bt2/LEEME.txt" LEEME.txt
+export BT2_SETUP_ROOT="$DATA" BT2_GAME="$HERE/usr/bin/BT2"
+if [ "${1:-}" = "--setup" ] || [ ! -f gamedata/SLUS_214.41 ]; then
+    [ "${1:-}" = "--setup" ] && shift
+    exec "$HERE/usr/bin/BT2-setup" "$@"
+fi
+exec "$HERE/usr/bin/BT2" "$@"

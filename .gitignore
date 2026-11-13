@@ -85,3 +85,4 @@ SLES_541.64
 
 # Producto armado por scripts/package.sh
 /dist/
+/setup/build-appimage/

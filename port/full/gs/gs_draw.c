@@ -724,7 +724,7 @@ static int same_state(const GsDraw *a, const GsDraw *b) {
    mask, a word shown through a band, and also some of the stage's own layers) reads a copy of the alpha bytes
    taken before it (native 5). A fight makes hundreds of DATE runs, and the per-rectangle reuse kept the HUD's
    alpha from the copy made a frame before (bars, life gauges and announcements showed the previous value while
-   the world moved), so each DATE draw gets its own copy, up to BT2_DATE_CAP per target per frame (200 by
+   the world moved), so each DATE draw gets its own copy, up to BT2_DATE_CAP per target per frame (4000 by
    default; 0 or an invalid value = 200). The copy covers only the draw's scissor clamped to the picture: a
    full-picture copy is ~3.7 MB at SCALE 2, and hundreds per frame would be ~1.5 GB/frame of VRAM traffic.
    Past the cap one full-picture copy is taken and reused by the rest (so their alpha is not a region that was
@@ -737,7 +737,10 @@ static void date_snapshot(const GsDraw *d) {
 
     if (sDateCap < 0) {
         const char *e = getenv("BT2_DATE_CAP");
-        sDateCap = e && atoi(e) > 0 ? atoi(e) : 200;
+        /* 4000 por defecto: una pelea hace ~400 corridas DATE por cuadro y el HUD va al final; con 200 las barras
+           leían la copia completa reusada (vieja) y se veían llenas en el release (jugar.sh usaba 600). Las copias
+           son glCopyImageSubData de la tijera: 1215 por cuadro midieron 0,7 ms. */
+        sDateCap = e && atoi(e) > 0 ? atoi(e) : 4000;
     }
     if (d->misc[1] == 0.0f) {
         return; /* not a draw that tests the alpha already in the frame buffer */

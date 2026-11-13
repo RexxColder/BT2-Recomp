@@ -18,6 +18,9 @@ TRACE = bool(os.environ.get("BT2_TRACE_BUILD"))   # build instrumentado: ver bui
 GENDIR = ROOT / ("port/build/gen/full_trace" if TRACE else "port/build/gen/full")
 OBJDIR = GENDIR / "obj"
 OUT = ROOT / ("port/build/full_trace" if TRACE else "port/build/full")
+if os.environ.get("BT2_FULL_OUT"):   # otro directorio de salida (AppImage: package/appimage/build.sh, enlace en contenedor)
+    OUT = ROOT / os.environ["BT2_FULL_OUT"]
+    OUT.mkdir(parents=True, exist_ok=True)
 OVL_LO, OVL_HI = 0x3B3100, 0x421300
 # stdio y afines: reciben FILE* del juego (struct de newlib), el libc del host no los entiende
 STDIO = re.compile(r"^(f[a-z]+|_?[a-z]*printf|_?[a-z]*scanf|puts|putc|getc|putchar|getchar|setbuf|setvbuf|perror|exit|abort|_exit|atexit|signal|raise|malloc|free|calloc|realloc|memalign|brk|sbrk|sleep|usleep|time|clock|gettimeofday|open|read|write|close|lseek|stat|fstat|isatty|getenv|setenv|system|qsort_r)$")

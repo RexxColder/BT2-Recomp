@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DBZ Budokai Tenkaichi 2
+Comment=Port nativo de Budokai Tenkaichi 2 (necesita tu ISO)
+Exec=AppRun
+Icon=bt2
+Terminal=false
+Categories=Game;
