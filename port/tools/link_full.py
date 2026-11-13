@@ -15,9 +15,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 TRACE = bool(os.environ.get("BT2_TRACE_BUILD"))   # build instrumentado: ver build_full.py y port/full/plat_trace.c
-GENDIR = ROOT / ("port/build/gen/full_trace" if TRACE else "port/build/gen/full")
+# BT2_TARGET=win: el PE de Windows con mingw-w64 cruzado (objetos de BT2_TARGET=win build_full.py, port/full/win/,
+# dependencias en port/build/win/ que baja scripts/win_deps.sh). Salida: port/build/win/full/bt2full.exe.
+WIN = os.environ.get("BT2_TARGET") == "win"
+PREFIX = "x86_64-w64-mingw32-" if WIN else ""
+NM, OBJCOPY, CC, CXX = PREFIX + "nm", PREFIX + "objcopy", PREFIX + "gcc", PREFIX + "g++"
+WINDEPS = ROOT / "port/build/win"
+WININC = ["-I", str(ROOT / "port/include/win_compat"), "-I", str(WINDEPS / "SDL3/include"),
+          "-I", str(WINDEPS / "ffmpeg/include"), "-I", str(ROOT / "port/full")] if WIN else []
+GENDIR = ROOT / ("port/build/gen/full_trace" if TRACE else "port/build/gen/win" if WIN else "port/build/gen/full")
 OBJDIR = GENDIR / "obj"
-OUT = ROOT / ("port/build/full_trace" if TRACE else "port/build/full")
+OUT = ROOT / ("port/build/full_trace" if TRACE else "port/build/win/full" if WIN else "port/build/full")
 if os.environ.get("BT2_FULL_OUT"):   # otro directorio de salida (AppImage: package/appimage/build.sh, enlace en contenedor)
     OUT = ROOT / os.environ["BT2_FULL_OUT"]
     OUT.mkdir(parents=True, exist_ok=True)
@@ -61,7 +69,7 @@ def name_addrs():
 def nm_all(objs):
     defs, und = {}, collections.defaultdict(set)
     def one(chunk):
-        r = subprocess.run(["nm", "-A", "-g", "--no-sort"] + [str(o) for o in chunk], capture_output=True, text=True).stdout
+        r = subprocess.run([NM, "-A", "-g", "--no-sort"] + [str(o) for o in chunk], capture_output=True, text=True).stdout
         return r
     chunks = [objs[i:i + 400] for i in range(0, len(objs), 400)]
     with ThreadPoolExecutor(2) as ex:
@@ -82,21 +90,35 @@ HOSTDEF = set()   # strong
 TEMPDEF = set()   # weak (temp_stubs.c): se usan solo si ningun objeto define el simbolo   # simbolos definidos por port/full/plat_*.c (capa de plataforma): ganan a stubs
 
 
+def host_sources():
+    """port/full/*.c del host. Windows: sin el arranque de Linux (mem.c), la traza (ucontext) ni glibc_compat.c, y con
+    port/full/win/*.c (arranque con la RAM en el PE, mmap/dlfcn/backtrace de mentira)."""
+    if not WIN:
+        return sorted((ROOT / "port/full").glob("*.c"))
+    skip = {"mem.c", "plat_trace.c", "glibc_compat.c"}
+    return sorted(p for p in (ROOT / "port/full").glob("*.c") if p.name not in skip) + sorted((ROOT / "port/full/win").glob("*.c"))
+
+
 def host_syms():
     s = set()
-    for lib in ("libc.so.6", "libm.so.6"):
+    if WIN:   # libc/libm de mingw: import libs de msvcrt/ucrt + mingwex + winpthread
+        for lib in ("libmingw32.a", "libmsvcrt.a", "libucrt.a", "libmingwex.a", "libwinpthread.a"):   # libmingw32: __main de la CRT
+            p = Path("/usr/x86_64-w64-mingw32/lib") / lib
+            if p.exists():
+                s |= {l.split()[-1] for l in subprocess.run([NM, "-g", "--defined-only", str(p)], capture_output=True, text=True).stdout.splitlines() if l.split()}
+    for lib in (() if WIN else ("libc.so.6", "libm.so.6")):
         for d in ("/usr/lib", "/usr/lib64", "/lib/x86_64-linux-gnu"):
             if (Path(d) / lib).exists():
                 s |= {l.split()[-1].split("@")[0] for l in subprocess.run(["nm", "-D", "--defined-only", str(Path(d) / lib)], capture_output=True, text=True).stdout.splitlines() if l.split()}
                 break
-    ga = subprocess.run(["gcc", "-print-libgcc-file-name"], capture_output=True, text=True).stdout.strip()
-    s |= {l.split()[-1] for l in subprocess.run(["nm", "--defined-only", ga], capture_output=True, text=True).stdout.splitlines() if len(l.split()) == 3 and l.split()[1] in "TtDdRr"}
+    ga = subprocess.run([CC, "-print-libgcc-file-name"], capture_output=True, text=True).stdout.strip()
+    s |= {l.split()[-1] for l in subprocess.run([NM, "--defined-only", ga], capture_output=True, text=True).stdout.splitlines() if len(l.split()) == 3 and l.split()[1] in "TtDdRr"}
     # lo que define el propio port/full/*.c (compat.c: __divdi3...) cuenta como del host
-    for c in sorted((ROOT / "port/full").glob("*.c")):
+    for c in host_sources():
         o = OUT / "hostobj" / (c.stem + ".o")
         o.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["gcc", "-c", "-w", "-O1", "-m64", "-fno-pie"] + (["-DBT2_FALLBACK"] if FALLBACK else []) + [str(c), "-o", str(o)], check=True)
-        rows_ = [l.split() for l in subprocess.run(["nm", "-g", "--defined-only", str(o)], capture_output=True, text=True).stdout.splitlines() if len(l.split()) == 3]
+        subprocess.run([CC, "-c", "-w", "-O1", "-m64", "-fno-pie", *WININC, *(["-DBT2_GS"] if WIN else [])] + (["-DBT2_FALLBACK"] if FALLBACK else []) + [str(c), "-o", str(o)], check=True)
+        rows_ = [l.split() for l in subprocess.run([NM, "-g", "--defined-only", str(o)], capture_output=True, text=True).stdout.splitlines() if len(l.split()) == 3]
         d = {r[-1] for r in rows_} - {"main"}
         s |= d
         if c.stem.startswith("plat_"): HOSTDEF.update(r[-1] for r in rows_ if r[1] != "W")
@@ -104,7 +126,7 @@ def host_syms():
     return s
 
 
-FB_CXX = ["g++", "-std=c++20", os.environ.get("BT2_FB_OPT", "-O0"), "-msse4.2", "-w", "-fno-pie", "-fno-stack-protector", "-m64",
+FB_CXX = [CXX, "-std=c++20", os.environ.get("BT2_FB_OPT", "-O0"), "-msse4.2", "-w", "-fno-pie", "-fno-stack-protector", "-m64",
           "-I", str(ROOT / "port/full/recomp_shim"), "-I", str(ROOT / "port/build/recomp")]
 DEF_RE = re.compile(r"^void (\w+)\(uint8_t\*\s*rdram", re.M)
 CALL_RE = re.compile(r"\b(\w+_0x([0-9a-f]+))\(rdram, ctx, runtime\)")
@@ -177,7 +199,7 @@ def build_renderer():
     port/build/full/gs_obj (cache por fecha). Devuelve la lista de objetos. BT2_NO_GS=1 lo omite."""
     if os.environ.get("BT2_NO_GS"): return [], []
     GS = ROOT / "port/full/gs"
-    GEN = OUT / "gen"
+    GEN = ROOT / "port/build/full/gen" if WIN else OUT / "gen"   # gen_shaders.py escribe ahí (el mismo para los dos targets)
     OBJ = OUT / "gs_obj"
     OBJ.mkdir(parents=True, exist_ok=True)
     shaders = sorted((GS / "shaders").glob("*.*"))
@@ -188,8 +210,8 @@ def build_renderer():
     todo, objs = [], []
     TP = ROOT / "port/third_party/imgui"
     # gs/snd_adx.c / snd_se.c (sonido de BT3) quedan fuera: el sonido de BT2 es port/full/plat_snd_adx.c y plat_snd_se.c
-    srcs = [(c, "gcc", ["-std=gnu11", "-O2"]) for c in sorted(GS.glob("*.c")) if c.name not in ("plat_settings_bt3.c", "snd_adx.c", "snd_se.c")]
-    srcs += [(c, "g++", ["-std=c++17", "-O2"]) for c in [GS / "ui.cpp", *sorted(TP.glob("imgui*.cpp"))] if not c.name.startswith("imgui_impl_sdlgpu3_shaders")]
+    srcs = [(c, CC, ["-std=gnu11", "-O2"]) for c in sorted(GS.glob("*.c")) if c.name not in ("plat_settings_bt3.c", "snd_adx.c", "snd_se.c")]
+    srcs += [(c, CXX, ["-std=c++17", "-O2"]) for c in [GS / "ui.cpp", *sorted(TP.glob("imgui*.cpp"))] if not c.name.startswith("imgui_impl_sdlgpu3_shaders")]
     for c, cc, fl in srcs:
         o = OBJ / (("im_" if c.parent == TP else "") + c.stem + ".o")
         objs.append(o)
@@ -198,10 +220,12 @@ def build_renderer():
             todo.append((cc, fl, c, o))
     def one(a):
         cc, fl, c, o = a
-        r = subprocess.run(["scripts/capped.sh", "3G", cc, "-c", "-w", "-m64", "-fno-pie", "-g", *fl, *inc, "-DBT2_GS", str(c), "-o", str(o)], cwd=ROOT, capture_output=True, text=True)
+        r = subprocess.run(["scripts/capped.sh", "3G", cc, "-c", "-w", "-m64", "-fno-pie", "-g", *fl, *inc, *WININC, "-DBT2_GS", str(c), "-o", str(o)], cwd=ROOT, capture_output=True, text=True)
         if r.returncode: print("FALLO " + c.name + ":\n" + r.stderr[-1500:]); sys.exit(1)
     with ThreadPoolExecutor(2) as ex: list(ex.map(one, todo))
     print(f"renderer: {len(srcs)} fuentes, {len(todo)} compiladas")
+    if WIN:
+        return objs, ["-L", str(WINDEPS / "SDL3/lib"), "-lSDL3"]
     return objs, (subprocess.run(["pkg-config", "--libs", "sdl3"], capture_output=True, text=True).stdout.split() or ["-lSDL3"])
 
 
@@ -268,7 +292,7 @@ def main():
     GS_OBJS, GS_LIBS = build_renderer()
     for o in GS_OBJS:   # gs_sony.c define sceGs* del SDK: cuentan como capa de plataforma (ganan a los stubs)
         if o.name == "gs_sony.o":
-            HOSTDEF.update(l.split()[-1] for l in subprocess.run(["nm", "-g", "--defined-only", str(o)], capture_output=True, text=True).stdout.splitlines() if len(l.split()) == 3)
+            HOSTDEF.update(l.split()[-1] for l in subprocess.run([NM, "-g", "--defined-only", str(o)], capture_output=True, text=True).stdout.splitlines() if len(l.split()) == 3)
     host0 = host_syms()   # (llena HOSTDEF)
     for n in HOSTDEF:     # la capa plat_* manda sobre cualquier C que defina el mismo simbolo
         for f, t in defs.get(n, []): weaken[f].add(n)
@@ -288,6 +312,14 @@ def main():
     for n, m in ren.items():
         for f in {x for x, _ in defs[n]} | und.get(n, set()):
             redef[f][n] = m
+    if WIN:   # el juego llama a un __simbolo que la CRT de mingw tambien tiene (__main): sus referencias pasan a
+        # game___simbolo (alias de la funcion del juego) y el de la CRT queda para la CRT
+        crt = {l.split()[-1] for l in subprocess.run([NM, "-g", "--defined-only", "/usr/x86_64-w64-mingw32/lib/libmingw32.a"],
+                                                    capture_output=True, text=True).stdout.splitlines() if len(l.split()) == 3}
+        for n in und:   # sólo la CRT (libmingw32: __main...); los ayudantes del compilador (__fixunssfdi) van a libgcc
+            if n not in defs and n in crt and n.startswith("__") and addr_of(n) is not None:
+                ren[n] = "game_" + n
+                for f in und[n]: redef[f][n] = ren[n]
     R = lambda n: ren.get(n, n)
     # --- indefinidos
     host = host_syms()
@@ -311,7 +343,7 @@ def main():
             continue
         isfunc = n.startswith("func_") or (a in fm if a is not None else False)
         if a is not None and a in canon and isfunc is not False or (a in canon):
-            alias[n] = (R(canon[a][0]), a)
+            alias[R(n)] = (R(canon[a][0]), a)
         elif n in host and (a is None or not n.startswith(("func_", "D_"))) and not (a is not None and not isfunc):
             hostres.append(n)
         elif a is None:
@@ -340,7 +372,7 @@ def main():
     todo = set(weaken) | set(redef)
     for f in todo:
         o2 = OUT / "obj2" / f.name
-        cmd = ["objcopy"]
+        cmd = [OBJCOPY]
         for n in sorted(weaken.get(f, ())): cmd += ["--weaken-symbol", n]
         for n, m in redef.get(f, {}).items(): cmd += ["--redefine-sym", f"{n}={m}"]
         subprocess.run(cmd + [str(f), str(o2)], check=True)
@@ -390,6 +422,8 @@ def main():
           'extern long full_stub(const char *name, unsigned addr);',
           'extern long full_stub_game(const char *name, unsigned addr);']
     def stubline(n, a):
+        if a in fb and WIN:   # COFF: sin .type
+            return f'__asm__(".text\\n.globl {n}\\n{n}:\\nmovl $0x{a:08X},%r11d\\njmp bt2_fb_entry\\n");\nextern void {n}(void);'
         if a in fb:   # adaptador nativo -> funcion recompilada (recomp_shim.cpp: bt2_fb_entry)
             return f'__asm__(".text\\n.globl {n}\\n.type {n},@function\\n{n}:\\nmovl $0x{a:08X},%r11d\\njmp bt2_fb_entry\\n");\nextern void {n}(void);'
         return f'long {n}(void) {{ return full_stub{"_game" if a < GAME_END or a >= OVL_LO else ""}("{n}", 0x{a:08X}u); }}'
@@ -401,7 +435,10 @@ def main():
         if n not in stubs:
             sl.append(stubline(n, a))
     for a, nm in sorted(libc_used.items()):
-        sl.append(f'__asm__(".text\\n.globl bt2l_{nm}\\n.type bt2l_{nm},@function\\nbt2l_{nm}:\\njmp {nm}@PLT\\n");')
+        if WIN:   # la funcion de libc vive en una DLL: salto por la tabla de importacion
+            sl.append(f'__asm__(".text\\n.globl bt2l_{nm}\\nbt2l_{nm}:\\njmp *__imp_{nm}(%rip)\\n");')
+        else:
+            sl.append(f'__asm__(".text\\n.globl bt2l_{nm}\\n.type bt2l_{nm},@function\\nbt2l_{nm}:\\njmp {nm}@PLT\\n");')
     (OUT / "stubs.c").write_text("\n".join(sl) + "\n")
     # lista de funciones DEL JUEGO con stub temporal (devuelven 0): se regenera en cada enlace
     gl = sorted((a, n) for a, n in stubsym.items() if (a < GAME_END or a >= OVL_LO) and n not in HOSTDEF and n not in TEMPDEF)
@@ -441,6 +478,8 @@ def main():
     print(json.dumps(rep, indent=1))
     if "--no-link" in sys.argv: return
     cflags = ["-O1", "-g", "-w", "-m64", "-fno-pie", "-fno-omit-frame-pointer", "-fno-stack-protector"]
+    if WIN:
+        sys.exit(link_win(final, fb_objs))
     hostc = sorted(str(p) for p in (ROOT / "port/full").glob("*.c"))
     gs_objs, gs_libs = GS_OBJS, GS_LIBS
     hostc += [str(ROOT / "port/full/gs/plat_settings_bt3.c")] if gs_objs else []
@@ -456,6 +495,35 @@ def main():
     print(f"enlace {'OK -> ' + str(exe.relative_to(ROOT)) if r.returncode == 0 else 'FALLO'}; {len(errs)} lineas de error")
     for l in errs[:15]: print("  " + l[-200:])
     sys.exit(r.returncode)
+
+
+def link_win(final, fb_objs):
+    """Enlace del PE (diseño B de F10): imagen en 0x10000, la RAM del PS2 como sección .ps2ram en 0x100000 (ps2ram.S)
+    y el texto nativo en 0x2100000, sin reubicaciones ni ASLR (el C lleva direcciones absolutas). Los alias y absolutos
+    de link.ld pasan a --defsym (el ld de mingw no toma ese script como entrada). Todo va en un archivo de respuesta."""
+    exe = OUT / "bt2full.exe"
+    defsyms = []
+    for l in (OUT / "link.ld").read_text().splitlines():
+        m = re.match(r"^(\S+) = (\S+);$", l)
+        if m: defsyms.append(f"-Wl,--defsym={m.group(1)}={m.group(2)}")
+    hostobjs = [str(OUT / "hostobj" / (c.stem + ".o")) for c in host_sources()]
+    ff = WINDEPS / "ffmpeg/lib"
+    args = ["-o", str(exe), "-w", "-g", "-O1", "-m64",
+            "-Wl,--image-base,0x10000", "-Wl,--section-start=.ps2ram=0x100000", "-Wl,--section-start=.text=0x2100000",
+            "-Wl,--disable-dynamicbase", "-Wl,--disable-reloc-section", "-Wl,--disable-high-entropy-va",
+            "-Wl,--stack,0x1000000", f"-Wl,-Map={exe}.map", *defsyms,
+            *hostobjs, str(ROOT / "port/full/win/ps2ram.S"), str(ROOT / "port/full/gs/plat_settings_bt3.c"), *WININC, "-DBT2_GS",
+            str(OUT / "stubs.c"), str(OUT / "tables.c"), *final, *map(str, fb_objs), *map(str, GS_OBJS),
+            *GS_LIBS, "-L", str(ff), "-lavformat", "-lavcodec", "-lswscale", "-lavutil",
+            "-lstdc++", "-lws2_32", "-lwinmm", "-lole32", "-static-libgcc", "-static-libstdc++"]
+    rsp = OUT / "link.rsp"
+    rsp.write_text("\n".join(a.replace("\\", "/") for a in args) + "\n")
+    r = subprocess.run(["scripts/capped.sh", "6G", CC, f"@{rsp}"], cwd=ROOT, capture_output=True, text=True)
+    errs = [l for l in r.stderr.splitlines() if "multiple definition" in l or "undefined reference" in l or "rror" in l]
+    (OUT / "link.log").write_text(r.stderr)
+    print(f"enlace {'OK -> ' + str(exe.relative_to(ROOT)) if r.returncode == 0 else 'FALLO'}; {len(errs)} lineas de error")
+    for l in errs[:15]: print("  " + l[-200:])
+    return r.returncode
 
 
 main()

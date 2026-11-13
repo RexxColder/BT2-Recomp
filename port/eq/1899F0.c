@@ -11,14 +11,14 @@ void func_0018A9C0(s64 arg0, s64 arg1, s64 arg2, s64 arg3, s64 arg4, s32 arg5, s
 #define RB(v) __asm__ volatile("mov %%rbx,%0" : "=r"(v))
 #define RB13(v) __asm__ volatile("mov %%r13,%0" : "=r"(v))
 #define CHKREG(name, a, b, c, d) do { if ((a) != (b) || (c) != (d)) \
-    fprintf(stderr, "1899F0: %s clobbered rbx %lx->%lx r13 %lx->%lx\n", name, (a), (b), (c), (d)); } while (0)
+    fprintf(stderr, "1899F0: %s clobbered rbx %llx->%llx r13 %llx->%llx\n", name, (a), (b), (c), (d)); } while (0)
 
 void func_001899F0(u8 *arg0, s32 arg1, s32 arg2, s32 arg3, f32 farg0, f32 farg1) {
     u8 sp[0xA0];
     u8 *s0;
     u8 *s1;
     u8 *e;
-    unsigned long rb0, rb1, r130, r131;
+    unsigned long long rb0, rb1, r130, r131; /* 64 bits también en Windows (long es de 32) */
     s32 s4;
     s32 s5;
     s32 s6;

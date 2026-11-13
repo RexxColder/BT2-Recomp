@@ -137,6 +137,15 @@ CLANG_FLAGS = ["-O2", "-m64", "-fno-pic", "-fno-pie", "-fms-extensions", "-fno-s
                "-fno-stack-protector", "-w", "-Wno-int-conversion", "-Wno-incompatible-pointer-types",
                "-Wno-incompatible-function-pointer-types", "-Wno-implicit-function-declaration", "-Wno-implicit-int"]
 
+# BT2_TARGET=win: el C del juego para el PE de Windows (mingw-w64; ver port/full/win/ y port/tools/link_full.py).
+# -mno-ms-bitfields: los structs del juego con bitfields quedan con el layout de GCC/PS2, no el de MSVC.
+WIN = os.environ.get("BT2_TARGET") == "win"
+# (en las tres etapas: preprocesado, ptr32.py y compilación; sin __CRT__NO_INLINE los headers de mingw definen
+# __debugbreak y otros builtins inline, y el layout que mide ptr32.py tiene que ser el mismo que el del compilador)
+TARGET_FLAGS = ["--target=x86_64-w64-mingw32", "-fms-extensions", "-mno-ms-bitfields", "-D__CRT__NO_INLINE"] if WIN else []
+if WIN:
+    CLANG_FLAGS = TARGET_FLAGS + CLANG_FLAGS
+
 if os.environ.get("BT2_TRACE_BUILD"):   # traza de llamadas: port/full/plat_trace.c
     CLANG_FLAGS = CLANG_FLAGS + ["-finstrument-functions"]
 
@@ -185,7 +194,8 @@ def compile_c_via_ir(c, o, clang_err):
                                            clang_err + "\nirfix: " + r.stderr.strip())
     # -relocation-model=static: the game's globals are absolute symbols at their PS2 addresses (native_syms.ld),
     # which only works without PIC.
-    r = subprocess.run(["llc", "-O2", "-relocation-model=static", "-filetype=obj", str(fixed), "-o", str(o)],
+    r = subprocess.run(["llc", "-O2", "-relocation-model=static", "-filetype=obj"]
+                       + (["-mtriple=x86_64-w64-windows-gnu"] if WIN else []) + [str(fixed), "-o", str(o)],
                        capture_output=True, text=True)
     if r.returncode:
         return subprocess.CompletedProcess(r.args, r.returncode, r.stdout,

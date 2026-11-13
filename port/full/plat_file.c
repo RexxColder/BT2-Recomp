@@ -267,7 +267,11 @@ s32 sceLseek(s32 fd, s32 off, s32 whence) {
 extern u32 full_native_to_ps2(uintptr_t p);
 s32 sceRead(s32 fd, u32 buf, s32 size) {
     size_t got;
-    if (buf >= 0x40000000u) { u32 a = full_native_to_ps2(buf); if (a) buf = a; }
+    /* `MainMenu_StartBallLoops` (y otros `extern u8 Funcion[]`) llega como puntero a la funcion NATIVA. En Linux el
+       texto cae en 0x40000000+, pero en el PE de Windows cae en 0x02100000+ (justo arriba de la RAM del PS2) y un
+       umbral no lo ve: se leia el overlay SOBRE .text. Se consulta siempre la tabla: una direccion PS2 valida nunca
+       coincide con una funcion nativa. */
+    { u32 a = full_native_to_ps2(buf); if (a) buf = a; }
     if (fd < 3 || fd >= MAXFD || !sFd[fd]) return -1;
     got = fread((void *)(uintptr_t)buf, 1, (size_t)size, sFd[fd]);
     if (buf < OVL_HI && buf + got > OVL_LO) full_patch_range(buf, buf + (u32)got);

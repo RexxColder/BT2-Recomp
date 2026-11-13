@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT / "port/tools"))
 import gen_native as G  # noqa: E402
 
 TRACE = bool(os.environ.get("BT2_TRACE_BUILD"))   # build instrumentado (port/full/plat_trace.c), directorios aparte
-OUT = ROOT / ("port/build/gen/full_trace" if TRACE else "port/build/gen/full")
+OUT = ROOT / ("port/build/gen/full_trace" if TRACE else "port/build/gen/win" if G.WIN else "port/build/gen/full")
 DEF_RE = re.compile(r"^(?!static\b)[A-Za-z_][\w \t\*]*?\b(\w+)\s*\([^;{}]*\)\s*\{", re.M)
 
 
@@ -98,12 +98,14 @@ def build(path):
     # esperar (2026-10-13, etapa 4: Dma_WaitCond / Dma_WaitVu1 de src/sys/dma_28B290.c)
     text = re.sub(r'__asm__\s+volatile\s*\(\s*"\.set noreorder\\n"\s*"0:\\n"(?:\s*"[^"]*")*?\s*"bc[02][ft] 0b\\n"(?:\s*"[^"]*")*?\s*\)\s*;',
                   "/* espera de hardware omitida en el host */", text)
+    if G.WIN:   # COFF no tiene .type (directiva ELF): los stubs de salto de src/auto la traen escrita
+        text = re.sub(r'\\n\s*\.type\s+[^,"\\]+,\s*@function', "", text)
     src.write_text(text)
-    r = subprocess.run(["clang", "-E", "-m64", "-I", str(ROOT / "include"), "-include", str(G.COMPAT),
+    r = subprocess.run(["clang", "-E", *G.TARGET_FLAGS, "-m64", "-I", str(ROOT / "include"), "-include", str(G.COMPAT),
                         "-D__ptr32=", "-D__uptr=", str(src), "-o", str(pre)], capture_output=True, text=True)
     if r.returncode:
         return str(rel), "preprocess", (r.stderr.strip().splitlines() or ["?"])[-1][:160]
-    r = subprocess.run([sys.executable, str(ROOT / "port/tools/ptr32.py"), str(pre), "-m64", "-fms-extensions", "-w",
+    r = subprocess.run([sys.executable, str(ROOT / "port/tools/ptr32.py"), str(pre), *G.TARGET_FLAGS, "-m64", "-fms-extensions", "-w",
                         "-Wno-int-conversion", "-Wno-incompatible-pointer-types",
                         "-Wno-incompatible-function-pointer-types", "-Wno-implicit-function-declaration",
                         "-Wno-implicit-int"], capture_output=True, text=True)

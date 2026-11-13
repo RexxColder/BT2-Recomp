@@ -22,6 +22,17 @@
 #include <cstring>
 #include <vector>
 
+/* Texto nativo del port: Linux lo enlaza en 0x40000000 (-Ttext-segment); el PE de Windows lo pone en 0x2100000
+   (--section-start=.text) y termina en etext, que define el enlazador de mingw. */
+#ifdef _WIN32
+extern "C" char etext[];
+#define BT2_NATIVE_TEXT_LO 0x2100000u
+#define BT2_NATIVE_TEXT_HI ((uint32_t)(uintptr_t)etext)
+#else
+#define BT2_NATIVE_TEXT_LO 0x40000000u
+#define BT2_NATIVE_TEXT_HI 0x44000000u
+#endif
+
 extern "C" {
 typedef struct { uint32_t addr; void (*fn)(void); } FullFunc;
 extern const FullFunc full_funcs[];
@@ -114,7 +125,7 @@ void invoke(R5900Context *ctx, uint32_t pc) {
         if (g_trace) std::fprintf(stderr, "  [recomp->nativo] 0x%08X(a0=%x a1=%x a2=%x) -> v0=0x%x\n", pc, getRegU32(ctx, 4), getRegU32(ctx, 5), getRegU32(ctx, 6), getRegU32(ctx, 2));
         return;
     }
-    if (pc >= 0x40000000u && pc < 0x44000000u) {   // puntero a funcion NATIVA guardado por el C (p. ej. un callback): se llama directo
+    if (pc >= BT2_NATIVE_TEXT_LO && pc < BT2_NATIVE_TEXT_HI) {   // puntero a funcion NATIVA guardado por el C (p. ej. un callback): se llama directo
         FullFunc tmp = {pc, reinterpret_cast<void (*)(void)>(static_cast<uintptr_t>(pc))};
         call_native(ctx, &tmp);
         return;
@@ -161,6 +172,102 @@ extern "C" void bt2_forward(R5900Context *ctx, uint32_t addr) {
     run_loop(ctx, addr, getRegU32(ctx, 31));
 }
 
+#ifdef _WIN32
+/* Puente con la ABI x64 de Microsoft: rcx/rdx/r8/r9 + xmm0-3 por POSICION, 32 bytes de shadow space y el resto en
+   la pila. Ojo: los registros f12-f15 se pasan por clase, no por posicion (falta una tabla de firmas para funciones
+   mixtas entero/float que crucen el relleno). */
+asm(R"(
+    .text
+    .globl bt2_call_native
+bt2_call_native:
+    push %rbp
+    mov %rsp, %rbp
+    push %rbx
+    push %r12
+    push %r13
+    push %r14
+    push %r15
+    sub $0x68, %rsp
+    mov %rcx, %r12          /* fn */
+    mov %rdx, %r13          /* ints */
+    mov %r8, %r14           /* fl */
+    mov %r9, %r15           /* raxOut */
+    mov 0x30(%rbp), %rbx    /* xmm0Out (5to argumento en pila) */
+    movss 0(%r14), %xmm0
+    movss 4(%r14), %xmm1
+    movss 8(%r14), %xmm2
+    movss 12(%r14), %xmm3
+    /* argumentos enteros 5..8 en la pila (shadow space de 32 bytes) */
+    mov 32(%r13), %rax
+    mov %rax, 0x20(%rsp)
+    mov 40(%r13), %rax
+    mov %rax, 0x28(%rsp)
+    mov 48(%r13), %rax
+    mov %rax, 0x30(%rsp)
+    mov 56(%r13), %rax
+    mov %rax, 0x38(%rsp)
+    /* floats 5..8 en la pila, por si la funcion tiene mas de 4 */
+    movss 16(%r14), %xmm4
+    movss %xmm4, 0x40(%rsp)
+    movss 20(%r14), %xmm4
+    movss %xmm4, 0x48(%rsp)
+    movss 24(%r14), %xmm4
+    movss %xmm4, 0x50(%rsp)
+    movss 28(%r14), %xmm4
+    movss %xmm4, 0x58(%rsp)
+    mov 0(%r13), %rcx
+    mov 8(%r13), %rdx
+    mov 16(%r13), %r8
+    mov 24(%r13), %r9
+    call *%r12
+    mov %rax, (%r15)
+    movss %xmm0, (%rbx)
+    add $0x68, %rsp
+    pop %r15
+    pop %r14
+    pop %r13
+    pop %r12
+    pop %rbx
+    pop %rbp
+    ret
+
+    .globl bt2_fb_entry
+bt2_fb_entry:
+    push %rbp
+    mov %rsp, %rbp
+    sub $160, %rsp
+    /* enteros 1..4 en rcx,rdx,r8,r9; 5..8 en 0x30..0x48(%rbp) */
+    mov %rcx, 0(%rsp)
+    mov %rdx, 8(%rsp)
+    mov %r8, 16(%rsp)
+    mov %r9, 24(%rsp)
+    mov 0x30(%rbp), %rax
+    mov %rax, 32(%rsp)
+    mov 0x38(%rbp), %rax
+    mov %rax, 40(%rsp)
+    mov 0x40(%rbp), %rax
+    mov %rax, 48(%rsp)
+    mov 0x48(%rbp), %rax
+    mov %rax, 56(%rsp)
+    movss %xmm0, 64(%rsp)
+    movss %xmm1, 68(%rsp)
+    movss %xmm2, 72(%rsp)
+    movss %xmm3, 76(%rsp)
+    xorps %xmm0, %xmm0
+    movss %xmm0, 80(%rsp)
+    movss %xmm0, 84(%rsp)
+    movss %xmm0, 88(%rsp)
+    movss %xmm0, 92(%rsp)
+    mov %r11d, %ecx         /* direccion PS2 que dejo el stub */
+    mov %rsp, %rdx          /* regs: 8 enteros + 8 floats */
+    lea 128(%rsp), %r8      /* out */
+    call bt2_fb_call
+    mov 128(%rsp), %rax
+    movss 136(%rsp), %xmm0
+    leave
+    ret
+)");
+#else
 asm(R"(
     .text
     .globl bt2_call_native
@@ -243,6 +350,7 @@ bt2_fb_entry:
     ret
     .size bt2_fb_entry, .-bt2_fb_entry
 )");
+#endif
 
 // ---------------------------------------------------------------------------------------------------------------
 // PS2Runtime minimo
