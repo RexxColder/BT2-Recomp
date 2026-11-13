@@ -45,4 +45,5 @@ fi
 
 TAR="dist/BT2-linux-x86_64-$VER.tar.gz"
 tar -C dist -czf "$TAR" BT2
+(cd dist && sha256sum "$(basename "$TAR")" > SHA256SUMS)
 echo "listo: $OUT  y  $TAR ($(du -h "$TAR" | cut -f1))"
