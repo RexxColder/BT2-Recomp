@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "gs_internal.h"
+#include <sys/stat.h> /* mkdir: dumps/ */
 
 typedef union Reg {
     float f[4];
@@ -501,8 +502,8 @@ upper_done:
         static int reported;
         if (!reported++) {
             uint32_t k, lo2, hi2;
-            { FILE *fp = fopen("port/build/vu1_micro.bin", "wb"); if (fp) { fwrite(vu.micro, 1, sizeof(vu.micro), fp); fclose(fp); }
-              fp = fopen("port/build/vu1_mem.bin", "wb"); if (fp) { fwrite(vu.mem, 1, sizeof(vu.mem), fp); fclose(fp); } }
+            { FILE *fp; mkdir("dumps", 0755); fp = fopen("dumps/vu1_micro.bin", "wb"); if (fp) { fwrite(vu.micro, 1, sizeof(vu.micro), fp); fclose(fp); }
+              fp = fopen("dumps/vu1_mem.bin", "wb"); if (fp) { fwrite(vu.mem, 1, sizeof(vu.mem), fp); fclose(fp); } }
             fprintf(stderr, "vu1: progsize %u\n", sProgSize);
             { static int dumped; if (!dumped++) { extern void bt2_trace_dump(const char *why); bt2_trace_dump("vu1: program did not end"); } } /* trace of what built the bad batch */
             fprintf(stderr, "vu1: program at %u did not end; pc %u, vi:", start, vu.pc);

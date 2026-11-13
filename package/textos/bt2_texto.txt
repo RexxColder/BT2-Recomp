@@ -1,0 +1,69 @@
+# F5: textos del dialogo de memory card (port/full/plat_text.c).
+# Una linea por mensaje:   MSG=texto
+#   - MSG es el numero de mensaje del dialogo (NO el indice de la tabla).
+#   - Para el salto de linea escribi \n (barra invertida y n).
+#   - Se envuelve solo a 429 px / 5 lineas; si no entra en el lugar del original,
+#     ese MSG se ignora y queda el texto del juego.
+#   - Las lineas que empiezan con # son comentarios.
+#   - Sin "(PS2)": viene asi por defecto (BT2_TEXTO_PS2=1 para que vuelva).
+#
+# La memory card del port es un archivo/folder de save, asi que los mensajes
+# hablan de "save file". Los titulos (0..2) no se dibujan (el titulo del panel
+# se saco en el codigo), pero quedan editados por si se usan en otra pantalla.
+
+# --- titulos del panel ---
+0=Save file
+1=Save file
+2=Save file
+
+# --- preguntas (cortas, sin el texto largo de "no saques la tarjeta") ---
+3=Start a new game?
+4=Load this save file?
+5=No save file found.
+6=Not enough space.\nContinue anyway?
+7=Save file not found.
+9=Load failed.
+11=Create save file?
+13=Save file not found.\nCreate it?
+16=Not enough space.\n75 KB required.
+17=Not enough space.\nContinue anyway?
+21=Save file exists.\nOverwrite it?
+22=Overwrite save file?
+23=Save failed.\nOverwrite anyway?
+24=Save file changed.\nOverwrite it?
+25=Load failed.\nSave may be corrupt.
+26=No save file.
+27=Save?
+28=Save game data?
+31=Save failed.
+32=Save now?
+36=Start without saving?
+37=Save settings?
+38=Delete save file?
+40=Delete failed.
+42=Reading save file...
+43=Reading save file...
+44=Save file not found.
+45=Save file is corrupted.
+47=Exit without saving?
+48=Exit?
+
+# --- estados (lo que se ve mientras trabaja) ---
+8=Loading save file
+12=Creating save file
+18=Creating save file
+29=Saving save file
+33=Checking save file
+34=Checking save file
+41=Deleting save file
+46=Checking save file
+
+# --- resultados (cortos) ---
+10=Load successful
+14=Save file created
+15=Create failed
+19=Save file created
+20=Create failed
+30=Save successful
+35=Save failed.
+39=Save file deleted

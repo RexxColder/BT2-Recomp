@@ -52,7 +52,7 @@ void usage(FILE *out)
             "  bt2-setup --play [--dest <carpeta>]\n"
             "\n"
             "Opciones:\n"
-            "  --dest <carpeta>   carpeta de datos (por defecto: <repo>/gamedata)\n"
+            "  --dest <carpeta>   carpeta de datos (por defecto: gamedata/ junto al juego)\n"
             "  --eu-iso <iso>     ISO PAL opcional: copia DATA/ZS2EU_1.AFS para el multiidioma\n"
             "  --force            vuelve a copiar todo, aunque los archivos ya estén\n"
             "  --help             esta ayuda\n"

@@ -82,3 +82,6 @@ SLES_541.64
 /staging/
 /play.sh
 /setup/ENTREGA.md
+
+# Producto armado por scripts/package.sh
+/dist/

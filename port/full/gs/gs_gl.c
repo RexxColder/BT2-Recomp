@@ -24,6 +24,7 @@ static void atexit_record_hook(FILE *f) { sRecPipe = f; atexit(rec_close); }
 #include "gs_draw.h"
 #include "shaders.h"
 #include "ui.h"
+#include <sys/stat.h> /* mkdir: dumps/ */
 
 extern int Port_AspectMilli(void);
 
@@ -1273,7 +1274,8 @@ static void frame_end(void) {
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(0, 0, sw, sh, GL_RGBA, GL_UNSIGNED_BYTE, wp);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-        snprintf(nm, sizeof(nm), "port/build/shots/window_%05u.ppm", gGsFrame);
+        mkdir("dumps", 0755); mkdir("dumps/shots", 0755);
+        snprintf(nm, sizeof(nm), "dumps/shots/window_%05u.ppm", gGsFrame);
         wf = fopen(nm, "wb");
         if (wf != NULL) {
             fprintf(wf, "P6\n%d %d\n255\n", sw, sh);
@@ -1313,7 +1315,8 @@ static void frame_end(void) {
             glPixelStorei(GL_PACK_ALIGNMENT, 1);
             glReadPixels(0, 0, w, h, aux ? GL_RED : GL_RGBA, GL_UNSIGNED_BYTE, px);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-            snprintf(name, sizeof(name), "port/build/shots/gpu_%05u.ppm", gGsFrame);
+            mkdir("dumps", 0755); mkdir("dumps/shots", 0755);
+            snprintf(name, sizeof(name), "dumps/shots/gpu_%05u.ppm", gGsFrame);
             fp = fopen(name, "wb");
             if (fp != NULL) {
                 fprintf(fp, "P6\n%d %d\n255\n", w, h);

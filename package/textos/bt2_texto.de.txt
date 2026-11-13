@@ -1,0 +1,63 @@
+# F8: Texte des Memory-Card-Dialogs auf Deutsch (Vorschlag, NICHT installiert).
+# Gleiches Format wie textos/bt2_texto.txt:  MSG=Text  mit \n für den Zeilenumbruch.
+# Gegen die Slots der Tabelle 0x550/0xFCC80 (49 Einträge) und font0 geprüft:
+#   - jeder MSG passt in seinen UTF-16-Slot;
+#   - keine Zeile über 429 px; höchstens 5 Zeilen.
+# font0 (AFS 0x542) hat Ä Ö Ü ä ö ü ß.
+#
+# --- Panel-Titel (werden nicht gezeichnet, aber übersetzt) ---
+0=Spielstand
+1=Spielstand
+2=Platz 1 und 2\n(Spielstand)
+
+# --- Fragen ---
+3=Aktuelle Einstellungen\ngehen verloren. OK?
+4=Aktuelle Einstellungen\ngehen verloren. Laden?
+5=Kein Spielstand da.
+6=Nicht genug Platz.\nTrotzdem fortfahren?
+7=Spielstand nicht gefunden.
+9=Laden fehlgeschlagen.
+11=Spielstand erstellen?
+13=Kein Spielstand.\nErstellen?
+16=Nicht genug Platz.\n75 KB nötig.
+17=Nicht genug Platz.\nTrotzdem fortfahren?
+21=Spielstand existiert.\nÜberschreiben?
+22=Spielstand überschreiben?
+23=Speichern fehlgeschlagen.\nTrotzdem überschreiben?
+24=Spielstand geändert.\nÜberschreiben?
+25=Laden fehlgeschlagen.\nSpielstand evtl. defekt.
+26=Kein Spielstand.
+27=Speichern?
+28=Spieldaten speichern?
+31=Speichern fehlgeschlagen.
+32=Jetzt speichern?
+36=Ohne Speichern starten?
+37=Einstellungen speichern?
+38=Spielstand löschen?
+40=Löschen fehlgeschlagen.
+42=Spielstand lesen...
+43=Spielstand lesen...
+44=Spielstand nicht gefunden.
+45=Spielstand ist defekt.
+47=Ohne Speichern beenden?
+48=Beenden?
+
+# --- Zustände (während der Arbeit) ---
+8=Spielstand laden
+12=Spielstand erstellen
+18=Spielstand erstellen
+29=Spielstand speichern
+33=Spielstand prüfen
+34=Spielstand prüfen
+41=Spielstand löschen
+46=Spielstand prüfen
+
+# --- Ergebnisse (kurz) ---
+10=Laden erfolgreich
+14=Spielstand erstellt
+15=Erstellen fehlgeschlagen
+19=Spielstand erstellt
+20=Erstellen fehlgeschlagen
+30=Speichern erfolgreich
+35=Speichern fehlgeschlagen.
+39=Spielstand gelöscht

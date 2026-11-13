@@ -26,6 +26,7 @@ int bt2_find_game(const char *root, char *out, size_t outsz)
         snprintf(candidates[n++], 4096, "%s", env);
     }
     if (root != NULL && root[0] != '\0') {
+        snprintf(candidates[n++], 4096, "%s/BT2", root); /* producto: el juego al lado del setup */
         snprintf(candidates[n++], 4096, "%s/port/build/full/bt2full", root);
         snprintf(candidates[n++], 4096, "%s/../BT2-test/bin/bt2", root);
         snprintf(candidates[n++], 4096, "%s/BT2-test/bin/bt2", root);

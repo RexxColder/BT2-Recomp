@@ -1,0 +1,18 @@
+Dragon Ball Z: Budokai Tenkaichi 2 - port nativo a PC (Linux x86-64)
+https://github.com/RexxColder/BT2-Recomp
+
+Necesitás tu propia copia del juego: la ISO NTSC-U (SLUS-21441). Este paquete no trae datos del juego.
+
+1) Instalar:  ./BT2-setup   -> elegí (o arrastrá) tu ISO. Copia los datos a gamedata/.
+               Opcional: la ISO PAL para textos y menús en ES/FR/DE/IT.
+2) Jugar:     ./BT2
+3) Ajustes:   F1 en el juego (vídeo, efectos, audio, controles).
+
+Carpetas
+  gamedata/   los datos de tu ISO (los pone BT2-setup)
+  saves/      tus memory cards
+  textos/     textos editables del port (bt2_texto.<idioma>.txt)
+  logs/       BT2.log de la última corrida y BT2.anterior.log; se pisan solos
+  dumps/      sólo aparece si activás capturas o volcados de depuración
+
+Si algo falla (cierre, cuelgue, pantalla rara): mandá logs/BT2.log junto con el reporte.

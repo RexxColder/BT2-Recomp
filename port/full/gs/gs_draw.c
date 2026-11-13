@@ -1362,9 +1362,10 @@ int GsGpu_Init(void) {
     gsDraws = malloc(MAX_DRAWS * sizeof(GsDraw));
     /* BT3_GPU_API=vulkan|gl|auto picks the back end. Both are complete renderers of the same list, so a
        picture from either should be the same (see the frame-by-frame compare in the port's docs). */
-    if (api == NULL || strcmp(api, "auto") == 0 || strcmp(api, "vk") == 0 || strcmp(api, "vulkan") == 0) {
+    /* Por defecto OpenGL (el que más se probó; README). BT3_GPU_API=vulkan elige el otro. */
+    if (api != NULL && (strcmp(api, "auto") == 0 || strcmp(api, "vk") == 0 || strcmp(api, "vulkan") == 0)) {
         sb = &sVulkanBackend;
-    } else if (strcmp(api, "gl") == 0 || strcmp(api, "opengl") == 0) {
+    } else if (api == NULL || strcmp(api, "gl") == 0 || strcmp(api, "opengl") == 0) {
         sb = &sGlBackend;
     } else {
         fprintf(stderr, "bt3: unknown BT3_GPU_API=%s (try vulkan, gl or auto)\n", api);

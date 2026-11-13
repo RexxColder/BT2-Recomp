@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <ucontext.h>
 #include <time.h>
@@ -324,14 +325,56 @@ static void on_dump(int sig) {
     fprintf(stderr, "bt2full: RAM volcada en %s\n", fn);
 }
 
+/* Producto (carpeta BT2/ con el ejecutable, gamedata/, saves/ y textos/ al lado): todas las rutas del juego son
+   relativas al directorio actual, así que con doble clic o desde otra carpeta no encontraría nada. Si acá no hay
+   gamedata/ pero al lado del ejecutable sí, se para ahí. Correr desde una carpeta con gamedata/ (BT2-test) no cambia. */
+static void enter_exe_dir(void) {
+    char exe[4096], *slash;
+    ssize_t n;
+    if (access("gamedata", F_OK) == 0) { return; }
+    n = readlink("/proc/self/exe", exe, sizeof exe - 1);
+    if (n <= 0) { return; }
+    exe[n] = '\0';
+    slash = strrchr(exe, '/');
+    if (slash == NULL) { return; }
+    *slash = '\0';
+    if (chdir(exe) == 0 && access("gamedata", F_OK) != 0) {
+        fprintf(stderr, "bt2full: no hay gamedata/ en %s: instalá el juego con BT2-setup\n", exe);
+    }
+}
+
+/* Log por defecto (producto): stdout/stderr van a logs/BT2.log, que se pisa en cada corrida; la anterior queda como
+   logs/BT2.anterior.log. Nada más se acumula. Un crash (on_segv) queda en ese archivo: es lo que el jugador manda
+   al reportar. No se toca si la salida ya va a un archivo o a un pipe (jugar.sh y las pruebas la redirigen ellas),
+   ni con BT2_LOGFILE=0. */
+static void open_log(void) {
+    struct stat st;
+    const char *e = getenv("BT2_LOGFILE");
+    if (e != NULL && strcmp(e, "0") == 0) { return; }
+    if (fstat(2, &st) == 0 && (S_ISREG(st.st_mode) || S_ISFIFO(st.st_mode))) { return; }
+    mkdir("logs", 0755);
+    rename("logs/BT2.log", "logs/BT2.anterior.log");
+    if (isatty(2)) { fprintf(stderr, "bt2: log en logs/BT2.log (BT2_LOGFILE=0 para verlo en la terminal)\n"); }
+    if (freopen("logs/BT2.log", "w", stderr) == NULL) { return; }
+    setvbuf(stderr, NULL, _IONBF, 0);
+    dup2(2, 1);
+    {
+        time_t t = time(NULL);
+        fprintf(stderr, "bt2: %s", ctime(&t));
+    }
+}
+
 int main(int argc, char **argv) {
     static char altstack[1 << 16];
     stack_t ss = {altstack, 0, sizeof(altstack)};
     struct sigaction sa;
     size_t stksz = 8 << 20;   /* el relleno recompilado anida muchas llamadas C++ */
     void *stk;
-    const char *elf = getenv("BT2_ELF") ? getenv("BT2_ELF") : "gamedata/SLUS_214.41";
+    const char *elf;
     (void)argc; (void)argv;
+    enter_exe_dir();
+    open_log();
+    elf = getenv("BT2_ELF") ? getenv("BT2_ELF") : "gamedata/SLUS_214.41";
     sigaltstack(&ss, NULL);
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = on_segv;

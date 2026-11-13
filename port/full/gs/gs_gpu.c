@@ -23,6 +23,7 @@
 #include "gs_draw.h"
 #include "shaders.h" /* generated: kGsVertSpv, kGsFragSpv */
 #include "ui.h"
+#include <sys/stat.h> /* mkdir: dumps/ */
 
 extern int Port_Setting(const char *name, int def); /* plat_settings.c: the saved settings */
 extern int Port_AspectMilli(void);
@@ -1117,7 +1118,8 @@ static void vk_frame_end(void) {
             SDL_WaitForGPUFences(sDev, true, &fence, 1);
             SDL_ReleaseGPUFence(sDev, fence);
             px = SDL_MapGPUTransferBuffer(sDev, tb, false);
-            snprintf(name, sizeof(name), "port/build/shots/gpu_%05u.ppm", gGsFrame);
+            mkdir("dumps", 0755); mkdir("dumps/shots", 0755);
+            snprintf(name, sizeof(name), "dumps/shots/gpu_%05u.ppm", gGsFrame);
             fp = fopen(name, "wb");
             if (fp != NULL && px != NULL) {
                 fprintf(fp, "P6\n%u %u\n255\n", w, h);

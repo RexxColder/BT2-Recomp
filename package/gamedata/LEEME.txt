@@ -1,0 +1,1 @@
+Acá van los datos de tu copia del juego. No los copies a mano: usá ./BT2-setup con tu ISO.

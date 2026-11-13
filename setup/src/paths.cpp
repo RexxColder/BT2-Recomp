@@ -59,6 +59,13 @@ std::string bt2_root()
         candidates.push_back(bt2_absolute(env));
     }
     std::string exe = bt2_exe_dir();
+    /* Producto: BT2-setup al lado del juego (BT2/BT2, BT2/BT2-setup, BT2/gamedata). Esa carpeta es la raíz. */
+    {
+        char resolved[PATH_MAX];
+        if (realpath(exe.c_str(), resolved) != nullptr && is_file(std::string(resolved) + "/BT2")) {
+            return std::string(resolved);
+        }
+    }
     candidates.push_back(exe);
     candidates.push_back(exe + "..");
     candidates.push_back(exe + "../..");

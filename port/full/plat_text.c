@@ -132,7 +132,7 @@ int Port_Idioma(void) {
 
 static void leer_archivo(void) {
     static const char *kTextoIdioma[5] = {
-        "bt2_texto.txt",
+        "textos/bt2_texto.txt",   /* producto: todo en textos/ (bt2_texto.txt suelto sigue valiendo, abajo) */
         "textos/bt2_texto.es.txt",
         "textos/bt2_texto.fr.txt",
         "textos/bt2_texto.de.txt",
@@ -156,7 +156,7 @@ static void leer_archivo(void) {
         ruta = kTextoIdioma[lang];
     }
     fp = fopen(ruta, "r");
-    if (fp == NULL && lang != 0) {
+    if (fp == NULL && ruta == kTextoIdioma[lang]) {
         fprintf(stderr, "F8 idioma %d: no existe '%s'; fallback a bt2_texto.txt\n", lang, ruta);
         ruta = "bt2_texto.txt";
         fp = fopen(ruta, "r");

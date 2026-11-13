@@ -27,6 +27,7 @@
 #include <time.h>
 #include "gs_internal.h"
 #include <SDL3/SDL.h>
+#include <sys/stat.h> /* mkdir: dumps/ */
 int GsDraw_TargetGet(uint32_t fbp, int create);
 
 #define SURF_W 1024
@@ -1129,7 +1130,8 @@ static void screenshot(void) {
         uint32_t fbw = (fr >> 16) & 0x3F, fpsm = (fr >> 24) & 0x3F;
 
         shown = fr;
-        snprintf(name, sizeof(name), "port/build/shots2/frame_%05u.ppm", sFrame);
+        mkdir("dumps", 0755); mkdir("dumps/shots2", 0755);
+        snprintf(name, sizeof(name), "dumps/shots2/frame_%05u.ppm", sFrame);
         fp = fopen(name, "wb");
         if (fp != NULL) {
             { int w_ = (int)(fbw ? fbw : 8) * 64; if (w_ > 512) w_ = 512; fprintf(fp, "P6\n%d 448\n255\n", w_); }
@@ -1378,7 +1380,8 @@ static const char *gs_mode(void) {
     const char *m = getenv("BT3_GS");
 
     if (m == NULL) {
-        return gPortDataStripped == 1 ? "gpu" : NULL;
+        (void)gPortDataStripped;
+        return "gpu"; /* por defecto, con ventana (el producto se abre con doble clic); BT3_GS=none la apaga */
     }
     return strcmp(m, "none") == 0 || strcmp(m, "off") == 0 || strcmp(m, "0") == 0 ? NULL : m;
 }
