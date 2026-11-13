@@ -14,6 +14,9 @@ done
 export BT2_SETUP_ROOT="$DATA" BT2_GAME="$HERE/usr/bin/BT2"
 if [ "${1:-}" = "--setup" ] || [ ! -f gamedata/SLUS_214.41 ]; then
     [ "${1:-}" = "--setup" ] && shift
-    exec "$HERE/usr/bin/BT2-setup" "$@"
+    # "Jugar" en el setup sale con 42 y el juego se lanza desde acá: si lo lanzara el setup y éste se cerrara, la
+    # imagen se desmontaría con el juego todavía cargando (SIGBUS)
+    BT2_SETUP_PLAY_EXIT=42 "$HERE/usr/bin/BT2-setup" "$@"
+    [ $? -eq 42 ] || exit 0
 fi
 exec "$HERE/usr/bin/BT2" "$@"

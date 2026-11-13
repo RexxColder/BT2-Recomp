@@ -111,6 +111,20 @@ struct DialogState {
 DialogState gDialog;
 
 bool gQuit = false;
+int gExitCode = 0;
+
+/* AppImage: el setup vive en la imagen montada por AppRun. Si lanza el juego y se cierra, AppRun termina, la imagen
+   se desmonta y el juego muere al cargar sus librerías (SIGBUS en ld.so). Con BT2_SETUP_PLAY_EXIT, "Jugar" sale con
+   ese código y AppRun ejecuta el juego él mismo. */
+bool play_from_launcher()
+{
+    const char *e = getenv("BT2_SETUP_PLAY_EXIT");
+    if (e == nullptr || e[0] == '\0') {
+        return false;
+    }
+    gExitCode = atoi(e);
+    return true;
+}
 Uint64 gStartTicks = 0;
 int gFrameNo = 0;
 Page gShotPage = (Page)-1;
@@ -734,7 +748,9 @@ void page_done()
     ImGui::SameLine();
     if (big_button("Jugar", true, have_game, 140.0f)) {
         char err[1024];
-        if (bt2_launch_game(gRoot.c_str(), gDest, err, sizeof(err)) == 0) {
+        if (play_from_launcher()) {
+            gQuit = true;
+        } else if (bt2_launch_game(gRoot.c_str(), gDest, err, sizeof(err)) == 0) {
             gQuit = true;
         } else {
             gPlayError = err;
@@ -997,7 +1013,9 @@ int bt2_gui_run(const std::string &root, const std::string &initial_iso, const s
         if (autoplay != nullptr && autoplay[0] == '1' && gPage == PAGE_DONE && !autoplay_done) {
             autoplay_done = true;
             char err[1024];
-            if (bt2_launch_game(gRoot.c_str(), gDest, err, sizeof(err)) == 0) {
+            if (play_from_launcher()) {
+                gQuit = true;
+            } else if (bt2_launch_game(gRoot.c_str(), gDest, err, sizeof(err)) == 0) {
                 gQuit = true;
             } else {
                 gPlayError = err;
@@ -1045,5 +1063,5 @@ int bt2_gui_run(const std::string &root, const std::string &initial_iso, const s
     SDL_GL_DestroyContext(gGl);
     SDL_DestroyWindow(gWindow);
     SDL_Quit();
-    return 0;
+    return gExitCode;
 }
