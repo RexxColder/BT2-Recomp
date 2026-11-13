@@ -69,7 +69,24 @@ static unsigned long long sPerFight, sPerMenu;
 static int sPerInit;
 extern int Port_EnPelea(void);   /* plat_fightlog.c: 1 con la lista de los dos luchadores montada */
 static unsigned long long period_hz(double hz) { return hz >= 1.0 ? (unsigned long long)(1e9 / hz) : 16683350ull; }
+extern int Port_Setting(const char *name, int def);
+/* Limitador de FPS de F1 (Video): fps_menu = cuadros por segundo en menús (un vsync por cuadro) y fps_pelea = en pelea
+   (dos vsyncs por cuadro: 30 fps de pelea son 60 vsyncs, el ritmo original). Se lee en cada vsync, así que el cambio
+   se nota en el momento. Las variables BT2_FPS* mandan si están puestas. */
+static int fps_from_settings(int fight) {
+    int v = fight ? Port_Setting("fps_pelea", 30) : Port_Setting("fps_menu", 60);
+    if (fight) { v = v < 15 ? 15 : v > 60 ? 60 : v; return v * 2; }
+    return v < 30 ? 30 : v > 120 ? 120 : v;
+}
 static unsigned long long vblank_period(void) {
+    if (sPerInit == 2) {   /* sin variables: el limitador de F1 */
+        int hz = fps_from_settings(Port_EnPelea());
+        return hz == 60 ? 16683350ull : period_hz((double)hz); /* 60 = 59,94 Hz, el de la PS2 */
+    }
+    if (!sPerInit && getenv("BT2_FPS") == NULL && getenv("BT2_FPS_FIGHT") == NULL && getenv("BT2_FPS_MENU") == NULL) {
+        sPerInit = 2;
+        return vblank_period();
+    }
     if (!sPerInit) {   /* BT2_FPS=n: ritmo de vsync de los dos; BT2_FPS_FIGHT / BT2_FPS_MENU lo separan */
         const char *a = getenv("BT2_FPS"), *f = getenv("BT2_FPS_FIGHT"), *m = getenv("BT2_FPS_MENU");
         double ha = a ? atof(a) : 0.0, hf = f ? atof(f) : 0.0, hm = m ? atof(m) : 0.0;

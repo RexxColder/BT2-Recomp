@@ -1356,6 +1356,10 @@ int GsGpu_Init(void) {
     const char *api = getenv("BT3_GPU_API");
     GsBackend *sb;
 
+    if (api == NULL) { /* el selector de F1 (Video), guardado: 0 = OpenGL, 1 = Vulkan; se aplica al arrancar */
+        api = Port_Setting("renderer", 0) == 1 ? "vulkan" : "gl";
+    }
+
     gsScale = getenv("BT3_SCALE") != NULL ? atoi(getenv("BT3_SCALE")) : Port_Setting("scale", 2);
     gsScale = gsScale < 1 ? 1 : gsScale > 8 ? 8 : gsScale;
     gsPendingScale = 0;

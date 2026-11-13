@@ -365,6 +365,34 @@ static void video_tab(PortVideo &v) {
     }
     ImGui::SetItemTooltip("Takes effect the next time the game starts.");
     SDL_free(displays);
+    {   /* renderer: se guarda y se aplica al arrancar (gs_draw.c, GsGpu_Init) */
+        static const char *apis[] = {"OpenGL", "Vulkan"};
+        int api = Port_Setting("renderer", 0) == 1 ? 1 : 0;
+        if (ImGui::BeginCombo("Renderer", apis[api])) {
+            for (int i = 0; i < 2; i++) {
+                if (ImGui::Selectable(apis[i], i == api)) { Port_SettingSave("renderer", i); Port_SettingsWrite(); }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SetItemTooltip("Takes effect the next time the game starts. OpenGL is the most tested.");
+    }
+    {   /* limitador de FPS: plat_gs.c lo lee en cada vsync (se nota en el momento) */
+        int menu = Port_Setting("fps_menu", 60), fight = Port_Setting("fps_pelea", 30);
+        if (getenv("BT2_FPS") || getenv("BT2_FPS_MENU") || getenv("BT2_FPS_FIGHT")) {
+            ImGui::TextDisabled("FPS limit: set by BT2_FPS* in the environment");
+        } else {
+            if (ImGui::SliderInt("FPS limit (menus)", &menu, 30, 120, "%d fps", ImGuiSliderFlags_AlwaysClamp)) {
+                Port_SettingSave("fps_menu", menu);
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) { Port_SettingsWrite(); }
+            ImGui::SetItemTooltip("Menus and screens outside fights. 60 is the original speed.");
+            if (ImGui::SliderInt("FPS limit (fights)", &fight, 15, 60, "%d fps", ImGuiSliderFlags_AlwaysClamp)) {
+                Port_SettingSave("fps_pelea", fight);
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) { Port_SettingsWrite(); }
+            ImGui::SetItemTooltip("Fights. 30 is the original speed; higher makes the whole fight faster.");
+        }
+    }
     ImGui::Spacing();
     if (v.texPackCount > 0) {
         bool on = v.texPack != 0;
